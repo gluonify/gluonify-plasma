@@ -1,0 +1,13 @@
+# Build et dépendances
+target/
+node_modules/
+.quinoa/
+dist/
+*.class
+*.log
+
+# Environnement
+.idea/
+.vscode/
+.DS_Store
+data/

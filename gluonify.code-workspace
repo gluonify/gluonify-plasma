@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{ "name": "Plasma - parent POM + SDK", "path": "." },
+		{ "name": "Higgs - Control plane", "path": "../gluonify-higgs" },
+		{ "name": "Strange - Agent", "path": "../gluonify-strange" },
+		{ "name": "Rup - Storage", "path": "../gluonify-rup" },
+		{ "name": "Bottom - FUSE daemon (C)", "path": "../gluonify-bottom" },
+		{ "name": "Gdown - Graph DB", "path": "../gluonify-gdown" },
+		{ "name": "Top - Config & secrets", "path": "../gluonify-top" },
+		{ "name": "Charm - Identity provider", "path": "../gluonify-charm" },
+		{ "name": "Bup - Builder", "path": "../gluonify-bup" },
+		{ "name": "Probe - Test app", "path": "../gluonify-probe" },
+		{ "name": "Chamber - E2E tests & installer", "path": "../gluonify-chamber" },
+		{ "name": "Codex - Docs & architecture", "path": "../gluonify-codex" }
+	]
+}
