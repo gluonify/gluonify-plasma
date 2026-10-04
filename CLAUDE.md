@@ -43,7 +43,7 @@ Nommage : groupId `io.gluonify.<x>` = package Java racine, artifactId `gluonify-
 
 ## Conventions de travail
 - Documentation et commentaires en **français** ; messages de commit sobres, terminés par `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
-- Ne pas pousser sans demande explicite ; ne jamais modifier `gluonify-gdown`.
+- **Commit et push après chaque passe de tests réussie** (tests du dépôt modifié ; messages sobres) ; jamais de push si un test échoue ; ne jamais modifier `gluonify-gdown`.
 - Avant de dire qu'un comportement fonctionne : le vérifier par un e2e réel (les tests unitaires ne voient pas les problèmes natifs).
 
 ## État et suite
