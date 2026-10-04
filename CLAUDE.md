@@ -28,7 +28,7 @@ Nommage : groupId `io.gluonify.<x>` = package Java racine, artifactId `gluonify-
 - **Ordre de build** : `gluonify-plasma` d'abord (`mvn install`, installe parent + SDK dans `~/.m2`), puis les autres (`mvn package`, `-Pnative` pour le natif).
 - Natifs par Docker : `docker build --build-context plasma=../gluonify-plasma --target out --output type=local,dest=dist -f Dockerfile.build .` dans chaque dépôt ; tous à la fois : `gluonify-chamber/bin/build-all.sh <dist>` (gdown : variable `GDOWN_DIR`).
 - Tests de bout en bout (Docker, conteneurs Debian 13 + systemd) depuis `gluonify-chamber` : `scripts/e2e-stack.sh <dist> <dist>` (73 contrôles), `e2e-stack-ha.sh` (19), `e2e-store.sh` (42), `e2e-vfs.sh` (28), `e2e-locks.sh` (18), `e2e-recover.sh` (14), `e2e-ingress.sh` (10) ; `smoke-x86_64.sh` pour x86_64 sous émulation.
-- Tests unitaires de référence : plasma 21, higgs 132, strange 98, rup 14, bup 60, top 74, charm 25, probe 2.
+- Tests unitaires de référence : plasma 21, higgs 154, strange 98, rup 14, bup 60, top 74, charm 25, probe 2.
 
 ## Pièges connus (à ne pas redécouvrir)
 - **Natif** : tout type (dé)sérialisé par Jackson doit figurer dans la liste de réflexion du composant (`Reflection.java` et `META-INF/native-image/io.gluonify.<x>/…/reachability-metadata.json`) ; un oubli ne casse qu'en natif (état Raft non relu au redémarrage). `HttpClient` créé paresseusement dans les beans injectés dans des filtres ; `Boolean` et non `boolean` dans les instantanés Raft.
