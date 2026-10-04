@@ -8,6 +8,8 @@
 		{ "name": "Gdown - Graph DB", "path": "../gluonify-gdown" },
 		{ "name": "Top - Config & secrets", "path": "../gluonify-top" },
 		{ "name": "Charm - Identity provider", "path": "../gluonify-charm" },
+		{ "name": "Photon - API management", "path": "../gluonify-photon" },
+		{ "name": "Field - Static content server", "path": "../gluonify-field" },
 		{ "name": "Bup - Builder", "path": "../gluonify-bup" },
 		{ "name": "Probe - Test app", "path": "../gluonify-probe" },
 		{ "name": "Chamber - E2E tests & installer", "path": "../gluonify-chamber" },
