@@ -15,6 +15,7 @@ Les documents d'architecture et d'exploitation sont dans **gluonify-codex** (`AR
 | gluonify-top | vault : configuration et secrets par application, interface web Vue | quarkus-vault |
 | gluonify-charm | émetteur de jetons JWT (ES256), OIDC minimal | quarkus-id |
 | gluonify-photon | passerelle d'API : domaines personnalisés, routage par chemin, contenu statique, webhooks, transformations (squelette ; spécification dans gluonify-codex/api-management.md) | nouveau |
+| gluonify-field | serveur de contenu statique (en-tête X-Gluonify-Site, lit /distributed/std/<uuid>/www ; spécification dans gluonify-codex/api-management.md) | nouveau |
 | gluonify-bup | builder : clone Git, build natif, publication, déploiement | quarkus-paas-builder |
 | gluonify-probe | application de test (cible du builder) | quarkus-app-blank |
 | gluonify-chamber | scripts e2e, installateur Debian, unités systemd, `bin/build-all.sh` | quarkus-paas/scripts, node-image |
@@ -27,8 +28,8 @@ Nommage : groupId `io.gluonify.<x>` = package Java racine, artifactId `gluonify-
 - Java 25, Quarkus 4.0.0.Beta1, GraalVM natif partout (NIK 25), Jackson 3 (`tools.jackson`), WebSockets Next = transport standard. `export JAVA_HOME=$(/usr/libexec/java_home -v 25)`.
 - **Ordre de build** : `gluonify-plasma` d'abord (`mvn install`, installe parent + SDK dans `~/.m2`), puis les autres (`mvn package`, `-Pnative` pour le natif).
 - Natifs par Docker : `docker build --build-context plasma=../gluonify-plasma --target out --output type=local,dest=dist -f Dockerfile.build .` dans chaque dépôt ; tous à la fois : `gluonify-chamber/bin/build-all.sh <dist>` (gdown : variable `GDOWN_DIR`).
-- Tests de bout en bout (Docker, conteneurs Debian 13 + systemd) depuis `gluonify-chamber` : `scripts/e2e-stack.sh <dist> <dist>` (73 contrôles), `e2e-stack-ha.sh` (19), `e2e-store.sh` (42), `e2e-vfs.sh` (28), `e2e-locks.sh` (18), `e2e-recover.sh` (14), `e2e-ingress.sh` (10) ; `smoke-x86_64.sh` pour x86_64 sous émulation.
-- Tests unitaires de référence : plasma 21, higgs 154, strange 98, rup 14, bup 60, top 74, charm 25, probe 2.
+- Tests de bout en bout (Docker, conteneurs Debian 13 + systemd) depuis `gluonify-chamber` : `scripts/e2e-stack.sh <dist> <dist>` (73 contrôles), `e2e-stack-ha.sh` (19), `e2e-store.sh` (42), `e2e-vfs.sh` (28), `e2e-locks.sh` (18), `e2e-recover.sh` (14), `e2e-ingress.sh` (10), `e2e-domains.sh` (15 : domaines personnalisés, ACME HTTP-01/DNS-01 contre Pebble) ; `smoke-x86_64.sh` pour x86_64 sous émulation.
+- Tests unitaires de référence : plasma 21, higgs 154, field 13, strange 98, rup 14, bup 60, top 74, charm 25, probe 2.
 
 ## Pièges connus (à ne pas redécouvrir)
 - **Natif** : tout type (dé)sérialisé par Jackson doit figurer dans la liste de réflexion du composant (`Reflection.java` et `META-INF/native-image/io.gluonify.<x>/…/reachability-metadata.json`) ; un oubli ne casse qu'en natif (état Raft non relu au redémarrage). `HttpClient` créé paresseusement dans les beans injectés dans des filtres ; `Boolean` et non `boolean` dans les instantanés Raft.
@@ -48,7 +49,7 @@ Nommage : groupId `io.gluonify.<x>` = package Java racine, artifactId `gluonify-
 
 ## État et suite
 - Migration vers l'espace GitHub `gluonify` faite (commit unique par dépôt, sans historique). Les anciens dépôts `quarkus-*` (dans `/Users/a/dev`) sont intacts, à archiver ; l'outil de migration est dans `/Users/a/dev/gluonify-migration` (hors dépôts).
-- En cours : `gluonify-photon` (squelette créé ; passerelle d'API : domaines personnalisés, routage par chemin, site statique, boîte à webhooks, transformations ; cadrage dans `quarkus-paas/api-management.md`, non commité) ; ajouter photon à `branding.md` et au README du codex.
+- En cours : `gluonify-photon` (passerelle d'API ; spécification : `gluonify-codex/api-management.md`). Fait : modèle Domaine/Route dans l'état Raft, API `/domains`, routage par domaine et chemin dans l'ingress, certificats ACME par domaine (HTTP-01 et DNS-01 par CNAME) servis par SNI, validés par `e2e-domains.sh` contre Pebble ; `gluonify-field` sert le contenu statique (en-tête `X-Gluonify-Site`). Reste : politiques (charm, quotas, CORS, listes), exposition de gdown, webhooks, transformations, dépôt du contenu statique par les clients, repository `gluonify-photon` lui-même (aujourd'hui un squelette) ; ajouter photon et field à `branding.md`.
 - Limites documentées : pas de verrous entre nœuds sans `distributedLocks`, pas de mmap partagé entre nœuds, restauration de gdown hors ligne, x86_64 vérifié par test de fumée seulement.
 
 ## Ce dépôt (gluonify-plasma)
