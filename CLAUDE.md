@@ -16,6 +16,7 @@ Les documents d'architecture et d'exploitation sont dans **gluonify-codex** (`AR
 | gluonify-charm | émetteur de jetons JWT (ES256), OIDC minimal | quarkus-id |
 | gluonify-photon | passerelle d'API : domaines personnalisés, routage par chemin, contenu statique, webhooks, transformations (squelette ; spécification dans gluonify-codex/api-management.md) | nouveau |
 | gluonify-field | serveur de contenu statique (en-tête X-Gluonify-Site, lit /distributed/std/<uuid>/www ; spécification dans gluonify-codex/api-management.md) | nouveau |
+| gluonify-gauge | pilote pour IA : serveur MCP au-dessus des API de higgs et de bup, avec les garde-fous du client (**à construire** ; spécification dans gluonify-codex/gauge.md) | nouveau |
 | gluonify-bup | builder : clone Git, build natif, publication, déploiement | quarkus-paas-builder |
 | gluonify-probe | application de test (cible du builder) | quarkus-app-blank |
 | gluonify-chamber | scripts e2e, installateur Debian, unités systemd, `bin/build-all.sh` | quarkus-paas/scripts, node-image |
