@@ -1,6 +1,7 @@
 {
 	"folders": [
 		{ "name": "Source - Application de départ", "path": "../gluonify-source" },
+		{ "name": "Calorimeter - Observabilité", "path": "../gluonify-calorimeter" },
 		{ "name": "Plasma - parent POM + SDK", "path": "." },
 		{ "name": "Higgs - Orchestrateur", "path": "../gluonify-higgs" },
 		{ "name": "Strange - Agent", "path": "../gluonify-strange" },

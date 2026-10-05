@@ -16,8 +16,8 @@ Les documents d'architecture et d'exploitation sont dans **gluonify-codex** (`AR
 | gluonify-charm | émetteur de jetons JWT (ES256), OIDC minimal | quarkus-id |
 | gluonify-photon | passerelle d'API : domaines personnalisés, routage par chemin, contenu statique, webhooks, transformations (squelette ; spécification dans gluonify-codex/api-management.md) | nouveau |
 | gluonify-field | serveur de contenu statique (en-tête X-Gluonify-Site, lit /distributed/std/<uuid>/www ; spécification dans gluonify-codex/api-management.md) | nouveau |
-| gluonify-calorimeter | observabilité : journaux et mesures conservés, tableaux de bord, alertes (**à construire** ; spécification dans gluonify-codex/observability.md) | nouveau |
-| gluonify-source | application de départ pour les clients : service Quarkus 4 d'exemple (REST, Quinoa, Charm, Gdown, Photon), README détaillé ; dépôt local, pas encore publié (voir gluonify-codex/client-integration.md) | nouveau |
+| gluonify-calorimeter | observabilité : journaux et mesures conservés, tableaux de bord, alertes (**à construire** ; github.com/gluonify/gluonify-calorimeter, spécification dans gluonify-codex/observability.md) | nouveau |
+| gluonify-source | application de départ pour les clients : service Quarkus 4 d'exemple (REST, Quinoa, Charm, Gdown, Photon), README détaillé en cinq langues (en par défaut) ; github.com/gluonify/gluonify-source (voir gluonify-codex/client-integration.md) | nouveau |
 | gluonify-gauge | pilote pour IA : serveur MCP au-dessus des API de higgs et de bup, avec les garde-fous du client (**à construire** ; spécification dans gluonify-codex/gauge.md) | nouveau |
 | gluonify-bup | builder : clone Git, build natif, publication, déploiement | quarkus-paas-builder |
 | gluonify-probe | application de test (cible du builder) | quarkus-app-blank |
