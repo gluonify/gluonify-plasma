@@ -3,6 +3,22 @@
 PaaS minimaliste (esprit OpenShift) : déploie des **applications Quarkus natives** sur des nœuds Debian 13, zéro administration, état du cluster répliqué par Raft.
 Les documents d'architecture et d'exploitation sont dans **gluonify-codex** (`ARCHITECTURE.md`, `docs/`). Ce fichier résume ce qu'il faut savoir pour continuer le travail.
 
+## Règles des projets
+
+- **README.md est tenu à jour à chaque modification.** Toute évolution qui ajoute, change ou retire une fonctionnalité, une limite, une option de configuration ou un format met à jour dans le même
+  changement : la matrice « Ce qui est pris en charge, et ce qui ne l'est pas encore », la section qui détaille la fonctionnalité, le tableau de configuration et `plan.md`.
+- Réponses et documentation en français. Ne committer que sur demande explicite, ou sous le mandat permanent ci-dessous.
+- **Enchaîner sans s'arrêter.** Quand l'utilisateur a dit de terminer le plan « tout seul » (mandat permanent en vigueur : « termine le plan tout seul », « continue sans me demander quoi faire »), ne jamais finir un
+  tour par un point d'étape, une question ou « je continue ensuite » : passer au point suivant de `plan.md` dans le même tour. Ne s'arrêter que si le backlog est vide, ou si une décision appartient vraiment à
+  l'utilisateur (donnée manquante, action irréversible ou hors périmètre) ; dans ce cas, poser la question une fois, avec une recommandation.
+- **Attendre dans le tour, pas entre deux tours.** Une vérification longue (`mvn clean verify`, `scripts/e2e-cluster.sh`, endurance) se lance en arrière-plan, puis on attend son résultat dans le même tour
+  (boucle `until … ; do sleep 30; done` en arrière-plan avec un délai maximal de 7 200 000 ms, relancée si elle expire), sans clore le tour pendant l'attente. Une notification « terminé » d'une tâche de fond ne
+  dit que le lancement est fini, pas que les tests ont réussi : lire le fichier de résultat.
+- **Commits sous mandat permanent** : après chaque étape, si `mvn clean verify` et `scripts/e2e-cluster.sh` passent tous les deux (même commande, `JAVA_HOME` du JDK Liberica 25 défini), committer et pousser sur
+  `main` sans demander ; sinon corriger. Les messages de commit finissent par la ligne d'attribution demandée par l'environnement.
+- Ne pas modifier `/Users/a/dev/gluonify-gdown` sans accord car un autre Claude travaille dessus par défaut.
+
+
 ## Les dépôts (côte à côte dans `/Users/a/dev`, espace de travail : `gluonify-plasma/gluonify.code-workspace`)
 | Dépôt | Rôle | Anciennement |
 |---|---|---|
