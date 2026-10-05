@@ -7,7 +7,7 @@ Les documents d'architecture et d'exploitation sont dans **gluonify-codex** (`AR
 | Dépôt | Rôle | Anciennement |
 |---|---|---|
 | gluonify-plasma | POM parent + SDK `gluonify-plasma-sdk` (contrats JSON, `AppSpec`, messages WebSocket) | quarkus-paas/common |
-| gluonify-higgs | control-plane : API, scheduler, ingress, DNS, ACME, Raft, mise en route de la pile, verrous de fichiers | quarkus-paas/control-plane |
+| gluonify-higgs | orchestrateur (control-plane) : API, scheduler, ingress, DNS, ACME, Raft, mise en route de la pile, verrous de fichiers | quarkus-paas/control-plane |
 | gluonify-strange | agent de nœud : unités systemd des applications, réseau, passerelle `/distributed/*`, relais des verrous | quarkus-paas/agent |
 | gluonify-rup | nœuds de stockage (objets SHA-256, fichiers répliqués, quotas) | quarkus-paas/store |
 | gluonify-bottom | démon FUSE en C (libfuse3) : verrous de fichiers entre nœuds | quarkus-paas/fuse |

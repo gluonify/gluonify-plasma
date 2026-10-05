@@ -1,7 +1,7 @@
 {
 	"folders": [
 		{ "name": "Plasma - parent POM + SDK", "path": "." },
-		{ "name": "Higgs - Control plane", "path": "../gluonify-higgs" },
+		{ "name": "Higgs - Orchestrateur", "path": "../gluonify-higgs" },
 		{ "name": "Strange - Agent", "path": "../gluonify-strange" },
 		{ "name": "Rup - Storage", "path": "../gluonify-rup" },
 		{ "name": "Bottom - FUSE daemon (C)", "path": "../gluonify-bottom" },
