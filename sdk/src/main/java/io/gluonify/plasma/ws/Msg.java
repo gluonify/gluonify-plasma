@@ -23,6 +23,7 @@ import java.util.Map;
         @JsonSubTypes.Type(value = Msg.Enroll.class, name = "enroll"),
         @JsonSubTypes.Type(value = Msg.State.class, name = "state"),
         @JsonSubTypes.Type(value = Msg.Ready.class, name = "ready"),
+        @JsonSubTypes.Type(value = Msg.Slept.class, name = "slept"),
         @JsonSubTypes.Type(value = Msg.TokensRequest.class, name = "tokens-request"),
         @JsonSubTypes.Type(value = Msg.LockRequest.class, name = "lock-request"),
         @JsonSubTypes.Type(value = Msg.LockReply.class, name = "lock-reply"),
@@ -120,6 +121,13 @@ public sealed interface Msg {
     record Ready(String instance, boolean ready, long generation, double sinceStart) implements Msg {}
 
     /**
+     * Accusé de l'agent après avoir appliqué l'état de sommeil voulu d'UNE instance (voir {@link Desired#sleeping()}) : {@code state} = « frozen », « stopped » ou « active »
+     * (l'état atteint) ; {@code ok} faux : la transition a échoué ({@code error} : cause courte, par exemple cgroup.freeze absent) ; {@code ms} : durée de la transition côté agent.
+     * Sert aux évènements et aux mesures ; le control-plane ne bloque jamais dessus. Pas de réponse.
+     */
+    record Slept(String instance, String state, boolean ok, String error, double ms) implements Msg {}
+
+    /**
      * Description de l'hôte jointe à chaque {@link State} (lue dans /proc par l'agent) : version de l'agent, nombre de processeurs, mémoire utilisée (Mo), charge sur 1 minute,
      * espace disque libre du répertoire de données (Mo) et durée de fonctionnement de la machine (secondes). Une valeur inconnue vaut -1 (0 pour {@code cpuCount}).
      */
@@ -174,8 +182,18 @@ public sealed interface Msg {
 
     record Enrolled(String node, String secret) implements Msg {}
 
-    /** État désiré du nœud, URLs API des control-planes membres (pour le basculement) environnement du cluster (ENV_NAME) et adresse d'une instance prête de chaque application (services : app -> http://hôte:port, pour SERVICE_<APP>_URL) adresse de ce nœud (GLUONIFY_SELF_URL), adresses de tous les nœuds vivants (pairs des ports supplémentaires), maillage WireGuard (wireguard) et adresses des control-planes dans le maillage (overlayControlPlanes : l'agent s'y reconnecte, c'est par là que passent les secrets) et secrets de démarrage demandés par les instances de CE nœud (nom -> valeur ; détenus par le control-plane, jamais écrits dans l'état Raft). */
-    record Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store) implements Msg {
+    /** {@code sleeping} : état de sommeil voulu des instances de CE nœud (instance -> « frozen » ou « stopped » ; une instance absente est active) : l'agent gèle ou arrête, jamais ne redémarre une instance « stopped », et dégèle ou démarre quand elle redevient active. Mode endormi : voir gluonify-codex/ARCHITECTURE.md.
+     * État désiré du nœud, URLs API des control-planes membres (pour le basculement) environnement du cluster (ENV_NAME) et adresse d'une instance prête de chaque application (services : app -> http://hôte:port, pour SERVICE_<APP>_URL) adresse de ce nœud (GLUONIFY_SELF_URL), adresses de tous les nœuds vivants (pairs des ports supplémentaires), maillage WireGuard (wireguard) et adresses des control-planes dans le maillage (overlayControlPlanes : l'agent s'y reconnecte, c'est par là que passent les secrets) et secrets de démarrage demandés par les instances de CE nœud (nom -> valeur ; détenus par le control-plane, jamais écrits dans l'état Raft). */
+    record Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store, Map<String, String> sleeping) implements Msg {
+        public Desired {
+            sleeping = sleeping == null ? Map.of() : sleeping;
+        }
+
+        /** Compatibilité : sans instances endormies. */
+        public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store) {
+            this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, store, Map.of());
+        }
+
         /** Compatibilité : sans nœuds de stockage. */
         public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes) {
             this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, null);

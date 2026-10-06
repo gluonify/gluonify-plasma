@@ -25,7 +25,14 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
                       @Schema(description = "Systèmes de fichiers distribués montés dans l'application : « std » (/distributed/std, durable, sans taille maximale) et/ou « tmp » (/distributed/tmp, expire 24 h après la dernière écriture) : données sur les nœuds de stockage ; « graph » (/distributed/graph, durable, 60 Mio au plus par fichier) : données dans graph-db. Propres à l'application ; std et tmp exigent le stockage activé, graph la pile.", example = "[\"std\"]") java.util.List<String> distributed,
                       @Schema(description = "Nom d'un secret de téléchargement (PULL_…, enregistré par PUT /stack/secrets/{nom}) : sa valeur est envoyée telle quelle dans l'en-tête Authorization pour télécharger l'exécutable (dépôt privé). Jamais écrit dans l'état du cluster ni injecté dans l'application.", example = "PULL_GITLAB") String pullSecret,
                       @Schema(description = "Quota par système de fichiers distribué (Mo, 1 à 1048576), appliqué à CHACUN des genres montés (std, tmp, graph) : au-delà, l'écriture est refusée (507) ; sans valeur, seuls les plafonds par défaut s'appliquent. Quota souple : la taille est relevée toutes les 20 s, plusieurs écritures simultanées peuvent le dépasser un instant.", example = "2048") Integer distributedQuotaMb,
-                      @Schema(description = "true : verrous de fichiers (flock, fcntl/POSIX, O_EXCL) valables ENTRE NŒUDS sur les systèmes de fichiers distribués de l'application : un démon de montage (gluonify-bottom) est placé devant le montage rclone et délègue les verrous au control-plane (bail : un nœud sans signe de vie depuis 30 s perd ses verrous). Sans cela, les verrous ne valent que sur un même nœud. Coûte un second saut FUSE ; à demander explicitement. Pris en compte au démarrage de l'application (POST /apps/{nom}/redeploy après un changement).", example = "true") Boolean distributedLocks) {
+                      @Schema(description = "true : verrous de fichiers (flock, fcntl/POSIX, O_EXCL) valables ENTRE NŒUDS sur les systèmes de fichiers distribués de l'application : un démon de montage (gluonify-bottom) est placé devant le montage rclone et délègue les verrous au control-plane (bail : un nœud sans signe de vie depuis 30 s perd ses verrous). Sans cela, les verrous ne valent que sur un même nœud. Coûte un second saut FUSE ; à demander explicitement. Pris en compte au démarrage de l'application (POST /apps/{nom}/redeploy après un changement).", example = "true") Boolean distributedLocks,
+                      @Schema(description = "Mode endormi (scale-to-zero) : l'application inactive est gelée puis arrêtée, et réveillée par la requête suivante ; absent ou enabled=false : jamais endormie. Voir gluonify-codex/ARCHITECTURE.md, « Mode endormi ».") SleepSpec sleep) {
+    /** Compatibilité : sans mode endormi. */
+    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String vaultNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks) {
+        this(name, image, replicas, port, memoryMb, vaultNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, null);
+    }
+
+
     /** Compatibilité : sans verrous entre nœuds. */
     public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String vaultNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb) {
         this(name, image, replicas, port, memoryMb, vaultNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, null);
@@ -74,6 +81,9 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
     public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String vaultNamespace) {
         this(name, image, replicas, port, memoryMb, vaultNamespace, null);
     }
+
+    /** Vrai si le mode endormi est activé pour cette application. */
+    public boolean sleepEnabled() { return sleep != null && sleep.enabled(); }
 
     /** Namespace vault des données saisies par le client (lecture/écriture). */
     public String appNamespace() { return uuid == null ? null : uuid + ".app"; }
@@ -148,6 +158,12 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
         if (new java.util.HashSet<>(distributed).size() != distributed.size()) throw new IllegalArgumentException("distributed : doublon");
         if (Boolean.TRUE.equals(distributedLocks) && distributed.isEmpty()) throw new IllegalArgumentException("distributedLocks : aucun système de fichiers distribué déclaré (distributed)");
         if (distributedQuotaMb != null && distributed.isEmpty()) throw new IllegalArgumentException("distributedQuotaMb : aucun système de fichiers distribué déclaré (distributed)");
+        if (sleep != null && sleep.enabled()) {
+            if (internal) throw new IllegalArgumentException("sleep : une application interne n'a pas de route publique pour la réveiller");
+            if (!ports.isEmpty()) throw new IllegalArgumentException("sleep : incompatible avec des ports supplémentaires (pairs répliqués)");
+            if (role != null) throw new IllegalArgumentException("sleep : incompatible avec un rôle de nœud (composant de la pile)");
+            if (Boolean.TRUE.equals(distributedLocks)) throw new IllegalArgumentException("sleep : incompatible avec distributedLocks");
+        }
         if (replicas < 0 || replicas > 100) throw new IllegalArgumentException("replicas hors limites");
         if (port < 1 || port > 65535) throw new IllegalArgumentException("port invalide");
         if (memoryMb < 16) throw new IllegalArgumentException("mémoire minimale : 16 Mo");
