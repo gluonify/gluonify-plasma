@@ -52,4 +52,10 @@ public final class ReleaseSigner {
     public static String signBase64(byte[] manifest, PrivateKey key) {
         return Base64.getEncoder().encodeToString(sign(manifest, key)) + "\n";
     }
+
+    /** Annonce de changement de clé liée à {@code manifest} (octets signés) ; à signer avec la clé actuelle puis contresigner avec la nouvelle. */
+    public static KeyRollover rollover(byte[] manifestBytes, ReleaseManifest manifest, java.security.PublicKey nextKey, Instant createdAt, Instant retireOldAfter) {
+        TrustedKeys.Key k = TrustedKeys.Key.ofDer(Base64.getEncoder().encodeToString(nextKey.getEncoded()));
+        return new KeyRollover(KeyRollover.SCHEMA, manifest.version(), manifest.sequence(), ReleaseVerifier.sha256(manifestBytes), createdAt.toString(), k.der(), k.sha256(), retireOldAfter.toString()).validate();
+    }
 }

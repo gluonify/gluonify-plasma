@@ -64,6 +64,15 @@ public final class ReleaseVerifier {
         return m;
     }
 
+    /** SHA-256 hexadécimal d'octets en mémoire. */
+    public static String sha256(byte[] data) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(data));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     public static String sha256(Path file) throws IOException {
         try (InputStream in = Files.newInputStream(file)) {
             MessageDigest md = MessageDigest.getInstance("SHA-256");

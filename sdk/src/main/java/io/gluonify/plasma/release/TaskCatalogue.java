@@ -70,6 +70,8 @@ public final class TaskCatalogue {
         t.put("install-higgs", new Type("install-higgs", boot, List.of(req("version", VERSION), req("zone", HOST), req("publicIp", IPS), req("httpUrl", URL),
                 req("nodeId", NAME), req("advertise", HOST), req("seed", HOSTPORT), new Param("seedToken", TOKEN, true, true), opt("mode", CP_MODE),
                 opt("dnsMode", DNS_MODE), opt("acmeEmail", EMAIL), opt("wireguard", BOOL)), 900));
+        // la nouvelle clé vient de l'annonce signée de la version (rollover.json), JAMAIS d'un paramètre : seulement la version à lire et « finalize »
+        t.put("rotate-release-key", new Type("rotate-release-key", both, List.of(req("version", VERSION), opt("finalize", BOOL)), 120));
         t.put("update", new Type("update", agent, List.of(req("component", COMPONENT), req("version", VERSION)), 900));
         t.put("rollback", new Type("rollback", agent, List.of(req("component", COMPONENT)), 300));
         t.put("uninstall", new Type("uninstall", agent, List.of(req("component", UNINSTALL), opt("purge", BOOL)), 300));
