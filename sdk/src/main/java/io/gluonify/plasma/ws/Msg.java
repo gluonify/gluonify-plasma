@@ -70,25 +70,43 @@ public sealed interface Msg {
     record TaskProgress(String id, String message) implements Msg {}
 
     /** Instances en cours, prêtes (health check Quarkus UP) et génération avec laquelle chacune a démarré ; sert aussi de battement de cœur. */
-    record State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures, Host host) implements Msg {
+    record State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures, Host host, Map<String, Startup> startups) implements Msg {
         public State {
             metrics = metrics == null ? Map.of() : metrics;
             failures = failures == null ? Map.of() : failures;
+            startups = startups == null ? Map.of() : startups;
+        }
+
+        /** Compatibilité : état sans temps de démarrage. */
+        public State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures, Host host) {
+            this(running, ready, generations, metrics, failures, host, Map.of());
         }
 
         /** Compatibilité : état sans description de l'hôte. */
         public State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures) {
-            this(running, ready, generations, metrics, failures, null);
+            this(running, ready, generations, metrics, failures, null, Map.of());
         }
 
         /** Compatibilité : état sans mesures. */
         public State(List<String> running, List<String> ready, Map<String, Long> generations) {
-            this(running, ready, generations, Map.of(), Map.of(), null);
+            this(running, ready, generations, Map.of(), Map.of(), null, Map.of());
         }
 
         /** Compatibilité : état sans générations. */
         public State(List<String> running, List<String> ready) {
-            this(running, ready, Map.of(), Map.of(), Map.of(), null);
+            this(running, ready, Map.of(), Map.of(), Map.of(), null, Map.of());
+        }
+    }
+
+    /**
+     * Temps de démarrage d'une instance (joint à {@link State}, clé = nom de l'instance), mesurés par l'agent sur le DERNIER démarrage : {@code prepare} (début du démarrage ->
+     * unité lancée : environnement, exécutable, sandbox), {@code listen} (unité lancée -> le port accepte), {@code ready} (unité lancée -> sonde de disponibilité en 200) et
+     * {@code total} (début -> 200), en secondes ; -1 pour une phase non atteinte. {@code at} : fin du démarrage (ms epoch) ; {@code ok} faux = échec ({@code error} : cause courte).
+     * {@code history} : les {@code total} des derniers démarrages réussis (le plus récent en dernier, bornée) ; {@code starts} et {@code failures} : compteurs depuis le lancement de l'agent.
+     */
+    record Startup(long at, boolean ok, double prepare, double listen, double ready, double total, String error, long starts, long failures, List<Double> history) {
+        public Startup {
+            history = history == null ? List.of() : history;
         }
     }
 
