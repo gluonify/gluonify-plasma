@@ -34,6 +34,7 @@ Les documents d'architecture et d'exploitation sont dans **gluonify-codex** (`AR
 | gluonify-field | serveur de contenu statique (en-tête X-Gluonify-Site, lit /distributed/std/<uuid>/www ; spécification dans gluonify-codex/api-management.md) | nouveau |
 | gluonify-calorimeter | observabilité : journaux et mesures conservés, tableaux de bord, alertes (**à construire** ; github.com/gluonify/gluonify-calorimeter, spécification dans gluonify-codex/observability.md) | nouveau |
 | gluonify-source | application de départ pour les clients : service Quarkus 4 d'exemple (REST, Quinoa, Charm, Gdown, Photon), README détaillé en cinq langues (en par défaut) ; github.com/gluonify/gluonify-source (voir gluonify-codex/client-integration.md) | nouveau |
+| gluonify-sea | « mer de quarks et gluons » : réservoir des binaires natifs signés, servi sur https://images.gluonify.io (lecture publique de la disposition d'amorçage, dépôt authentifié par jeton charm, vérification Ed25519 et anti-retour en arrière) ; github.com/gluonify/gluonify-sea | nouveau |
 | gluonify-gauge | pilote pour IA : serveur MCP au-dessus des API de higgs et de bup, avec les garde-fous du client (**à construire** ; spécification dans gluonify-codex/gauge.md) | nouveau |
 | gluonify-bup | builder : clone Git, build natif, publication, déploiement | quarkus-paas-builder |
 | gluonify-probe | application de test (cible du builder) | quarkus-app-blank |
