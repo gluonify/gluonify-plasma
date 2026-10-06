@@ -48,22 +48,33 @@ public sealed interface Msg {
     }
 
     /** Instances en cours, prêtes (health check Quarkus UP) et génération avec laquelle chacune a démarré ; sert aussi de battement de cœur. */
-    record State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures) implements Msg {
+    record State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures, Host host) implements Msg {
         public State {
             metrics = metrics == null ? Map.of() : metrics;
             failures = failures == null ? Map.of() : failures;
         }
 
+        /** Compatibilité : état sans description de l'hôte. */
+        public State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures) {
+            this(running, ready, generations, metrics, failures, null);
+        }
+
         /** Compatibilité : état sans mesures. */
         public State(List<String> running, List<String> ready, Map<String, Long> generations) {
-            this(running, ready, generations, Map.of(), Map.of());
+            this(running, ready, generations, Map.of(), Map.of(), null);
         }
 
         /** Compatibilité : état sans générations. */
         public State(List<String> running, List<String> ready) {
-            this(running, ready, Map.of(), Map.of(), Map.of());
+            this(running, ready, Map.of(), Map.of(), Map.of(), null);
         }
     }
+
+    /**
+     * Description de l'hôte jointe à chaque {@link State} (lue dans /proc par l'agent) : version de l'agent, nombre de processeurs, mémoire utilisée (Mo), charge sur 1 minute,
+     * espace disque libre du répertoire de données (Mo) et durée de fonctionnement de la machine (secondes). Une valeur inconnue vaut -1 (0 pour {@code cpuCount}).
+     */
+    record Host(String version, int cpuCount, int memoryUsedMb, double load, int diskFreeMb, long uptimeSec) {}
 
     /**
      * Dernières lignes du journal de l'instance {@code instance} de ce nœud, ou ses mesures Prometheus ({@code what} = "metrics" : ce que l'application expose sur
