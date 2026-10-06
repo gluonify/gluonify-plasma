@@ -26,6 +26,18 @@ class SleepSpecTest {
     }
 
     @Test
+    void wakePolicyIsOptionalAndValidated() {
+        assertNull(new SleepSpec(true, 3, 8, null).wake(), "absent : valeurs du cluster");
+        var w = new SleepSpec.Wake(2, new SleepSpec.AdditionalWhen(10, 2, 300, 50, 2, 5));
+        assertEquals(2, new SleepSpec(true, 3, 8, null, w).wake().initialReplicas());
+        assertNull(new SleepSpec.AdditionalWhen(null, null, null, null, null, null).stepReplicas(), "champ absent : défaut du cluster");
+        assertThrows(IllegalArgumentException.class, () -> new SleepSpec.Wake(0, null));
+        assertThrows(IllegalArgumentException.class, () -> new SleepSpec.AdditionalWhen(-1, null, null, null, null, null));
+        assertThrows(IllegalArgumentException.class, () -> new SleepSpec.AdditionalWhen(null, null, null, null, 0, null));
+        assertThrows(IllegalArgumentException.class, () -> new SleepSpec.AdditionalWhen(null, null, 60001, null, null, null));
+    }
+
+    @Test
     void disabledByDefaultInAppSpec() {
         assertFalse(new AppSpec("a", "img", null, null, null, null).sleepEnabled());
         assertFalse(new DeployRequest("img", null, null, null, null, null, null).toSpec("a").sleepEnabled());

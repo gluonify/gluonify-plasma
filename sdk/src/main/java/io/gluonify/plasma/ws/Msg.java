@@ -34,6 +34,8 @@ import java.util.Map;
         @JsonSubTypes.Type(value = Msg.LogsFollow.class, name = "logs-follow"),
         @JsonSubTypes.Type(value = Msg.LogsChunk.class, name = "logs-chunk"),
         @JsonSubTypes.Type(value = Msg.LogsStop.class, name = "logs-stop"),
+        @JsonSubTypes.Type(value = Msg.InstanceReportRequest.class, name = "instance-report-request"),
+        @JsonSubTypes.Type(value = Msg.InstanceReport.class, name = "instance-report"),
         @JsonSubTypes.Type(value = Msg.BootstrapHello.class, name = "bootstrap-hello"),
         @JsonSubTypes.Type(value = Msg.BootstrapAccepted.class, name = "bootstrap-accepted"),
         @JsonSubTypes.Type(value = Msg.BootstrapDone.class, name = "bootstrap-done"),
@@ -145,6 +147,23 @@ public sealed interface Msg {
 
     /** Réponse à {@link LogsRequest} : status 200 + texte, 404 instance inconnue, 501 non pris en charge par ce runtime, 500 erreur. */
     record Logs(long id, int status, String text) implements Msg {}
+
+    /**
+     * Rapport d'une instance, demandé par le control-plane (control-plane -> nœud) : seul l'agent peut le fournir pour une instance endormie (gelée ou arrêtée), dont le processus ne
+     * répond plus ou n'existe plus. Ne touche JAMAIS l'application (ni /q/metrics, ni son port) : elle n'est donc jamais réveillée par cette demande. {@code tail} : lignes de journal
+     * voulues (bornées côté agent). Réponse : {@link InstanceReport}.
+     */
+    record InstanceReportRequest(long id, String instance, int tail) implements Msg {}
+
+    /**
+     * Réponse à {@link InstanceReportRequest} : {@code status} 200 (404 instance inconnue sur ce nœud, 500 erreur). {@code state} : active | frozen | stopped | absent (désirée mais sans unité,
+     * hors sommeil) ; {@code since} : début de cet état (ms epoch, 0 si inconnu) ; {@code running} : l'unité existe (une gelée tourne encore). {@code cpuSeconds} et {@code memoryBytes} : lus
+     * dans le cgroup (compteurs d'une instance qui tourne, y compris gelée) ou, pour une instance arrêtée, dernières valeurs connues ({@code lastKnown} vrai, mesurées à {@code measuredAt}, ms
+     * epoch) ; null si jamais mesurées. {@code startup} : dernier démarrage mesuré (voir {@link Startup}) ; {@code starts} : démarrages depuis le lancement de l'agent ;
+     * {@code logs} : les dernières lignes du journal (journald conserve celui d'une instance arrêtée), secrets masqués ; {@code at} : ms epoch de la réponse.
+     */
+    record InstanceReport(long id, int status, String error, String instance, String state, long since, boolean running, Double cpuSeconds, Double memoryBytes, boolean lastKnown,
+                          long measuredAt, Startup startup, long starts, List<String> logs, long at) implements Msg {}
 
     /**
      * Suivi du journal en continu (control-plane -> nœud) : le nœud répond par une suite de {@link LogsChunk} d'identifiant {@code id} (les {@code tail} dernières lignes, puis les
