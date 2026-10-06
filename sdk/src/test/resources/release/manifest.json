@@ -1,0 +1,13 @@
+{
+"schema":1,
+"version":"1.2.3",
+"sequence":7,
+"createdAt":"2026-10-06T07:55:04Z",
+"expires":"2054-02-20T07:55:04Z",
+"artifacts":[
+{"name":"gluonify-higgs","arch":"arm64","file":"gluonify-higgs-linux-arm64","sha256":"ba400410eeda7550a713af38bbea020f75a97dc69fa176d2a4f9ea8c8f18c0ed","size":6},
+{"name":"gluonify-node-image","arch":"all","file":"gluonify-node-image.tar.gz","sha256":"f5a479c9d547e8ae5a01bcca33acdbac4077f0bb21d6856a51f775375ef848f7","size":9165},
+{"name":"gluonify-strange","arch":"amd64","file":"gluonify-strange-linux-amd64","sha256":"a060e1f0f60ca11abf68d2982aaf5524cc919b6509231016f4b88d4bd0c20572","size":14},
+{"name":"gluonify-strange","arch":"arm64","file":"gluonify-strange-linux-arm64","sha256":"3dfd349813c3846079654522d11af084cfa0e8b3e623f1e332c135d1413b12e7","size":14}
+]
+}

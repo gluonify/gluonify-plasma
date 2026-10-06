@@ -32,6 +32,13 @@ import java.util.Map;
         @JsonSubTypes.Type(value = Msg.LogsFollow.class, name = "logs-follow"),
         @JsonSubTypes.Type(value = Msg.LogsChunk.class, name = "logs-chunk"),
         @JsonSubTypes.Type(value = Msg.LogsStop.class, name = "logs-stop"),
+        @JsonSubTypes.Type(value = Msg.BootstrapHello.class, name = "bootstrap-hello"),
+        @JsonSubTypes.Type(value = Msg.BootstrapAccepted.class, name = "bootstrap-accepted"),
+        @JsonSubTypes.Type(value = Msg.BootstrapDone.class, name = "bootstrap-done"),
+        @JsonSubTypes.Type(value = Msg.TaskRun.class, name = "task-run"),
+        @JsonSubTypes.Type(value = Msg.TaskProgress.class, name = "task-progress"),
+        @JsonSubTypes.Type(value = Msg.TaskResult.class, name = "task-result"),
+        @JsonSubTypes.Type(value = Msg.TaskCancel.class, name = "task-cancel"),
         @JsonSubTypes.Type(value = Msg.Welcome.class, name = "welcome"),
         @JsonSubTypes.Type(value = Msg.Enrolled.class, name = "enrolled"),
         @JsonSubTypes.Type(value = Msg.Desired.class, name = "desired"),
@@ -49,6 +56,18 @@ public sealed interface Msg {
             this(token, address, memoryMb, arch, null);
         }
     }
+
+    /**
+     * Premier message d'un agent d'INSTALLATION (mode installer de Strange, avant tout enrôlement) : le jeton est celui de la demande d'amorçage (POST /nodes/bootstrap) ; il
+     * n'est pas consommé ici (l'enrôlement du nœud, plus tard, le consomme). Voir gluonify-codex/docs/BOOTSTRAP.md.
+     */
+    record BootstrapHello(String token, String arch, String os, String version) implements Msg {}
+
+    /** Résultat d'une tâche : status = ok, unchanged (déjà fait : idempotence), failed ou cancelled ; message court, sans secret. */
+    record TaskResult(String id, String status, String message) implements Msg {}
+
+    /** Avancement d'une tâche (ligne de sortie de l'installateur, sans secret). */
+    record TaskProgress(String id, String message) implements Msg {}
 
     /** Instances en cours, prêtes (health check Quarkus UP) et génération avec laquelle chacune a démarré ; sert aussi de battement de cœur. */
     record State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures, Host host) implements Msg {
@@ -163,6 +182,22 @@ public sealed interface Msg {
 
     /** status 200 : tokens renseigné ; 501 : gluonify-charm non configuré ; 503 : gluonify-charm injoignable. */
     record Tokens(long id, int status, Map<String, AppTokensResponse.AppToken> tokens, String error) implements Msg {}
+
+    /** Demande d'amorçage reconnue : identifiant, rôle visé, version de distribution attendue et plus petite séquence de manifeste acceptée (anti-retour en arrière). */
+    record BootstrapAccepted(String request, String role, String release, long minSequence) implements Msg {}
+
+    /** Une tâche du catalogue fermé (voir TaskCatalogue) : un seul type à la fois ; l'agent revalide tout et refuse ce qui n'est pas au catalogue. */
+    record TaskRun(String id, String type, Map<String, String> params, int timeoutSec) implements Msg {
+        public TaskRun {
+            params = params == null ? Map.of() : params;
+        }
+    }
+
+    /** Annule la tâche en cours (l'agent arrête le processus de l'installateur). */
+    record TaskCancel(String id) implements Msg {}
+
+    /** Fin de l'amorçage : ok = toutes les tâches ont réussi ; sinon error dit pourquoi. L'agent d'installation passe alors la main (ou s'arrête). */
+    record BootstrapDone(String request, boolean ok, String error) implements Msg {}
 
     /** Refus ; la connexion est fermée ensuite. 401 : identité inconnue (le nœud doit se ré-enrôler) ; 403 : jeton invalide. */
     record Error(int code, String message) implements Msg {}

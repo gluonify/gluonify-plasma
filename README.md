@@ -7,3 +7,9 @@ mvn install      # installe le parent et le SDK dans ~/.m2 : prérequis de gluon
 ```
 
 Documentation d'ensemble : [gluonify-codex](https://github.com/gluonify/gluonify-codex).
+
+## Amorçage à distance : manifeste signé et catalogue de tâches
+
+`io.gluonify.plasma.release` : `ReleaseManifest` (manifeste de version : version, séquence, expiration, un artefact par composant et architecture, format ligne à ligne relu à l'identique), `ReleaseVerifier` (signature Ed25519, expiration, séquence anti-retour, SHA-256), `ReleaseSigner`
+(production et signature, utilisé par les tests ; la production réelle passe par `gluonify-chamber/bin/sign-release.sh`) et `TaskCatalogue` (le **catalogue fermé** de tâches avec ses motifs de paramètres, appliqué par le control-plane et par le nœud). Messages WebSocket additifs : `Msg.BootstrapHello`,
+`BootstrapAccepted`, `BootstrapDone`, `TaskRun`, `TaskProgress`, `TaskResult`, `TaskCancel`. Spécification : [gluonify-codex/docs/BOOTSTRAP.md](https://github.com/gluonify/gluonify-codex/blob/main/docs/BOOTSTRAP.md).

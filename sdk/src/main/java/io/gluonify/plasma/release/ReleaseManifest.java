@@ -1,0 +1,110 @@
+package io.gluonify.plasma.release;
+
+import java.util.List;
+import java.util.regex.Pattern;
+
+/**
+ * Manifeste de version signé (voir gluonify-codex/docs/BOOTSTRAP.md). Les octets exacts du fichier {@code manifest.json} sont signés (Ed25519, signature détachée) : rien n'est
+ * canonicalisé, on vérifie la signature AVANT de lire le contenu. Les artefacts sont désignés par un NOM DE FICHIER relatif au dossier de la version (jamais par une URL :
+ * un manifeste ne peut pas rediriger vers un autre hôte ni sortir de son dossier).
+ *
+ * @param schema    version du format (1)
+ * @param version   version de la distribution (x.y.z)
+ * @param sequence  numéro croissant d'une publication à l'autre : un hôte refuse une séquence inférieure à la plus haute déjà vue (anti-retour en arrière)
+ * @param createdAt date de publication (ISO-8601)
+ * @param expires   date limite de validité (ISO-8601) : un vieux manifeste rejoué après cette date est refusé
+ * @param artifacts un fichier par composant et architecture
+ */
+public record ReleaseManifest(int schema, String version, long sequence, String createdAt, String expires, List<Artifact> artifacts) {
+    /** @param name composant ; arch : amd64, arm64 ou all ; file : nom de fichier simple ; sha256 : empreinte hexadécimale minuscule ; size : taille en octets. */
+    public record Artifact(String name, String arch, String file, String sha256, long size) {}
+
+    public static final int SCHEMA = 1;
+    public static final long MAX_ARTIFACT_BYTES = 512L * 1024 * 1024;
+    public static final java.util.Set<String> NAMES = java.util.Set.of("gluonify-strange", "gluonify-higgs", "gluonify-bottom", "gluonify-node-image");
+    public static final java.util.Set<String> ARCHS = java.util.Set.of("amd64", "arm64", "all");
+    public static final Pattern VERSION = Pattern.compile("[0-9]{1,4}\\.[0-9]{1,4}\\.[0-9]{1,4}(-[0-9A-Za-z.]{1,16})?");
+    /** Nom de fichier simple : pas de séparateur, pas de « .. », pas de point initial. */
+    public static final Pattern FILE = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,127}");
+    static final Pattern SHA = Pattern.compile("[0-9a-f]{64}");
+
+    public static final class Invalid extends RuntimeException {
+        public Invalid(String message) {
+            super(message);
+        }
+    }
+
+    /** Contrôle structurel ; lève {@link Invalid}. Ne vérifie ni la signature ni l'expiration (voir {@link ReleaseVerifier}). */
+    public ReleaseManifest validate() {
+        if (schema != SCHEMA) throw new Invalid("schéma de manifeste non pris en charge : " + schema);
+        if (version == null || !VERSION.matcher(version).matches()) throw new Invalid("version invalide");
+        if (sequence < 1) throw new Invalid("séquence invalide");
+        if (createdAt == null || expires == null) throw new Invalid("dates absentes");
+        try {
+            java.time.Instant.parse(createdAt);
+            java.time.Instant.parse(expires);
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new Invalid("date invalide");
+        }
+        if (artifacts == null || artifacts.isEmpty() || artifacts.size() > 64) throw new Invalid("liste d'artefacts invalide");
+        var seen = new java.util.HashSet<String>();
+        for (Artifact a : artifacts) {
+            if (a == null || a.name() == null || !NAMES.contains(a.name())) throw new Invalid("composant inconnu : " + (a == null ? null : a.name()));
+            if (a.arch() == null || !ARCHS.contains(a.arch())) throw new Invalid("architecture invalide : " + a.arch());
+            if (a.file() == null || !FILE.matcher(a.file()).matches() || a.file().contains("..")) throw new Invalid("nom de fichier invalide : " + a.file());
+            if (a.sha256() == null || !SHA.matcher(a.sha256()).matches()) throw new Invalid("empreinte invalide pour " + a.file());
+            if (a.size() < 1 || a.size() > MAX_ARTIFACT_BYTES) throw new Invalid("taille invalide pour " + a.file());
+            if (!seen.add(a.name() + "/" + a.arch())) throw new Invalid("artefact en double : " + a.name() + "/" + a.arch());
+        }
+        return this;
+    }
+
+    private static final Pattern HEAD = Pattern.compile("\\{\n\"schema\":([0-9]+),\n\"version\":\"([^\"]*)\",\n\"sequence\":([0-9]{1,15}),\n\"createdAt\":\"([^\"]*)\",\n\"expires\":\"([^\"]*)\",\n\"artifacts\":\\[\n((?:[^\n]*\n)*)\\]\n\\}\n");
+    private static final Pattern LINE = Pattern.compile("\\{\"name\":\"([^\"]*)\",\"arch\":\"([^\"]*)\",\"file\":\"([^\"]*)\",\"sha256\":\"([^\"]*)\",\"size\":([0-9]{1,15})\\},?");
+
+    /**
+     * Lit le format exact produit par {@link #toJson()} (et bin/sign-release.sh) ; tout autre texte est refusé, et le résultat doit se re-sérialiser à l'identique (aucune
+     * ambiguïté entre ce que signe l'éditeur et ce que lit le nœud). À n'appeler qu'après la vérification de la signature.
+     */
+    public static ReleaseManifest parse(byte[] bytes) {
+        String text = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+        java.util.regex.Matcher m = HEAD.matcher(text);
+        if (!m.matches()) throw new Invalid("manifeste illisible");
+        List<Artifact> list = new java.util.ArrayList<>();
+        String body = m.group(6);
+        for (String line : body.isEmpty() ? new String[0] : body.split("\n")) {
+            java.util.regex.Matcher a = LINE.matcher(line);
+            if (!a.matches()) throw new Invalid("ligne d'artefact illisible");
+            list.add(new Artifact(a.group(1), a.group(2), a.group(3), a.group(4), Long.parseLong(a.group(5))));
+        }
+        ReleaseManifest r = new ReleaseManifest(Integer.parseInt(m.group(1)), m.group(2), Long.parseLong(m.group(3)), m.group(4), m.group(5), list);
+        r.validate();
+        if (!r.toJson().equals(text)) throw new Invalid("manifeste non canonique");
+        return r;
+    }
+
+    /** Artefact d'un composant pour une architecture (ou « all »). */
+    public java.util.Optional<Artifact> find(String name, String arch) {
+        return artifacts.stream().filter(a -> a.name().equals(name) && (a.arch().equals(arch) || a.arch().equals("all"))).findFirst();
+    }
+
+    /**
+     * Texte du manifeste, un artefact par ligne dans l'ordre fixe des clés : c'est ce format que lit install.sh (sed), et que produit bin/sign-release.sh ; le signataire Java
+     * ({@link ReleaseSigner}) produit les mêmes octets.
+     */
+    public String toJson() {
+        var sb = new StringBuilder("{\n");
+        sb.append("\"schema\":").append(schema).append(",\n");
+        sb.append("\"version\":\"").append(version).append("\",\n");
+        sb.append("\"sequence\":").append(sequence).append(",\n");
+        sb.append("\"createdAt\":\"").append(createdAt).append("\",\n");
+        sb.append("\"expires\":\"").append(expires).append("\",\n");
+        sb.append("\"artifacts\":[\n");
+        for (int i = 0; i < artifacts.size(); i++) {
+            Artifact a = artifacts.get(i);
+            sb.append("{\"name\":\"").append(a.name()).append("\",\"arch\":\"").append(a.arch()).append("\",\"file\":\"").append(a.file())
+                    .append("\",\"sha256\":\"").append(a.sha256()).append("\",\"size\":").append(a.size()).append('}').append(i < artifacts.size() - 1 ? "," : "").append('\n');
+        }
+        return sb.append("]\n}\n").toString();
+    }
+}
