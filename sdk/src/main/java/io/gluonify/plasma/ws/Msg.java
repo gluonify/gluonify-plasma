@@ -11,7 +11,7 @@ import java.util.Map;
  * Protocole entre un nœud (agent) et un control-plane, sur WebSocket (texte, JSON, champ « t » = type).
  * Le nœud ouvre la connexion (sortante) puis s'authentifie dans son premier message — jamais dans l'URL :
  * <ul>
- *   <li>nœud -> CP : {@link Hello} (identité connue) ou {@link Enroll} (premier démarrage, jeton à usage unique), puis {@link State}
+ *   <li>nœud -> CP : {@link Hello} (identité connue) ou {@link Enroll} (premier démarrage, jeton à usage unique), puis {@link Ready} (une instance devient prête, ou ne l'est plus : tout de suite) et {@link State}
  *       toutes les 5 s, {@link TokensRequest} et {@link Redeploy} (le vault a redéployé un namespace) à la demande ;</li>
  *   <li>CP -> nœud : {@link Welcome} ou {@link Enrolled}, puis {@link Desired} (état désiré) dès qu'il change, {@link Tokens} en réponse
  *       et {@link Error} (suivie de la fermeture) en cas de refus.</li>
@@ -22,6 +22,7 @@ import java.util.Map;
         @JsonSubTypes.Type(value = Msg.Hello.class, name = "hello"),
         @JsonSubTypes.Type(value = Msg.Enroll.class, name = "enroll"),
         @JsonSubTypes.Type(value = Msg.State.class, name = "state"),
+        @JsonSubTypes.Type(value = Msg.Ready.class, name = "ready"),
         @JsonSubTypes.Type(value = Msg.TokensRequest.class, name = "tokens-request"),
         @JsonSubTypes.Type(value = Msg.LockRequest.class, name = "lock-request"),
         @JsonSubTypes.Type(value = Msg.LockReply.class, name = "lock-reply"),
@@ -109,6 +110,14 @@ public sealed interface Msg {
             history = history == null ? List.of() : history;
         }
     }
+
+    /**
+     * Changement de disponibilité d'UNE instance, signalé tout de suite (sans attendre le {@link State} du cycle de 5 s) : {@code ready} vrai quand la sonde de disponibilité
+     * répond 200 pour la première fois après un démarrage, faux quand un contrôle périodique la voit retomber. {@code generation} : génération avec laquelle l'instance a
+     * démarré ; {@code sinceStart} : secondes écoulées entre l'ordre de démarrage et l'observation côté agent (-1 pour une retombée). Le control-plane l'applique aussitôt
+     * (l'ingress route vers l'instance) ; le {@link State} suivant reste la référence et corrige tout écart. Aucune réponse.
+     */
+    record Ready(String instance, boolean ready, long generation, double sinceStart) implements Msg {}
 
     /**
      * Description de l'hôte jointe à chaque {@link State} (lue dans /proc par l'agent) : version de l'agent, nombre de processeurs, mémoire utilisée (Mo), charge sur 1 minute,
