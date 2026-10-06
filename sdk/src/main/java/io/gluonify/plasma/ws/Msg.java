@@ -29,6 +29,9 @@ import java.util.Map;
         @JsonSubTypes.Type(value = Msg.WgKey.class, name = "wg-key"),
         @JsonSubTypes.Type(value = Msg.Logs.class, name = "logs"),
         @JsonSubTypes.Type(value = Msg.LogsRequest.class, name = "logs-request"),
+        @JsonSubTypes.Type(value = Msg.LogsFollow.class, name = "logs-follow"),
+        @JsonSubTypes.Type(value = Msg.LogsChunk.class, name = "logs-chunk"),
+        @JsonSubTypes.Type(value = Msg.LogsStop.class, name = "logs-stop"),
         @JsonSubTypes.Type(value = Msg.Welcome.class, name = "welcome"),
         @JsonSubTypes.Type(value = Msg.Enrolled.class, name = "enrolled"),
         @JsonSubTypes.Type(value = Msg.Desired.class, name = "desired"),
@@ -88,6 +91,18 @@ public sealed interface Msg {
 
     /** Réponse à {@link LogsRequest} : status 200 + texte, 404 instance inconnue, 501 non pris en charge par ce runtime, 500 erreur. */
     record Logs(long id, int status, String text) implements Msg {}
+
+    /**
+     * Suivi du journal en continu (control-plane -> nœud) : le nœud répond par une suite de {@link LogsChunk} d'identifiant {@code id} (les {@code tail} dernières lignes, puis les
+     * nouvelles), jusqu'à {@link LogsStop}, à la fin de la durée {@code maxMs} ou à la disparition de l'instance.
+     */
+    record LogsFollow(long id, String instance, int tail, long maxMs) implements Msg {}
+
+    /** Morceau d'un suivi ({@link LogsFollow}) : {@code status} 200 + texte (lignes complètes, secrets masqués) ; {@code end} = dernier message du suivi (status 404/501/500 si échec). */
+    record LogsChunk(long id, int status, String text, boolean end) implements Msg {}
+
+    /** Arrêt d'un suivi ({@link LogsFollow}) demandé par le control-plane (client parti, durée écoulée, trop lent). */
+    record LogsStop(long id) implements Msg {}
 
     /** Clé publique WireGuard du nœud (envoyée à chaque connexion tant que le chiffrement entre nœuds est activé) : le control-plane lui attribue une adresse du maillage. */
     record WgKey(String publicKey) implements Msg {}
