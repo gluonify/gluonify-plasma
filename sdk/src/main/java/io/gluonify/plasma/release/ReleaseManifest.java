@@ -31,7 +31,9 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
 
     public static final int SCHEMA = 1;
     public static final long MAX_ARTIFACT_BYTES = 512L * 1024 * 1024;
-    public static final java.util.Set<String> NAMES = java.util.Set.of("gluonify-strange", "gluonify-higgs", "gluonify-bottom", "gluonify-node-image");
+    public static final java.util.Set<String> NAMES = java.util.Set.of("gluonify-strange", "gluonify-higgs", "gluonify-bottom", "gluonify-gdown", "gluonify-node-image");
+    /** Nom de composant sûr : minuscules, chiffres et tirets (jamais de chemin ni de caractère spécial). */
+    public static final Pattern SAFE_NAME = Pattern.compile("[a-z][a-z0-9-]{1,63}");
     public static final java.util.Set<String> ARCHS = java.util.Set.of("amd64", "arm64", "all");
     public static final Pattern VERSION = Pattern.compile("[0-9]{1,4}\\.[0-9]{1,4}\\.[0-9]{1,4}(-[0-9A-Za-z.]{1,16})?");
     /** Nom de fichier simple : pas de séparateur, pas de « .. », pas de point initial. */
@@ -46,6 +48,14 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
 
     /** Contrôle structurel ; lève {@link Invalid}. Ne vérifie ni la signature ni l'expiration (voir {@link ReleaseVerifier}). */
     public ReleaseManifest validate() {
+        return validate(NAMES::contains);
+    }
+
+    /**
+     * Comme {@link #validate()} avec le critère des noms de composants choisi par l'appelant : un client (Strange, install.sh) garde la liste fermée {@link #NAMES} (il n'installe que ce
+     * qu'il connaît) ; le réservoir (sea) accepte tout nom sûr ({@link #SAFE_NAME}), car il ne fait que stocker et servir des fichiers déjà couverts par la signature.
+     */
+    public ReleaseManifest validate(java.util.function.Predicate<String> nameOk) {
         if (schema != SCHEMA) throw new Invalid("schéma de manifeste non pris en charge : " + schema);
         if (version == null || !VERSION.matcher(version).matches()) throw new Invalid("version invalide");
         if (sequence < 1) throw new Invalid("séquence invalide");
@@ -59,7 +69,7 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
         if (artifacts == null || artifacts.isEmpty() || artifacts.size() > 64) throw new Invalid("liste d'artefacts invalide");
         var seen = new java.util.HashSet<String>();
         for (Artifact a : artifacts) {
-            if (a == null || a.name() == null || !NAMES.contains(a.name())) throw new Invalid("composant inconnu : " + (a == null ? null : a.name()));
+            if (a == null || a.name() == null || !nameOk.test(a.name())) throw new Invalid("composant inconnu : " + (a == null ? null : a.name()));
             if (a.arch() == null || !ARCHS.contains(a.arch())) throw new Invalid("architecture invalide : " + a.arch());
             if (a.file() == null || !FILE.matcher(a.file()).matches() || a.file().contains("..")) throw new Invalid("nom de fichier invalide : " + a.file());
             if (a.sha256() == null || !SHA.matcher(a.sha256()).matches()) throw new Invalid("empreinte invalide pour " + a.file());
@@ -77,6 +87,11 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
      * ambiguïté entre ce que signe l'éditeur et ce que lit le nœud). À n'appeler qu'après la vérification de la signature.
      */
     public static ReleaseManifest parse(byte[] bytes) {
+        return parse(bytes, NAMES::contains);
+    }
+
+    /** Comme {@link #parse(byte[])} avec le critère de noms de composants de l'appelant (voir {@link #validate(java.util.function.Predicate)}). */
+    public static ReleaseManifest parse(byte[] bytes, java.util.function.Predicate<String> nameOk) {
         String text = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
         java.util.regex.Matcher m = HEAD.matcher(text);
         if (!m.matches()) throw new Invalid("manifeste illisible");
@@ -88,7 +103,7 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
             list.add(new Artifact(a.group(1), a.group(2), a.group(3), a.group(4), Long.parseLong(a.group(5))));
         }
         ReleaseManifest r = new ReleaseManifest(Integer.parseInt(m.group(1)), m.group(2), Long.parseLong(m.group(3)), m.group(4), m.group(5), list);
-        r.validate();
+        r.validate(nameOk);
         if (!r.toJson().equals(text)) throw new Invalid("manifeste non canonique");
         return r;
     }

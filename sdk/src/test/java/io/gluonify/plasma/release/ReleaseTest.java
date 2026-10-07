@@ -88,6 +88,22 @@ class ReleaseTest {
         with("gluonify-strange-linux-amd64", "gluonify-strange", sha).validate();
     }
 
+    @Test void critereDeNomsChoisiParLAppelant() {
+        String sha = "a".repeat(64);
+        var nouveau = with("gluonify-nouveau-linux-arm64.gz", "gluonify-nouveau", sha);
+        assertThrows(ReleaseManifest.Invalid.class, () -> nouveau.validate(), "un client garde sa liste fermée : il n'installe que ce qu'il connaît");
+        nouveau.validate(n -> ReleaseManifest.SAFE_NAME.matcher(n).matches()); // le réservoir accepte tout nom sûr
+        var dangereux = with("ok", "../evil", sha);
+        assertThrows(ReleaseManifest.Invalid.class, () -> dangereux.validate(n -> ReleaseManifest.SAFE_NAME.matcher(n).matches()));
+        assertThrows(ReleaseManifest.Invalid.class, () -> with("ok", "Evil", sha).validate(n -> ReleaseManifest.SAFE_NAME.matcher(n).matches()));
+    }
+
+    @Test void gdownEstUnComposantDeLaRelease() {
+        String sha = "a".repeat(64);
+        with("gluonify-gdown-linux-arm64.gz", "gluonify-gdown", sha).validate(); // gDown seul (gDown.sh) : même chaîne de confiance
+        assertThrows(ReleaseManifest.Invalid.class, () -> with("ok", "gluonify-graphdb", sha).validate());
+    }
+
     @Test void manifesteNonCanoniqueRefuse() throws Exception {
         String json = manifest().toJson();
         assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse((json + " ").getBytes(StandardCharsets.UTF_8)));

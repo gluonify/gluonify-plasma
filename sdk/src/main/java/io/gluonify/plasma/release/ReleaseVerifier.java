@@ -57,8 +57,13 @@ public final class ReleaseVerifier {
      * @param minSequence plus haute séquence déjà vue (ou exigée) ; le manifeste doit être au moins à ce niveau
      */
     public static ReleaseManifest verify(byte[] manifest, byte[] signature, PublicKey key, java.util.function.Function<byte[], ReleaseManifest> parser, long minSequence, Instant now) {
+        return verify(manifest, signature, key, parser, minSequence, now, ReleaseManifest.NAMES::contains);
+    }
+
+    /** Comme {@link #verify(byte[], byte[], PublicKey, java.util.function.Function, long, Instant)} avec le critère de noms de composants de l'appelant (voir {@link ReleaseManifest#validate(java.util.function.Predicate)}). */
+    public static ReleaseManifest verify(byte[] manifest, byte[] signature, PublicKey key, java.util.function.Function<byte[], ReleaseManifest> parser, long minSequence, Instant now, java.util.function.Predicate<String> nameOk) {
         if (!signatureValid(manifest, signature, key)) throw new ReleaseManifest.Invalid("signature du manifeste invalide");
-        ReleaseManifest m = parser.apply(manifest).validate();
+        ReleaseManifest m = parser.apply(manifest).validate(nameOk);
         if (now.isAfter(Instant.parse(m.expires()))) throw new ReleaseManifest.Invalid("manifeste expiré (" + m.expires() + ")");
         if (m.sequence() < minSequence) throw new ReleaseManifest.Invalid("retour en arrière refusé : séquence " + m.sequence() + " < " + minSequence);
         return m;
