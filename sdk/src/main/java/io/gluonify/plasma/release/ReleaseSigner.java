@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * Production d'un manifeste à partir d'un dossier de binaires ({@code <composant>-linux-<arch>} ou {@code <composant>.tar.gz}) et signature. La clé privée n'est lue qu'à
+ * Production d'un manifeste à partir d'un dossier de binaires ({@code <composant>-linux-<arch>}, {@code <composant>-linux-<arch>.gz} (gzip, voir {@link Gzip}) ou {@code <composant>.tar.gz}) et signature. La clé privée n'est lue qu'à
  * l'exécution, depuis un chemin donné : elle n'est jamais dans un dépôt. Même format que bin/sign-release.sh (qui sert en production, avec openssl).
  */
 public final class ReleaseSigner {
@@ -29,6 +29,8 @@ public final class ReleaseSigner {
                     String arch = null;
                     if (n.equals(name + "-linux-amd64")) arch = "amd64";
                     else if (n.equals(name + "-linux-arm64")) arch = "arm64";
+                    else if (n.equals(name + "-linux-amd64.gz")) arch = "amd64";
+                    else if (n.equals(name + "-linux-arm64.gz")) arch = "arm64";
                     else if (n.equals(name + ".tar.gz")) arch = "all";
                     if (arch != null) out.add(new ReleaseManifest.Artifact(name, arch, n, ReleaseVerifier.sha256(f), Files.size(f)));
                 }

@@ -17,7 +17,17 @@ import java.util.regex.Pattern;
  */
 public record ReleaseManifest(int schema, String version, long sequence, String createdAt, String expires, List<Artifact> artifacts) {
     /** @param name composant ; arch : amd64, arm64 ou all ; file : nom de fichier simple ; sha256 : empreinte hexadécimale minuscule ; size : taille en octets. */
-    public record Artifact(String name, String arch, String file, String sha256, long size) {}
+    public record Artifact(String name, String arch, String file, String sha256, long size) {
+        /** Fichier unique compressé en gzip (nom en {@code .gz}, hors {@code .tar.gz}) : sha256 et size sont ceux du {@code .gz} servi (voir {@link Gzip}). */
+        public boolean gzipped() {
+            return Gzip.isSingleFile(file);
+        }
+
+        /** Nom du fichier une fois décompressé (inchangé s'il n'est pas un {@code .gz} simple). */
+        public String plainFile() {
+            return Gzip.plainName(file);
+        }
+    }
 
     public static final int SCHEMA = 1;
     public static final long MAX_ARTIFACT_BYTES = 512L * 1024 * 1024;
