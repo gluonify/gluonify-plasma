@@ -30,6 +30,8 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
     }
 
     public static final int SCHEMA = 1;
+    /** Nombre maximal d'artefacts d'un manifeste (borne défensive du contrôle structurel ; la taille du fichier est bornée à part). */
+    public static final int MAX_ARTIFACTS = 1024;
     public static final long MAX_ARTIFACT_BYTES = 512L * 1024 * 1024;
     public static final java.util.Set<String> NAMES = java.util.Set.of("gluonify-strange", "gluonify-higgs", "gluonify-bottom", "gluonify-gdown", "gluonify-node-image");
     /** Nom de composant sûr : minuscules, chiffres et tirets (jamais de chemin ni de caractère spécial). */
@@ -66,7 +68,7 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
         } catch (java.time.format.DateTimeParseException e) {
             throw new Invalid("date invalide");
         }
-        if (artifacts == null || artifacts.isEmpty() || artifacts.size() > 64) throw new Invalid("liste d'artefacts invalide");
+        if (artifacts == null || artifacts.isEmpty() || artifacts.size() > MAX_ARTIFACTS) throw new Invalid("liste d'artefacts invalide");
         var seen = new java.util.HashSet<String>();
         for (Artifact a : artifacts) {
             if (a == null || a.name() == null || !nameOk.test(a.name())) throw new Invalid("composant inconnu : " + (a == null ? null : a.name()));
