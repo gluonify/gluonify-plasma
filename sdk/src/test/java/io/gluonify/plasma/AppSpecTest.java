@@ -43,11 +43,11 @@ class AppSpecTest {
 
     @Test
     void variablesSecretsGeneresServicesEtPin() {
-        var s = new AppSpec("graphdb", "img", null, null, null, null, null, null, 0, false, Map.of("GRAPH_BOLT_ENABLED", "false"), java.util.List.of("GRAPH_AUTH_TOKEN"), java.util.List.of("id"), "n-1a2b", true);
+        var s = new AppSpec("gdown", "img", null, null, null, null, null, null, 0, false, Map.of("GLUONIFY_GDOWN_BOLT_ENABLED", "false"), java.util.List.of("GLUONIFY_GDOWN_AUTH_TOKEN"), java.util.List.of("id"), "n-1a2b", true);
         assertEquals("n-1a2b", s.pin());
         assertTrue(s.internal());
         assertEquals(0, s.scratchMb());
-        for (String reserve : java.util.List.of("QUARKUS_HTTP_PORT", "ENV_NAME", "SERVICE_X_URL")) {
+        for (String reserve : java.util.List.of("QUARKUS_HTTP_PORT", "GLUONIFY_ENVIRONMENT", "GLUONIFY_SERVICE_X_URL")) {
             assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "img", null, null, null, null, null, null, null, null, Map.of(reserve, "x"), null, null, null, null), reserve);
         }
         assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "img", null, null, null, null, null, null, null, null, Map.of("minuscule", "x"), null, null, null, null));
@@ -79,8 +79,8 @@ class AppSpecTest {
     void deployRequestVaultTrueUtiliseLeNamespaceAppDeLUuid() {
         String u = "3f2b8c1e-9d4a-4e57-b6a1-0c7d5e8f9a12";
         var req = new DeployRequest("img", null, null, null, "ignore", null, true);
-        assertEquals(u + ".app", req.toSpec("shop", u).vaultNamespace());
-        assertEquals("ignore", new DeployRequest("img", null, null, null, "ignore", null, false).toSpec("shop", u).vaultNamespace());
+        assertEquals(u + ".app", req.toSpec("shop", u).topNamespace());
+        assertEquals("ignore", new DeployRequest("img", null, null, null, "ignore", null, false).toSpec("shop", u).topNamespace());
     }
 
     @Test
@@ -90,7 +90,7 @@ class AppSpecTest {
         assertEquals(java.util.List.of(), new AppSpec("shop", "img", 1, 8080, 64, null).distributed(), "aucun par défaut");
         assertThrows(IllegalArgumentException.class, () -> new AppSpec("shop", "img", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, java.util.List.of("nfs")));
         assertThrows(IllegalArgumentException.class, () -> new AppSpec("shop", "img", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, java.util.List.of("std", "std")));
-        assertEquals(java.util.List.of("graph"), new AppSpec("shop", "img", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, java.util.List.of("graph")).distributed());
+        assertEquals(java.util.List.of("gdown"), new AppSpec("shop", "img", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, java.util.List.of("gdown")).distributed());
         var req = new DeployRequest("img", null, null, null, null, null, null, null, null, null, null, null, null, null, null, java.util.List.of("std"));
         assertEquals(java.util.List.of("std"), req.toSpec("shop").distributed());
     }
