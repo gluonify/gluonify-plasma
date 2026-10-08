@@ -76,7 +76,7 @@ class AppSpecTest {
     }
 
     @Test
-    void deployRequestVaultTrueUtiliseLeNamespaceAppDeLUuid() {
+    void deployRequestTopTrueUtiliseLeNamespaceAppDeLUuid() {
         String u = "3f2b8c1e-9d4a-4e57-b6a1-0c7d5e8f9a12";
         var req = new DeployRequest("img", null, null, null, "ignore", null, true);
         assertEquals(u + ".app", req.toSpec("shop", u).topNamespace());

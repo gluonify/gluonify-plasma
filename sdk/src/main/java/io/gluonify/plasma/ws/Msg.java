@@ -12,7 +12,7 @@ import java.util.Map;
  * Le nœud ouvre la connexion (sortante) puis s'authentifie dans son premier message — jamais dans l'URL :
  * <ul>
  *   <li>nœud -> CP : {@link Hello} (identité connue) ou {@link Enroll} (premier démarrage, jeton à usage unique), puis {@link Ready} (une instance devient prête, ou ne l'est plus : tout de suite) et {@link State}
- *       toutes les 5 s, {@link TokensRequest} et {@link Redeploy} (le vault a redéployé un namespace) à la demande ;</li>
+ *       toutes les 5 s, {@link TokensRequest} et {@link Redeploy} (le top a redéployé un namespace) à la demande ;</li>
  *   <li>CP -> nœud : {@link Welcome} ou {@link Enrolled}, puis {@link Desired} (état désiré) dès qu'il change, {@link Tokens} en réponse
  *       et {@link Error} (suivie de la fermeture) en cas de refus.</li>
  * </ul>
@@ -180,7 +180,7 @@ public sealed interface Msg {
     /** Clé publique WireGuard du nœud (envoyée à chaque connexion tant que le chiffrement entre nœuds est activé) : le control-plane lui attribue une adresse du maillage. */
     record WgKey(String publicKey) implements Msg {}
 
-    /** Le vault a redéployé le namespace ns (révision rev, croissante) : le control-plane redémarre les applis concernées, une réplique à la fois. */
+    /** Le top a redéployé le namespace ns (révision rev, croissante) : le control-plane redémarre les applis concernées, une réplique à la fois. */
     record Redeploy(String ns, long rev) implements Msg {}
 
     /** Jetons à courte durée pour des applications du nœud ; id relie la réponse à la demande. */

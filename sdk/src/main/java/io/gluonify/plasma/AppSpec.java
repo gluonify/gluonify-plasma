@@ -12,7 +12,7 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
                       @Schema(description = "Namespace gluonify-top dont config et secrets sont injectés en variables d'environnement", example = "shop") String topNamespace,
                       @Schema(description = "Exécutables natifs par architecture du nœud (amd64, arm64) : URL#sha256=… ; remplace « image » (runtime process). "
                               + "Seuls les nœuds d'une architecture listée reçoivent l'application.", example = "{\"amd64\":\"https://b/artifacts/ab..#sha256=ab..\",\"arm64\":\"https://b/artifacts/cd..#sha256=cd..\"}") Map<String, String> artifacts,
-                      @Schema(description = "Identifiant stable de l'application (attribué par le control-plane) : ses espaces du vault sont <uuid>.app et <uuid>.gluonify", example = "3f2b8c1e-9d4a-4e57-b6a1-0c7d5e8f9a12") String uuid,
+                      @Schema(description = "Identifiant stable de l'application (attribué par le control-plane) : ses espaces du top sont <uuid>.app et <uuid>.gluonify", example = "3f2b8c1e-9d4a-4e57-b6a1-0c7d5e8f9a12") String uuid,
                       @Schema(description = "Espace de travail temporaire par réplique (Mo, 0 à 2048, défaut 64) : en mémoire, vidé à chaque démarrage", example = "64") Integer scratchMb,
                       @Schema(description = "Monter le NAS de l'hébergeur dans /nas (option ; runtime process)", example = "false") Boolean nas,
                       @Schema(description = "Variables d'environnement NON secrètes (stockées dans l'état du cluster)", example = "{\"GLUONIFY_GDOWN_BOLT_ENABLED\":\"false\"}") Map<String, String> env,
@@ -85,10 +85,10 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
     /** Vrai si le mode endormi est activé pour cette application. */
     public boolean sleepEnabled() { return sleep != null && sleep.enabled(); }
 
-    /** Namespace vault des données saisies par le client (lecture/écriture). */
+    /** Namespace top des données saisies par le client (lecture/écriture). */
     public String appNamespace() { return uuid == null ? null : uuid + ".app"; }
 
-    /** Namespace vault des données gérées par le PaaS (limites du contrat, liens ; lecture seule pour le client). */
+    /** Namespace top des données gérées par le PaaS (limites du contrat, liens ; lecture seule pour le client). */
     public String gluonifyNamespace() { return uuid == null ? null : uuid + ".gluonify"; }
 
     /** Variables que le PaaS fournit lui-même : une application ne peut pas les imposer. */

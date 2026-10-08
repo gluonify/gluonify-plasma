@@ -5,7 +5,7 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 /** Corps de PUT /apps/{name}. */
 @Schema(description = "Spécification de déploiement ; seule l'image (ou les exécutables par architecture) est obligatoire.")
 public record DeployRequest(@Schema(description = "Image OCI de l'application Quarkus native", example = "registry.example.org/shop:1.0") String image, @Schema(description = "Nombre de répliques (défaut 1, max 100)", example = "2") Integer replicas, @Schema(description = "Port HTTP du conteneur (défaut 8080)", example = "8080") Integer port, @Schema(description = "Limite mémoire par réplique en Mo (défaut 64, min 16)", example = "64") Integer memoryMb, @Schema(description = "Namespace gluonify-top injecté en variables d'environnement (optionnel)", example = "shop") String topNamespace, @Schema(description = "Exécutables natifs par architecture (amd64, arm64), à la place de « image »") java.util.Map<String, String> artifacts,
-        @Schema(description = "true : l'application utilise les espaces du vault <uuid>.app et <uuid>.gluonify (à la place de topNamespace)", example = "true") Boolean top,
+        @Schema(description = "true : l'application utilise les espaces du top <uuid>.app et <uuid>.gluonify (à la place de topNamespace)", example = "true") Boolean top,
         @Schema(description = "Espace de travail temporaire par réplique en Mo (0 à 2048, défaut 64)", example = "64") Integer scratchMb,
         @Schema(description = "Monter le NAS de l'hébergeur dans /nas (option)", example = "false") Boolean nas,
         @Schema(description = "Variables d'environnement non secrètes") java.util.Map<String, String> env,
