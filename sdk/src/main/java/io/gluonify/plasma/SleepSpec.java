@@ -12,7 +12,7 @@ public record SleepSpec(@Schema(description = "true : activer le mode endormi (d
                         @Schema(description = "Inactivité (secondes) avant le gel (1 à 86400, défaut 60)", example = "60") Integer freezeAfterSeconds,
                         @Schema(description = "Inactivité (secondes) avant l'arrêt, comptée depuis la dernière requête, donc supérieure à freezeAfterSeconds (défaut : le plus grand de 900 et freezeAfterSeconds + 60)", example = "900") Integer stopAfterSeconds,
                         @Schema(description = "Attente maximale (ms) d'une requête pendant le réveil, avant la réponse 503 + Retry-After (100 à 60000, défaut 5000)", example = "5000") Integer wakeTimeoutMs,
-                        @Schema(description = "Politique de réveil des répliques : combien d'abord, quand en réveiller d'autres (absent : les valeurs du cluster, gluonify.sleep.wake.*)") Wake wake) {
+                        @Schema(description = "Politique de réveil des répliques : combien d'abord, quand en réveiller d'autres (absent : les valeurs du cluster, gluonify.higgs.sleep.wake.*)") Wake wake) {
     public static final int DEFAULT_FREEZE_SECONDS = 60;
     public static final int DEFAULT_STOP_SECONDS = 900;
     public static final int DEFAULT_WAKE_TIMEOUT_MS = 5000;
@@ -43,7 +43,7 @@ public record SleepSpec(@Schema(description = "true : activer le mode endormi (d
     /**
      * Quand réveiller une deuxième (troisième…) réplique. {@code initialReplicas} répliques se réveillent d'abord (défaut 1, les gelées en premier) ; chaque ingress en réveille ensuite
      * {@code stepReplicas} de plus (sur d'autres nœuds d'abord), au plus une fois par {@code cooldownSeconds}, quand un seuil est franchi : requêtes en cours par réplique éveillée,
-     * requêtes retenues depuis plus de {@code slowWakeMs}, débit par réplique. Un champ absent prend la valeur du cluster (gluonify.sleep.wake.*), puis le défaut ci-dessous.
+     * requêtes retenues depuis plus de {@code slowWakeMs}, débit par réplique. Un champ absent prend la valeur du cluster (gluonify.higgs.sleep.wake.*), puis le défaut ci-dessous.
      */
     @Schema(description = "Politique de réveil des répliques d'une application endormie.")
     public record Wake(@Schema(description = "Répliques réveillées par la première requête (défaut 1 ; au moins le nombre de répliques : toutes ensemble)", example = "1") Integer initialReplicas,
