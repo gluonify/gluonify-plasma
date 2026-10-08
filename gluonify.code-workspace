@@ -1,8 +1,7 @@
 {
 	"folders": [
-		{ "name": "Source - Application de départ", "path": "../gluonify-source" },
-		{ "name": "Calorimeter - Observabilité", "path": "../gluonify-calorimeter" },
 		{ "name": "Plasma - parent POM + SDK", "path": "." },
+		{ "name": "Synchrotron - Admin GUI", "path": "../gluonify-synchrotron" },
 		{ "name": "Higgs - Orchestrateur", "path": "../gluonify-higgs" },
 		{ "name": "Strange - Agent", "path": "../gluonify-strange" },
 		{ "name": "Rup - Storage", "path": "../gluonify-rup" },
@@ -12,9 +11,15 @@
 		{ "name": "Charm - Identity provider", "path": "../gluonify-charm" },
 		{ "name": "Photon - API management", "path": "../gluonify-photon" },
 		{ "name": "Field - Static content server", "path": "../gluonify-field" },
+		{ "name": "Calorimeter - Observabilité", "path": "../gluonify-calorimeter" },
 		{ "name": "Bup - Builder", "path": "../gluonify-bup" },
-		{ "name": "Probe - Test app", "path": "../gluonify-probe" },
 		{ "name": "Chamber - E2E tests & installer", "path": "../gluonify-chamber" },
-		{ "name": "Codex - Docs & architecture", "path": "../gluonify-codex" }
+		{ "name": "Codex - Docs & architecture", "path": "../gluonify-codex" },
+		{ "name": "Probe - Test app", "path": "../gluonify-probe" },
+		{ "name": "Source - Application de départ Maven", "path": "../gluonify-source" },
+		{ "name": "Source - Application de départ Gradle", "path": "../gluonify-source-gradle" },
+		{ "name": "Sea - Réservoir des binaires", "path": "../gluonify-sea" },
+		{ "name": "Gauge - Pilote IA (MCP)", "path": "../gluonify-gauge" },
+		{ "name": "Horizon - Orchestration et modèle Edge", "path": "../gluonify-horizon" }
 	]
 }
