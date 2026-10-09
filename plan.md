@@ -1,6 +1,7 @@
 # plan.md : gluonify-plasma (SDK + racine)
 
 ## Fait récemment
+- [x] `Requires` : dépendances système d'un artefact par distribution (`debian13`…), noms validés.
 - [x] Protocole de gluonify-fermion (`io.gluonify.plasma.fermion` : `FermionMsg`, descripteurs de compétences et de workflows), 3 tests.
 - [x] `GzipSignature` : signature par fichier dans l'en-tête gzip (RFC 1952, FEXTRA « GL »), vérifiable hors ligne, en plus du manifeste.
 - [x] `ReleaseManifest.MAX_ARTIFACTS` porté de 64 à 1024 ; taille maximale du manifeste harmonisée (256 Kio) entre sea et strange.
