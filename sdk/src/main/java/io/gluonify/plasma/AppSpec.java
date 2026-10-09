@@ -96,7 +96,8 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
     public static final int DEFAULT_SCRATCH_MB = 64;
     public static final int MAX_SCRATCH_MB = 2048;
 
-    public static final Set<String> ARCHITECTURES = Set.of("amd64", "arm64");
+    /** Linux : {@code amd64}, {@code arm64} ; nœuds de développement du runtime {@code host} : {@code darwin-*} (macOS) et {@code windows-*}. */
+    public static final Set<String> ARCHITECTURES = Set.of("amd64", "arm64", "darwin-amd64", "darwin-arm64", "windows-amd64", "windows-arm64");
 
     public AppSpec {
         if (name == null || !name.matches("[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?")) {
@@ -108,7 +109,7 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
         if (artifacts == null) artifacts = Map.of();
         if (!artifacts.isEmpty()) {
             for (var e : artifacts.entrySet()) {
-                if (!ARCHITECTURES.contains(e.getKey())) throw new IllegalArgumentException("architecture inconnue : " + e.getKey() + " (amd64 ou arm64)");
+                if (!ARCHITECTURES.contains(e.getKey())) throw new IllegalArgumentException("architecture inconnue : " + e.getKey() + " (amd64, arm64, darwin-amd64, darwin-arm64, windows-amd64 ou windows-arm64)");
                 if (e.getValue() == null || e.getValue().isBlank() || e.getValue().length() > 2048) throw new IllegalArgumentException("exécutable invalide pour " + e.getKey());
             }
             artifacts = Collections.unmodifiableMap(new TreeMap<>(artifacts)); // ordre stable (réplication, instantanés)
