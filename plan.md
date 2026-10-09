@@ -1,10 +1,12 @@
 # plan.md : gluonify-plasma (SDK + racine)
 
 ## Fait récemment
+- [x] Protocole de gluonify-fermion (`io.gluonify.plasma.fermion` : `FermionMsg`, descripteurs de compétences et de workflows), 3 tests.
 - [x] `GzipSignature` : signature par fichier dans l'en-tête gzip (RFC 1952, FEXTRA « GL »), vérifiable hors ligne, en plus du manifeste.
 - [x] `ReleaseManifest.MAX_ARTIFACTS` porté de 64 à 1024 ; taille maximale du manifeste harmonisée (256 Kio) entre sea et strange.
 
 ## Pas encore fait
+- [ ] Client WebSocket de fermion (reconnexion, file bornée, registre de compétences) : module séparé à écrire quand fermion tourne.
 - [ ] `install.sh` (shell, hors du SDK) ne lit pas la signature par fichier : reste sur le manifeste, qui suffit.
 - [ ] Signature de fichier non exigée par défaut par les vérificateurs (sea, strange) : à activer une fois les anciennes publications remplacées.
 - [ ] Signature croisée par deux éditeurs (deux clés de publication valides en permanence) à la rotation de clé.
