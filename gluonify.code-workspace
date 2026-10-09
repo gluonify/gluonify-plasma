@@ -16,6 +16,8 @@
 		{ "name": "Chamber - E2E tests & installer", "path": "../gluonify-chamber" },
 		{ "name": "Codex - Docs & architecture", "path": "../gluonify-codex" },
 		{ "name": "Probe - Test app", "path": "../gluonify-probe" },
+		{ "name": "Fermion - Workflows et règles", "path": "../gluonify-fermion" },
+		{ "name": "Crystallon - Conversion de documents", "path": "../gluonify-crystallon" },
 		{ "name": "Source - Application de départ Maven", "path": "../gluonify-source" },
 		{ "name": "Source - Application de départ Gradle", "path": "../gluonify-source-gradle" },
 		{ "name": "Sea - Réservoir des binaires", "path": "../gluonify-sea" },
