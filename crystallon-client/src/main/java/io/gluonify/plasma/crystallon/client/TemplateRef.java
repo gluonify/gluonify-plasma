@@ -28,7 +28,7 @@ public final class TemplateRef {
         return new TemplateRef(client, path, version);
     }
 
-    /** Rend le document en PDF/A avec les paramètres du serveur. @param data le payload (record, bean ou {@code Map}) ; {@code null} donne {@code {}} */
+    /** Rend le document en PDF/A avec les paramètres du modèle, puis ceux du serveur. @param data le payload (record, bean ou {@code Map}) ; {@code null} donne {@code {}} */
     public RenderedPdf render(final Object data) {
         return render(data, RenderOptions.DEFAULT);
     }

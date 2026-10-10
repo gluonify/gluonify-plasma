@@ -1,6 +1,6 @@
 # gluonify-plasma-crystallon-client
 
-Client HTTP de **gluonify-crystallon** (documents PDF depuis un modèle stocké) pour les applications des clients : on désigne un modèle par son nom ou son identifiant, on passe un payload (record, bean ou `Map`), on reçoit le PDF.
+Client HTTP de **gluonify-crystallon** (documents PDF depuis un modèle) pour les applications des clients : on désigne un modèle stocké par son nom ou son identifiant, **ou on envoie le modèle avec la demande** (`inline`), on passe un payload (record, bean ou `Map`), on reçoit le PDF.
 
 - **Java 17**, sans CDI, sans Quarkus : une seule dépendance obligatoire, le SDK de la plateforme (`gluonify-plasma-sdk`, transitif).
 - **Jackson 2 ou Jackson 3**, celui de l'application, détecté à l'exécution (`PayloadCodec.detect()`) : aucun des deux n'est transitif.
@@ -53,6 +53,32 @@ RenderedPdf swiss = crystallon.byId("3f2a…").version(7).render(payload, fr);  
 Check check = crystallon.byName("Gluonify invoice").validate(payload);                     // sans PDF : erreurs et avertissements avec leur chemin
 if (!check.valid()) check.errors().forEach(e -> log.warn("{} {} ({})", e.code(), e.message(), e.path()));
 ```
+
+## Un modèle envoyé avec la demande (`inline`)
+
+Pour un modèle que l'application possède (un courrier dont le texte est dans son code, un modèle prédéfini sans le copier dans Crystallon), `inline(template)` ne demande rien de stocké : le modèle voyage dans chaque demande (`POST /v1/render`).
+
+```java
+InlineTemplate letter = crystallon.inline(Map.of(                       // l'objet modèle de Crystallon : Map, record, bean ou JsonNode
+        "extends", "letter",                                            // un modèle prédéfini à personnaliser
+        "theme", Map.of("primary", "#005eb8")));
+InlineTemplate quote = crystallon.inline("quote");                      // ou le nom d'un modèle prédéfini : invoice, letter, quote
+
+RenderOptions options = RenderOptions.builder().lang("fr").country("CH").pdfa(true).build();
+RenderedPdf pdf = letter.render(letterData, options);                   // PDF/A-1B ; pdf.bytes(), pdf.pages(), pdf.warnings(), pdf.pdfa()
+Check check = letter.validate(letterData, options);                     // POST /v1/render/validate : erreurs et avertissements avec leur chemin dans le modèle
+```
+
+- `template` est **une `String` : le nom d'un modèle prédéfini** (`GET /v1/presets` les liste), ou **un objet** sérialisé par le `PayloadCodec` (`Map`, record, bean, `JsonNode` du Jackson du codec) qui doit donner un objet JSON, avec éventuellement `extends`. Du JSON écrit dans une `String` est refusé (`IllegalArgumentException` : lire le JSON d'abord en `Map` ou en `JsonNode`) ; un objet qui ne se sérialise pas en objet JSON aussi.
+- **Le modèle est figé à la création** : `inline(…)` le sérialise et en garde une copie privée (modifier la `Map` ensuite ne change rien), et un modèle illisible échoue là, pas au premier rendu. `InlineTemplate` est immuable et sûr entre fils, comme `TemplateRef` ; `inline` ne fait aucun appel réseau. Il n'y a pas de `version(n)` (rien n'est stocké).
+- Mêmes `RenderOptions`, mêmes erreurs (`CrystallonException` avec le `path` du problème dans le modèle), mêmes en-têtes lus, même borne du PDF et mêmes rôles (`gluonify:crystallon:render`) que pour un modèle stocké.
+- `data` `null` est envoyé comme `{}`, comme pour un modèle stocké.
+- **Interfero** (lettres postales) : `CrystallonClient.builder().baseUrl(…).tokens(CrystallonTokens.file(path)).json(Jackson3Codec.of(mapper)).build()`, puis `client.inline(letterTemplate).render(data, RenderOptions.builder().lang(lang).country(country).pdfa(pdfa).build())`.
+- Types du modèle et du payload en image native : voir « Image native ».
+
+## Paramètres par défaut du modèle
+
+Un modèle (stocké, prédéfini ou envoyé) peut porter des `params` à sa racine (`lang`, `country`, `currency`, `timezone`, `dateStyle`, `numberStyle`). Pour chaque paramètre, **la demande l'emporte** (`RenderOptions`), sinon **la valeur du modèle**, sinon **le défaut du serveur**. `RenderOptions.DEFAULT` ne demande donc aucun paramètre : `render(payload)` utilise ceux du modèle. Le modèle prédéfini `invoice` en porte (voir le README de gluonify-crystallon).
 
 `byName` et `byId` ne font aucun appel réseau : `TemplateRef` est immuable et peut être gardé. Sans `version(n)`, Crystallon rend la version courante du modèle ; avec, la version `n` de son historique (`?version=n`). `RenderOptions.DEFAULT` demande le PDF/A-1B et laisse les paramètres au serveur ; `pdfa(false)` donne le PDF brut. Un payload `null` est envoyé comme `{}` (un corps sans `data` ferait rendre l'exemple du modèle).
 
@@ -139,8 +165,8 @@ Pour appeler en tant que la personne connectée : `.tokens(CrystallonTokens.forw
 
 ## Image native
 
-- Les records du SDK que Jackson lit ou écrit (`Check`, `Issue`, `ErrorBody`, `RenderRequest`, `RenderParams`) sont déclarés dans `META-INF/native-image/io.gluonify.plasma/gluonify-plasma-crystallon-client/reachability-metadata.json`, que `native-image` (donc Quarkus) lit tout seul dans le jar.
-- **Les types du payload sont à la charge de l'application** : chaque record ou bean passé à `render` / `validate` doit être enregistré pour la réflexion (Quarkus : `@RegisterForReflection` sur le type, ou `Reflection.java` du composant ; ailleurs : une entrée `reachability-metadata.json` avec `allDeclaredConstructors`, `allDeclaredMethods` et `allDeclaredFields`). Un oubli ne casse qu'en natif, à la première sérialisation (`UnsupportedFeatureError: Record components not available for record class …`), sans erreur de compilation ni test JVM.
+- Les records du SDK que Jackson lit ou écrit (`Check`, `Issue`, `ErrorBody`, `RenderRequest`, `InlineRenderRequest`, `RenderParams`) sont déclarés dans `META-INF/native-image/io.gluonify.plasma/gluonify-plasma-crystallon-client/reachability-metadata.json`, que `native-image` (donc Quarkus) lit tout seul dans le jar.
+- **Les types du payload sont à la charge de l'application** : chaque record ou bean passé à `render` / `validate`, **et chaque record ou bean passé à `inline(…)` comme modèle**, doit être enregistré pour la réflexion (Quarkus : `@RegisterForReflection` sur le type, ou `Reflection.java` du composant ; ailleurs : une entrée `reachability-metadata.json` avec `allDeclaredConstructors`, `allDeclaredMethods` et `allDeclaredFields`). Un oubli ne casse qu'en natif, à la première sérialisation (`UnsupportedFeatureError: Record components not available for record class …`), sans erreur de compilation ni test JVM.
 - Vérifié en natif (NIK 25, programme d'essai contre un faux serveur, Jackson 3 puis Jackson 2 avec `jsr310`) : détection du JSON, rendu, validation, erreur `ErrorBody`, dates et `BigDecimal` du payload ; sans le fichier de métadonnées ci-dessus, la première sérialisation échoue comme décrit.
 - Le `HttpClient` n'est jamais dans un champ statique ni créé à la construction du client ; pas de `Random` statique ; la bibliothèque JSON absente (Jackson 2 si l'application n'a que Jackson 3, et inversement) n'est jamais chargée.
 
@@ -151,9 +177,11 @@ Pour appeler en tant que la personne connectée : `.tokens(CrystallonTokens.forw
 | `byId(id).render(…)` | `POST {base}/v1/templates/{id}/render?pdfa=true\|false[&version=n]`, `Accept: application/pdf` |
 | `byName(nom).render(…)` | `POST {base}/v1/templates/by-name/{nom encodé}/render?…` (le nom est un segment de chemin : espace `%20`, `/` `%2F`) |
 | `….validate(…)` | `POST …/render/validate[?version=n]`, `Accept: application/json` → `Check` |
+| `inline(modèle).render(…)` | `POST {base}/v1/render?pdfa=true\|false`, `Accept: application/pdf`, corps `{"template": …, "data": …, "params": …}` (`InlineRenderRequest`) |
+| `inline(modèle).validate(…)` | `POST {base}/v1/render/validate`, `Accept: application/json` → `Check`, même corps |
 
-Le corps est un `RenderRequest` JSON `{"data": …, "params": {…}}` (`params` : les seuls champs renseignés de `RenderOptions`). Réponse de rendu : le PDF, et les en-têtes `X-Crystallon-Pages`, `X-Crystallon-Warnings`, `X-Crystallon-PDFA` (`valid` ou `invalid`) lus dans `RenderedPdf` (0 ou `null` s'ils manquent).
+Le corps d'un modèle stocké est un `RenderRequest` JSON `{"data": …, "params": {…}}` (`params` : les seuls champs renseignés de `RenderOptions`) ; celui d'un modèle envoyé est un `InlineRenderRequest` `{"template": …, "data": …, "params": {…}}` (`template` : une chaîne, le nom d'un modèle prédéfini, ou un objet). Réponse de rendu : le PDF, et les en-têtes `X-Crystallon-Pages`, `X-Crystallon-Warnings`, `X-Crystallon-PDFA` (`valid` ou `invalid`) lus dans `RenderedPdf` (0 ou `null` s'ils manquent).
 
 ## Tests
 
-`mvn clean verify` : un faux Crystallon (`com.sun.net.httpserver.HttpServer`), aucun service externe. Les mêmes tests tournent avec cinq chemins de classes (exécutions surefire avec `classpathDependencyExcludes`, l'exclusion réelle est vérifiée) : Jackson 2 et 3 présents, Jackson 3 seul, Jackson 2 seul, Jackson 2 sans `jsr310`, aucun Jackson (erreur claire, client utilisable avec un `PayloadCodec` fourni). Le module et le SDK se compilent et se testent avec un JDK 17 (`maven.compiler.release` 17).
+`mvn clean verify` : 82 tests par chemin de classes (dont 26 de `InlineTemplateTest` pour `inline`), plus 3 (Jackson 2 sans `jsr310`) et 4 (aucun Jackson). Un faux Crystallon (`com.sun.net.httpserver.HttpServer`), aucun service externe. Les mêmes tests tournent avec cinq chemins de classes (exécutions surefire avec `classpathDependencyExcludes`, l'exclusion réelle est vérifiée) : Jackson 2 et 3 présents, Jackson 3 seul, Jackson 2 seul, Jackson 2 sans `jsr310`, aucun Jackson (erreur claire, client utilisable avec un `PayloadCodec` fourni). Le module et le SDK se compilent et se testent avec un JDK 17 (`maven.compiler.release` 17).

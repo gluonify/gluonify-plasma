@@ -4,7 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
  * Paramètres de génération d'un document Crystallon (hors du payload) : ils pilotent les formats des nombres, des montants, des dates et des
- * adresses. Un champ {@code null} prend la valeur par défaut du serveur et n'est pas sérialisé.
+ * adresses. Un champ {@code null} n'est pas sérialisé : le paramètre prend la valeur par défaut du modèle s'il en porte une ({@code params} à la
+ * racine du modèle), sinon celle du serveur ; un champ renseigné l'emporte toujours.
  *
  * @param lang        {@code en}, {@code fr}, {@code es}, {@code it} ou {@code de}
  * @param country     code pays ISO 3166 alpha-2 (par exemple {@code CH})

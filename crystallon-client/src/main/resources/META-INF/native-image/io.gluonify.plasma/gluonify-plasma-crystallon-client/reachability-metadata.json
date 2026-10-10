@@ -25,6 +25,12 @@
       "allDeclaredFields": true
     },
     {
+      "type": "io.gluonify.plasma.crystallon.InlineRenderRequest",
+      "allDeclaredConstructors": true,
+      "allDeclaredMethods": true,
+      "allDeclaredFields": true
+    },
+    {
       "type": "io.gluonify.plasma.crystallon.RenderParams",
       "allDeclaredConstructors": true,
       "allDeclaredMethods": true,

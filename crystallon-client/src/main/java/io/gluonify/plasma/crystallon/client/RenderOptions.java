@@ -4,11 +4,12 @@ import io.gluonify.plasma.crystallon.RenderParams;
 
 /**
  * Options d'un rendu : les paramètres de génération ({@link RenderParams}) et la conversion PDF/A-1B. Immuable. {@link #DEFAULT} : PDF/A, et
- * tous les paramètres au défaut du serveur (la langue du document, le pays, la devise... se déduisent de {@code lang}, anglais par défaut).
+ * aucun paramètre demandé : chacun prend la valeur du modèle s'il en porte une ({@code params} à la racine du modèle), sinon le défaut du serveur
+ * (la langue du document, le pays, la devise... se déduisent de {@code lang}, anglais par défaut). Un paramètre renseigné ici l'emporte toujours.
  */
 public final class RenderOptions {
 
-    /** PDF/A-1B, paramètres du serveur. */
+    /** PDF/A-1B, aucun paramètre demandé (ceux du modèle, puis du serveur). */
     public static final RenderOptions DEFAULT = builder().build();
 
     private final RenderParams params;

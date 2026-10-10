@@ -2,6 +2,7 @@ package io.gluonify.plasma.crystallon.client;
 
 import io.gluonify.plasma.crystallon.Check;
 import io.gluonify.plasma.crystallon.ErrorBody;
+import io.gluonify.plasma.crystallon.InlineRenderRequest;
 import io.gluonify.plasma.crystallon.RenderRequest;
 import java.io.IOException;
 import java.net.URI;
@@ -11,17 +12,19 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
 /**
  * Client de gluonify-crystallon pour les applications : rend en PDF (ou valide) un modèle stocké dans Crystallon, désigné par son
- * identifiant ou par son nom.
+ * identifiant ou par son nom, ou un modèle que l'application envoie avec la demande ({@link #inline(Object)}).
  *
  * <pre>{@code
  * CrystallonClient crystallon = CrystallonClient.fromEnvironment();
  * RenderedPdf pdf = crystallon.byName("Gluonify invoice").render(payload);
+ * RenderedPdf quote = crystallon.inline("quote").render(payload);          // modèle prédéfini, ou un objet modèle : rien à stocker
  * }</pre>
  *
  * <p>Java 17, aucune dépendance obligatoire hors du SDK de la plateforme : ni CDI, ni Quarkus, et la bibliothèque JSON (Jackson 2 ou 3) est celle de
@@ -91,9 +94,73 @@ public final class CrystallonClient {
         return new TemplateRef(this, "/v1/templates/by-name/" + segment(required(name, "name")), null);
     }
 
+    /**
+     * Un modèle envoyé avec chaque demande, sans rien stocker dans Crystallon ({@code POST /v1/render}) : le nom d'un modèle prédéfini
+     * ({@code invoice}, {@code letter}, {@code quote}) ou le modèle lui-même (un objet JSON, avec éventuellement {@code extends}). Le modèle est
+     * sérialisé tout de suite par le {@link PayloadCodec} : l'{@link InlineTemplate} garde une copie, que la modification ultérieure de l'objet passé ne
+     * change pas, et un modèle qui n'est pas sérialisable échoue ici plutôt qu'au premier rendu. Aucun appel réseau.
+     *
+     * @param template une {@code String} : le nom d'un modèle prédéfini ; sinon un objet qui se sérialise en objet JSON ({@code Map}, record, bean,
+     *                 {@code JsonNode} du Jackson du codec). Du JSON écrit dans une {@code String} n'est pas admis : le lire d'abord (une {@code Map},
+     *                 un {@code JsonNode})
+     * @throws IllegalArgumentException si le modèle est {@code null}, un nom vide, du JSON dans une chaîne, ou ne se sérialise pas en objet JSON
+     */
+    public InlineTemplate inline(final Object template) {
+        return new InlineTemplate(this, snapshot(template));
+    }
+
+    private Object snapshot(final Object template) {
+        if (template == null) {
+            throw new IllegalArgumentException("the template must be the name of a predefined template or a template object, not null");
+        }
+        if (template instanceof String name) {
+            final String preset = name.strip();
+            if (preset.isEmpty()) {
+                throw new IllegalArgumentException("the predefined template name must not be blank");
+            }
+            if (preset.startsWith("{") || preset.startsWith("[")) {
+                throw new IllegalArgumentException("a String is the name of a predefined template; for a template written as JSON, pass a Map, a record or a "
+                        + "JsonNode (read the JSON text first)");
+            }
+            return preset;
+        }
+        final byte[] bytes = json.write(template);
+        final Map<?, ?> copy;
+        try {
+            copy = json.read(bytes, Map.class);
+        }
+        catch (final RuntimeException e) {
+            throw new IllegalArgumentException("the template must serialize to a JSON object (a Map, a record, a bean or a JsonNode object) or be the name "
+                    + "of a predefined template", e);
+        }
+        if (copy == null) {
+            throw new IllegalArgumentException("the template must serialize to a JSON object, not null");
+        }
+        return copy; // private to the InlineTemplate: never handed out, only read
+    }
+
     RenderedPdf render(final String templatePath, final Integer version, final Object data, final RenderOptions options) {
-        final String query = "?pdfa=" + options.pdfa() + (version == null ? "" : "&version=" + version);
-        final HttpResponse<BoundedBody.Body> response = post(templatePath + "/render" + query, "application/pdf", data, options);
+        return renderPdf(templatePath + "/render" + renderQuery(options, version), new RenderRequest(data, options.params()));
+    }
+
+    Check validate(final String templatePath, final Integer version, final Object data, final RenderOptions options) {
+        return check(templatePath + "/render/validate" + (version == null ? "" : "?version=" + version), new RenderRequest(data, options.params()));
+    }
+
+    RenderedPdf renderInline(final Object template, final Object data, final RenderOptions options) {
+        return renderPdf("/v1/render" + renderQuery(options, null), new InlineRenderRequest(template, data, options.params()));
+    }
+
+    Check validateInline(final Object template, final Object data, final RenderOptions options) {
+        return check("/v1/render/validate", new InlineRenderRequest(template, data, options.params()));
+    }
+
+    private static String renderQuery(final RenderOptions options, final Integer version) {
+        return "?pdfa=" + options.pdfa() + (version == null ? "" : "&version=" + version);
+    }
+
+    private RenderedPdf renderPdf(final String pathAndQuery, final Object request) {
+        final HttpResponse<BoundedBody.Body> response = post(pathAndQuery, "application/pdf", request);
         final int status = response.statusCode();
         final BoundedBody.Body body = response.body();
         if (status / 100 != 2) {
@@ -109,9 +176,8 @@ public final class CrystallonClient {
         return new RenderedPdf(pdf, intHeader(response, PAGES_HEADER), intHeader(response, WARNINGS_HEADER), pdfa(response));
     }
 
-    Check validate(final String templatePath, final Integer version, final Object data, final RenderOptions options) {
-        final String query = version == null ? "" : "?version=" + version;
-        final HttpResponse<BoundedBody.Body> response = post(templatePath + "/render/validate" + query, "application/json", data, options);
+    private Check check(final String pathAndQuery, final Object request) {
+        final HttpResponse<BoundedBody.Body> response = post(pathAndQuery, "application/json", request);
         final int status = response.statusCode();
         final BoundedBody.Body body = response.body();
         if (status / 100 != 2) {
@@ -129,8 +195,8 @@ public final class CrystallonClient {
         throw new CrystallonException(status, null, "The validation answer of Crystallon is not readable", null);
     }
 
-    private HttpResponse<BoundedBody.Body> post(final String pathAndQuery, final String accept, final Object data, final RenderOptions options) {
-        final byte[] payload = json.write(new RenderRequest(data, options.params()));
+    private HttpResponse<BoundedBody.Body> post(final String pathAndQuery, final String accept, final Object requestBody) {
+        final byte[] payload = json.write(requestBody);
         final HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(base + pathAndQuery)).timeout(timeout)
                 .header("Content-Type", "application/json").header("Accept", accept)
                 .POST(HttpRequest.BodyPublishers.ofByteArray(payload));

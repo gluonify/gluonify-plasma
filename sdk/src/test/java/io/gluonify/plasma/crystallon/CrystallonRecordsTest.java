@@ -32,6 +32,16 @@ class CrystallonRecordsTest {
     }
 
     @Test
+    void inlineRenderRequestCarriesTheTemplateAndNeverHasNullData() throws Exception {
+        assertEquals(Map.of(), new InlineRenderRequest("invoice", null, null).data());
+        assertEquals("{\"template\":\"invoice\",\"data\":{}}", json.writeValueAsString(new InlineRenderRequest("invoice", null, null)));
+        assertEquals(json.readTree("{\"template\":{\"extends\":\"letter\",\"theme\":{\"primary\":\"#B00020\"}},\"data\":{\"a\":1},\"params\":{\"lang\":\"de\"}}"),
+                json.readTree(json.writeValueAsString(new InlineRenderRequest(Map.of("extends", "letter", "theme", Map.of("primary", "#B00020")), Map.of("a", 1),
+                        new RenderParams("de", null, null, null, null, null)))));
+        assertThrows(NullPointerException.class, () -> new InlineRenderRequest(null, Map.of(), null));
+    }
+
+    @Test
     void checkReadsTheValidationAnswerAndIgnoresNewFields() throws Exception {
         final Check check = json.readValue("""
                 {"valid":false,"pages":0,"warnings":["unknown path 'x'"],
