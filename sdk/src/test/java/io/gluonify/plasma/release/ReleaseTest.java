@@ -131,4 +131,18 @@ class ReleaseTest {
         m[m.length - 3] ^= 1;
         assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(m, sig, ReleaseVerifier.publicKey(pem), ReleaseManifest::parse, 7, NOW));
     }
+
+    @Test
+    void oversizedManifestIsRefusedBeforeParsing() {
+        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse(new byte[2 * 1024 * 1024]));
+    }
+
+    @Test
+    void signedComparesByContent() {
+        var a = new GzipSignature.Signed(new byte[] {1, 2}, new byte[] {3});
+        var b = new GzipSignature.Signed(new byte[] {1, 2}, new byte[] {3});
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
+        assertNotEquals(a, new GzipSignature.Signed(new byte[] {1, 2}, new byte[] {4}));
+    }
 }

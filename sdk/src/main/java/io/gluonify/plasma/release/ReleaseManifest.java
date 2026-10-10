@@ -32,6 +32,8 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
     public static final int SCHEMA = 1;
     /** Nombre maximal d'artefacts d'un manifeste (borne défensive du contrôle structurel ; la taille du fichier est bornée à part). */
     public static final int MAX_ARTIFACTS = 1024;
+    /** Taille maximale d'un manifeste lu (1024 artefacts de moins de 1 Kio par ligne, plus l'en-tête). */
+    static final int MAX_MANIFEST_BYTES = 1024 * 1024 + 4096;
     public static final long MAX_ARTIFACT_BYTES = 512L * 1024 * 1024;
     public static final java.util.Set<String> NAMES = java.util.Set.of("gluonify-strange", "gluonify-higgs", "gluonify-bottom", "gluonify-gdown", "gluonify-node-image");
     /** Nom de composant sûr : minuscules, chiffres et tirets (jamais de chemin ni de caractère spécial). */
@@ -94,6 +96,7 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
 
     /** Comme {@link #parse(byte[])} avec le critère de noms de composants de l'appelant (voir {@link #validate(java.util.function.Predicate)}). */
     public static ReleaseManifest parse(byte[] bytes, java.util.function.Predicate<String> nameOk) {
+        if (bytes.length > MAX_MANIFEST_BYTES) throw new Invalid("manifeste trop volumineux"); // borne l'entrée de l'expression régulière (récursion)
         String text = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
         java.util.regex.Matcher m = HEAD.matcher(text);
         if (!m.matches()) throw new Invalid("manifeste illisible");

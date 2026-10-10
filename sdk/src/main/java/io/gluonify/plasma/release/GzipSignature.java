@@ -71,6 +71,18 @@ public final class GzipSignature {
 
     /** Sous-champ lu : revendications (octets exacts) et signature. */
     public record Signed(byte[] claimsBytes, byte[] signature) {
+        @Override public boolean equals(Object o) {
+            return o instanceof Signed s && java.util.Arrays.equals(claimsBytes, s.claimsBytes) && java.util.Arrays.equals(signature, s.signature);
+        }
+
+        @Override public int hashCode() {
+            return 31 * java.util.Arrays.hashCode(claimsBytes) + java.util.Arrays.hashCode(signature);
+        }
+
+        @Override public String toString() {
+            return "Signed[claimsBytes=" + claimsBytes.length + " bytes, signature=" + signature.length + " bytes]";
+        }
+
         public Claims claims() {
             return Claims.parse(claimsBytes);
         }
