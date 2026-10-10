@@ -12,6 +12,7 @@
   <modules>
     <module>sdk</module>
     <module>fermion-client</module>
+    <module>crystallon-client</module>
   </modules>
 
   <properties>
@@ -38,6 +39,11 @@
       <dependency>
         <groupId>io.gluonify.plasma</groupId>
         <artifactId>gluonify-plasma-fermion-client</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.gluonify.plasma</groupId>
+        <artifactId>gluonify-plasma-crystallon-client</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

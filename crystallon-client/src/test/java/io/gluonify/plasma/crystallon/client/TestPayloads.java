@@ -1,0 +1,27 @@
+package io.gluonify.plasma.crystallon.client;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+
+/** Payloads d'essai, écrits comme le code généré par Crystallon (records, {@code @JsonProperty}, {@code @JsonInclude(NON_NULL)}). */
+final class TestPayloads {
+    private TestPayloads() {
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record Item(String label, BigDecimal price, int qty) {
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record InvoicePayload(@JsonProperty("invoice-number") String invoiceNumber, LocalDate date, Instant issuedAt, BigDecimal total, List<Item> items, String note) {
+    }
+
+    static InvoicePayload invoice() {
+        return new InvoicePayload("2026-001", LocalDate.of(2026, 10, 10), Instant.parse("2026-10-10T08:30:00Z"), new BigDecimal("1234.50"),
+                List.of(new Item("Hours", new BigDecimal("120.00"), 3), new Item("Travel", new BigDecimal("874.50"), 1)), null);
+    }
+}

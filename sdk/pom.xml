@@ -9,6 +9,9 @@
     <relativePath>..</relativePath>
   </parent>
   <artifactId>gluonify-plasma-sdk</artifactId>
+  <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+  </properties>
   <dependencies>
     <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-annotations</artifactId><scope>provided</scope></dependency>
     <dependency><groupId>org.eclipse.microprofile.openapi</groupId><artifactId>microprofile-openapi-api</artifactId><scope>provided</scope></dependency>

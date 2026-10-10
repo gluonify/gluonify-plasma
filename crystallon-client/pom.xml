@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.gluonify.plasma</groupId>
+    <artifactId>gluonify-plasma</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>..</relativePath>
+  </parent>
+  <artifactId>gluonify-plasma-crystallon-client</artifactId>
+  <name>Gluonify Plasma Crystallon client</name>
+  <description>Client HTTP de gluonify-crystallon (PDF depuis un modèle stocké) : Java 17, sans CDI, Jackson 2 ou 3 détecté à l'exécution.</description>
+
+  <properties>
+    <!-- Module publié pour les applications des clients : Java 17 pur (le parent compile en 25). -->
+    <maven.compiler.release>17</maven.compiler.release>
+  </properties>
+
+  <dependencies>
+    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-sdk</artifactId></dependency>
+
+    <!-- Jackson 2 et Jackson 3 : jamais transitifs, l'application apporte celui qu'elle utilise (détection à l'exécution). -->
+    <dependency><groupId>tools.jackson.core</groupId><artifactId>jackson-databind</artifactId><scope>provided</scope></dependency>
+    <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId><scope>provided</scope></dependency>
+    <dependency><groupId>com.fasterxml.jackson.datatype</groupId><artifactId>jackson-datatype-jsr310</artifactId><scope>provided</scope></dependency>
+
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${surefire.version}</version>
+        <!--
+          Les mêmes tests tournent avec trois chemins de classes (l'exclusion réelle est vérifiée par les tests) : Jackson 2 et 3 présents
+          (le 3 est préféré), Jackson 3 seul, Jackson 2 seul (avec jsr310). Deux exécutions de plus ne lancent que leur classe : Jackson 2 sans
+          jsr310 (Jackson2NoJavaTime*) et aucun Jackson (NoJackson* : erreur claire).
+        -->
+        <executions>
+          <execution>
+            <id>default-test</id>
+            <configuration>
+              <excludes><exclude>**/NoJackson*</exclude><exclude>**/Jackson2NoJavaTime*</exclude></excludes>
+              <reportNameSuffix>both</reportNameSuffix>
+              <systemPropertyVariables>
+                <crystallon.test.jackson>both</crystallon.test.jackson>
+              </systemPropertyVariables>
+            </configuration>
+          </execution>
+          <execution>
+            <id>jackson3-only</id>
+            <phase>test</phase>
+            <goals><goal>test</goal></goals>
+            <configuration>
+              <excludes><exclude>**/NoJackson*</exclude><exclude>**/Jackson2NoJavaTime*</exclude></excludes>
+              <reportNameSuffix>jackson3-only</reportNameSuffix>
+              <classpathDependencyExcludes>
+                <classpathDependencyExclude>com.fasterxml.jackson.core:jackson-databind</classpathDependencyExclude>
+                <classpathDependencyExclude>com.fasterxml.jackson.core:jackson-core</classpathDependencyExclude>
+                <classpathDependencyExclude>com.fasterxml.jackson.datatype:jackson-datatype-jsr310</classpathDependencyExclude>
+              </classpathDependencyExcludes>
+              <systemPropertyVariables>
+                <crystallon.test.jackson>3</crystallon.test.jackson>
+              </systemPropertyVariables>
+            </configuration>
+          </execution>
+          <execution>
+            <id>jackson2-only</id>
+            <phase>test</phase>
+            <goals><goal>test</goal></goals>
+            <configuration>
+              <excludes><exclude>**/NoJackson*</exclude><exclude>**/Jackson2NoJavaTime*</exclude></excludes>
+              <reportNameSuffix>jackson2-only</reportNameSuffix>
+              <classpathDependencyExcludes>
+                <classpathDependencyExclude>tools.jackson.core:jackson-databind</classpathDependencyExclude>
+                <classpathDependencyExclude>tools.jackson.core:jackson-core</classpathDependencyExclude>
+              </classpathDependencyExcludes>
+              <systemPropertyVariables>
+                <crystallon.test.jackson>2</crystallon.test.jackson>
+              </systemPropertyVariables>
+            </configuration>
+          </execution>
+          <execution>
+            <id>jackson2-without-jsr310</id>
+            <phase>test</phase>
+            <goals><goal>test</goal></goals>
+            <configuration>
+              <includes><include>**/Jackson2NoJavaTime*Test.java</include></includes>
+              <reportNameSuffix>jackson2-without-jsr310</reportNameSuffix>
+              <classpathDependencyExcludes>
+                <classpathDependencyExclude>tools.jackson.core:jackson-databind</classpathDependencyExclude>
+                <classpathDependencyExclude>tools.jackson.core:jackson-core</classpathDependencyExclude>
+                <classpathDependencyExclude>com.fasterxml.jackson.datatype:jackson-datatype-jsr310</classpathDependencyExclude>
+              </classpathDependencyExcludes>
+              <systemPropertyVariables>
+                <crystallon.test.jackson>2-without-jsr310</crystallon.test.jackson>
+              </systemPropertyVariables>
+            </configuration>
+          </execution>
+          <execution>
+            <id>no-jackson</id>
+            <phase>test</phase>
+            <goals><goal>test</goal></goals>
+            <configuration>
+              <includes><include>**/NoJackson*Test.java</include></includes>
+              <reportNameSuffix>no-jackson</reportNameSuffix>
+              <classpathDependencyExcludes>
+                <classpathDependencyExclude>tools.jackson.core:jackson-databind</classpathDependencyExclude>
+                <classpathDependencyExclude>tools.jackson.core:jackson-core</classpathDependencyExclude>
+                <classpathDependencyExclude>com.fasterxml.jackson.core:jackson-databind</classpathDependencyExclude>
+                <classpathDependencyExclude>com.fasterxml.jackson.core:jackson-core</classpathDependencyExclude>
+                <classpathDependencyExclude>com.fasterxml.jackson.datatype:jackson-datatype-jsr310</classpathDependencyExclude>
+              </classpathDependencyExcludes>
+              <systemPropertyVariables>
+                <crystallon.test.jackson>none</crystallon.test.jackson>
+              </systemPropertyVariables>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

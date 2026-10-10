@@ -1,9 +1,17 @@
-# Gluonify Plasma — POM parent et SDK
+# Gluonify Plasma — POM parent, SDK et clients
 
-POM parent Maven des composants Gluonify (`io.gluonify:gluonify-plasma` : plateforme Quarkus, versions) et bibliothèque partagée `gluonify-plasma-sdk` (contrats JSON : `AppSpec`, `Instance`, messages WebSocket entre nœuds et control-plane, hachage de rendez-vous, capacités de stockage). Le fichier `gluonify.code-workspace` ouvre dans VS Code tous les dépôts Gluonify (supposés côte à côte).
+POM parent Maven des composants Gluonify (`io.gluonify.plasma:gluonify-plasma` : plateforme Quarkus, versions) et bibliothèques partagées, trois modules :
+
+| Module (`io.gluonify.plasma:…`) | Contenu | Java |
+|---|---|---|
+| `gluonify-plasma-sdk` (`sdk/`) | contrats JSON : `AppSpec`, `Instance`, messages WebSocket entre nœuds et control-plane, hachage de rendez-vous, capacités de stockage, manifeste signé, protocole de fermion, records de Crystallon (`io.gluonify.plasma.crystallon`) | 17 |
+| `gluonify-plasma-fermion-client` (`fermion-client/`) | client WebSocket de gluonify-fermion (Quarkus, CDI) | 25 |
+| `gluonify-plasma-crystallon-client` (`crystallon-client/`) | client HTTP de gluonify-crystallon : rendre en PDF un modèle par son nom ou son identifiant ; sans CDI, Jackson 2 ou 3 détecté à l'exécution ; [README](crystallon-client/README.md) | 17 |
+
+`sdk` et `crystallon-client` sont les modules publiés pour les applications des clients (dépôt Maven `https://images.gluonify.io/maven`) : ils se compilent pour Java 17 (`maven.compiler.release` 17), le parent et les autres modules pour Java 25. La version `0.1.0-SNAPSHOT` du dépôt est fixée à la publication (elle suit celle de la plateforme). Le fichier `gluonify.code-workspace` ouvre dans VS Code tous les dépôts Gluonify (supposés côte à côte).
 
 ```
-mvn install      # installe le parent et le SDK dans ~/.m2 : prérequis de gluonify-higgs, -strange, -rup
+mvn install      # installe le parent, le SDK et les clients dans ~/.m2 : prérequis de gluonify-higgs, -strange, -rup
 ```
 
 Documentation d'ensemble : [gluonify-codex](https://github.com/gluonify/gluonify-codex).
@@ -21,3 +29,9 @@ Documentation d'ensemble : [gluonify-codex](https://github.com/gluonify/gluonify
 ## Protocole de gluonify-fermion (workflows BPMN et règles DMN)
 
 Paquet `io.gluonify.plasma.fermion` : le contrat WebSocket entre un nœud applicatif et gluonify-fermion. `FermionMsg` (interface scellée, champ `t`) : `Auth` (premier message : jeton Charm d'audience `gluonify-fermion` et version du protocole, jamais dans l'URL), `Hello` (compétences et workflows utilisés, adresse de l'OpenAPI), `Start` (soumettre un workflow), `Command` (exécuter une tâche), `Result` (succès ou échec avec `errorKind` lisible par la machine), `Error`. Types associés : `SkillDescriptor`, `WorkflowDescriptor`, `SkillParam`, `Translation`, `Language` (en, fr, es, it, de). Le SDK ne contient que le contrat ; le client est le module `fermion-client` (`gluonify-plasma-fermion-client`, paquet `io.gluonify.plasma.fermion.client`) : connexion Quarkus WebSockets Next avec jeton Charm dans la trame `Auth`, reconnexion planifiée avec un connecteur neuf à chaque tentative, file bornée des `Start` pendant une coupure, SPI `SkillHandler` / `SkillHandlerRegistry` / `TaskContext` / `WorkflowUsage` ; voir `fermion-client/README.md` (configuration `gluonify.fermion.client.*`). Les types doivent être listés dans le `Reflection.java` du consommateur (natif).
+
+## Contrat de gluonify-crystallon : records et client
+
+Paquet `io.gluonify.plasma.crystallon` (SDK, Java 17) : `RenderParams` (`lang`, `country`, `currency`, `timezone`, `dateStyle`, `numberStyle` ; `null` = défaut du serveur, omis du JSON), `RenderRequest` (`data`, jamais `null` : au minimum `{}`, sinon le serveur rendrait l'exemple du modèle ; `params`), `Issue` (`code`, `message`, `path`), `Check` (réponse de `…/render/validate` : `valid`, `pages`, `warnings`, `errors`, `warningDetails`, listes jamais `null`) et `ErrorBody` (`code`, `message`, `path`). Les types lus ignorent les propriétés inconnues.
+
+Le client est le module `crystallon-client` (`gluonify-plasma-crystallon-client`, paquet `io.gluonify.plasma.crystallon.client`) : `CrystallonClient` (`builder()`, `fromEnvironment()`, `byId`, `byName`), `TemplateRef` (`version(n)`, `render`, `validate`), `RenderOptions`, `RenderedPdf`, `CrystallonTokens` (`none`, `fixed`, `file`, `forwarding`, `fromEnvironment`), `PayloadCodec` (`detect()` : Jackson 3 d'abord, sinon Jackson 2, `Jackson3Codec.of` / `Jackson2Codec.of` pour le mapper de l'application) et `CrystallonException` (`status`, `code`, `path`). Aucune dépendance obligatoire hors du SDK, ni CDI ; voir `crystallon-client/README.md` (dépendance, configuration, jetons, erreurs, image native : les types du payload sont à la charge de l'application). Le code Java généré par l'onglet « Code » de l'éditeur de Crystallon appelle exactement ces signatures.
