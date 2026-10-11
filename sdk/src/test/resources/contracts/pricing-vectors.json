@@ -1,0 +1,189 @@
+{
+  "about": "Jeu d'essai commun de la valorisation (gluonify-codex/contracts.md § 6.2) : Higgs, le calorimètre et Prism doivent rendre ces montants au centime. Quantités dans la grandeur de base du catalogue (Mo × s, s, unités, octets, Go × h). Clés des lignes : unité, dimensions triées {k=v}, @environnement.",
+  "vectors": [
+    {
+      "name": "liste seule : mémoire par état, CPU, requêtes",
+      "currency": "CHF",
+      "daysInMonth": 30,
+      "sections": [ {
+        "list": [
+          { "unit": "strange.instance.memory_reserved", "dims": { "state": "active" }, "per": "GB-hour", "price": "0.0080" },
+          { "unit": "strange.instance.memory_reserved", "dims": { "state": "frozen" }, "per": "GB-hour", "price": "0.0020" },
+          { "unit": "strange.instance.cpu", "per": "hour", "price": "0.0200" },
+          { "unit": "higgs.ingress.requests", "per": "million", "price": "0.40" }
+        ],
+        "usage": [
+          { "unit": "strange.instance.memory_reserved", "dims": { "state": "active" }, "quantity": "2654208000" },
+          { "unit": "strange.instance.memory_reserved", "dims": { "state": "frozen" }, "quantity": "184320000" },
+          { "unit": "strange.instance.cpu", "quantity": "36000" },
+          { "unit": "higgs.ingress.requests", "dims": { "class": "2xx" }, "quantity": "2500000" },
+          { "unit": "higgs.ingress.requests", "dims": { "class": "5xx" }, "quantity": "100000" }
+        ]
+      } ],
+      "expect": {
+        "total": "7.10", "usage": "7.10", "fixed": "0.00",
+        "sections": [ { "usage": "7.10", "lines": {
+          "strange.instance.memory_reserved{state=active}": "5.76",
+          "strange.instance.memory_reserved{state=frozen}": "0.10",
+          "strange.instance.cpu": "0.20",
+          "higgs.ingress.requests{class=2xx}": "1.00",
+          "higgs.ingress.requests{class=5xx}": "0.04"
+        } } ]
+      }
+    },
+    {
+      "name": "surcharges : prix, quantité incluse et paliers, remise de ligne et du contrat, abonnement",
+      "currency": "CHF",
+      "daysInMonth": 30,
+      "sections": [ {
+        "pricing": {
+          "currency": "CHF",
+          "subscription": { "monthly": "490.00", "perApp": "0.00" },
+          "discountPct": "10",
+          "minimumMonthly": "0.00",
+          "overrides": [
+            { "unit": "strange.instance.memory_reserved", "dims": { "state": "frozen" }, "price": "0.0010" },
+            { "unit": "crystallon.render.pages", "included": 10000, "tiers": [ { "upTo": 100000, "price": "0.0020" }, { "price": "0.0010" } ] },
+            { "unit": "higgs.ingress.requests", "discountPct": "50" }
+          ]
+        },
+        "list": [
+          { "unit": "strange.instance.memory_reserved", "dims": { "state": "frozen" }, "per": "GB-hour", "price": "0.0020" },
+          { "unit": "higgs.ingress.requests", "per": "million", "price": "0.40" },
+          { "unit": "crystallon.render.pages", "per": "unit", "price": "0.0030" }
+        ],
+        "usage": [
+          { "unit": "crystallon.render.pages", "quantity": "200000" },
+          { "unit": "crystallon.render.pages", "quantity": "50000" },
+          { "unit": "strange.instance.memory_reserved", "dims": { "state": "frozen" }, "quantity": "184320000" },
+          { "unit": "higgs.ingress.requests", "dims": { "class": "2xx" }, "quantity": "2500000" }
+        ],
+        "activeDays": "30"
+      } ],
+      "expect": {
+        "total": "796.50", "usage": "306.50", "fixed": "490.00",
+        "sections": [ { "usage": "340.55", "usageDiscounted": "306.50", "fixed": "490.00", "lines": {
+          "crystallon.render.pages": "340.00",
+          "strange.instance.memory_reserved{state=frozen}": "0.05",
+          "higgs.ingress.requests{class=2xx}": "0.50"
+        } } ]
+      }
+    },
+    {
+      "name": "minimum mensuel",
+      "currency": "EUR",
+      "daysInMonth": 31,
+      "sections": [ {
+        "pricing": { "currency": "EUR", "minimumMonthly": "100" },
+        "list": [ { "unit": "strange.instance.cpu", "per": "hour", "price": "0.02" } ],
+        "usage": [ { "unit": "strange.instance.cpu", "quantity": "3600" } ]
+      } ],
+      "expect": { "total": "100.00", "usage": "0.02", "fixed": "0.00", "minimum": "100.00" }
+    },
+    {
+      "name": "deux versions dans le mois : quantité incluse et paliers au prorata",
+      "currency": "CHF",
+      "daysInMonth": 30,
+      "sections": [
+        {
+          "contractVersion": 1, "share": "0.5",
+          "pricing": { "currency": "CHF", "subscription": { "monthly": "300" },
+            "overrides": [ { "unit": "crystallon.render.pages", "per": "unit", "included": 10000, "price": "0.002" } ] },
+          "usage": [ { "unit": "crystallon.render.pages", "quantity": "8000" } ],
+          "activeDays": "15"
+        },
+        {
+          "contractVersion": 2, "share": "0.5",
+          "pricing": { "currency": "CHF", "subscription": { "monthly": "400" },
+            "overrides": [ { "unit": "crystallon.render.pages", "per": "unit", "included": 20000, "tiers": [ { "upTo": 10000, "price": "0.003" }, { "price": "0.001" } ] } ] },
+          "usage": [ { "unit": "crystallon.render.pages", "quantity": "30000" } ],
+          "activeDays": "15"
+        }
+      ],
+      "expect": {
+        "total": "386.00", "usage": "36.00", "fixed": "350.00",
+        "sections": [
+          { "usage": "6.00", "fixed": "150.00", "lines": { "crystallon.render.pages": "6.00" } },
+          { "usage": "30.00", "fixed": "200.00", "lines": { "crystallon.render.pages": "30.00" } }
+        ]
+      }
+    },
+    {
+      "name": "unité indicative ignorée, unité sans prix montrée non tarifée",
+      "currency": "CHF",
+      "daysInMonth": 30,
+      "sections": [ {
+        "list": [ { "unit": "strange.instance.cpu", "per": "hour", "price": "0.02" } ],
+        "usage": [
+          { "unit": "strange.instance.memory_used", "quantity": "999999999" },
+          { "unit": "fermion.executions", "quantity": "10" },
+          { "unit": "strange.instance.cpu", "quantity": "7200" }
+        ]
+      } ],
+      "expect": {
+        "total": "0.04",
+        "sections": [ { "usage": "0.04", "lines": { "fermion.executions": "0.00", "strange.instance.cpu": "0.04" }, "unpriced": [ "fermion.executions" ] } ]
+      }
+    },
+    {
+      "name": "arrondi au demi supérieur, devise sans décimale (JPY) et devise à deux décimales",
+      "currency": "JPY",
+      "daysInMonth": 30,
+      "sections": [ {
+        "list": [ { "unit": "higgs.ingress.requests", "per": "unit", "price": "0.5" } ],
+        "usage": [ { "unit": "higgs.ingress.requests", "dims": { "class": "2xx" }, "quantity": "3" } ]
+      } ],
+      "expect": { "total": "2", "sections": [ { "usage": "2", "lines": { "higgs.ingress.requests{class=2xx}": "2" } } ] }
+    },
+    {
+      "name": "demi-centime arrondi au centime supérieur",
+      "currency": "CHF",
+      "daysInMonth": 30,
+      "sections": [ {
+        "list": [ { "unit": "higgs.ingress.requests", "per": "unit", "price": "0.001" } ],
+        "usage": [ { "unit": "higgs.ingress.requests", "dims": { "class": "2xx" }, "quantity": "5" } ]
+      } ],
+      "expect": { "total": "0.01" }
+    },
+    {
+      "name": "surcharge propre à un environnement (analyses gratuites en SBX)",
+      "currency": "CHF",
+      "daysInMonth": 30,
+      "sections": [ {
+        "pricing": { "currency": "CHF", "overrides": [ { "unit": "bup.analysis.runs", "dims": { "kind": "sonar" }, "env": "SBX", "price": "0" } ] },
+        "list": [ { "unit": "bup.analysis.runs", "dims": { "kind": "sonar" }, "per": "unit", "price": "0.10" } ],
+        "usage": [
+          { "unit": "bup.analysis.runs", "dims": { "kind": "sonar" }, "env": "SBX", "quantity": "5" },
+          { "unit": "bup.analysis.runs", "dims": { "kind": "sonar" }, "env": "PRD", "quantity": "5" }
+        ]
+      } ],
+      "expect": { "total": "0.50", "sections": [ { "lines": { "bup.analysis.runs{kind=sonar}@SBX": "0.00", "bup.analysis.runs{kind=sonar}@PRD": "0.50" } } ] }
+    },
+    {
+      "name": "part fixe par application et par application répartie, au prorata des jours",
+      "currency": "CHF",
+      "daysInMonth": 30,
+      "sections": [ {
+        "pricing": { "currency": "CHF", "subscription": { "perApp": "10", "perHaApp": "20" } },
+        "appDays": "45", "haAppDays": "15"
+      } ],
+      "expect": { "total": "25.00", "fixed": "25.00", "usage": "0.00" }
+    },
+    {
+      "name": "octets en GB (2^30) et stockage en Go × h",
+      "currency": "CHF",
+      "daysInMonth": 30,
+      "sections": [ {
+        "list": [
+          { "unit": "higgs.ingress.bytes_out", "per": "GB", "price": "0.05" },
+          { "unit": "rup.vfs.stored_bytes", "per": "GB-hour", "price": "0.00015" }
+        ],
+        "usage": [
+          { "unit": "higgs.ingress.bytes_out", "quantity": "107374182400" },
+          { "unit": "rup.vfs.stored_bytes", "dims": { "kind": "std" }, "quantity": "72000" }
+        ]
+      } ],
+      "expect": { "total": "15.80", "sections": [ { "lines": { "higgs.ingress.bytes_out": "5.00", "rup.vfs.stored_bytes{kind=std}": "10.80" } } ] }
+    }
+  ]
+}

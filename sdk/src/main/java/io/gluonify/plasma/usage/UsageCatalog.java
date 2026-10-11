@@ -1,0 +1,102 @@
+package io.gluonify.plasma.usage;
+
+import io.gluonify.plasma.analysis.AnalysisUnits;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Catalogue fermé des unités d'usage ({@code metering.md} § 3.1 et {@code analysis.md} § 10), livré par le SDK pour que Higgs valide les grilles de prix sans
+ * appeler le calorimètre ({@code contracts.md} § 2.4). Un nom hors de ce catalogue n'est ni enregistrable ni tarifable.
+ */
+public final class UsageCatalog {
+    private UsageCatalog() {}
+
+    private static final Map<String, UsageUnit> UNITS = new LinkedHashMap<>();
+
+    private static void unit(String name, Quantity q, boolean billable, boolean internal, Map<String, List<String>> dims) {
+        UNITS.put(name, new UsageUnit(name, name.substring(0, name.indexOf('.')), q, billable, internal, dims));
+    }
+
+    private static void unit(String name, Quantity q) { unit(name, q, true, false, Map.of()); }
+
+    private static void unit(String name, Quantity q, String dim, List<String> values) { unit(name, q, true, false, Map.of(dim, values)); }
+
+    static {
+        unit("strange.instance.memory_reserved", Quantity.MB_SECONDS, "state", List.of("active", "frozen"));
+        unit("strange.instance.cpu", Quantity.SECONDS);
+        unit("strange.instance.memory_used", Quantity.MB_SECONDS, false, false, Map.of());
+        unit("strange.instance.net_egress", Quantity.BYTES);
+        unit("strange.instance.net_ingress", Quantity.BYTES);
+        unit("strange.instance.disk_state", Quantity.MB_SECONDS);
+        unit("strange.vfs.bytes_written", Quantity.BYTES, "kind", List.of("std", "tmp", "gdown"));
+        unit("strange.vfs.bytes_read", Quantity.BYTES, "kind", List.of("std", "tmp", "gdown"));
+        unit("strange.vfs.ops", Quantity.COUNT, "kind", List.of("std", "tmp", "gdown"));
+        unit("higgs.ingress.requests", Quantity.COUNT, "class", List.of("2xx", "3xx", "4xx", "5xx"));
+        unit("higgs.ingress.bytes_in", Quantity.BYTES);
+        unit("higgs.ingress.bytes_out", Quantity.BYTES);
+        unit("higgs.ingress.ws_seconds", Quantity.OBJECT_SECONDS);
+        unit("higgs.ingress.wakes", Quantity.COUNT);
+        unit("higgs.domain.count", Quantity.OBJECT_SECONDS);
+        unit("higgs.acme.certificates", Quantity.COUNT);
+        unit("higgs.storage.blob_bytes", Quantity.GB_HOURS);
+        unit("higgs.locks.ops", Quantity.COUNT);
+        unit("rup.vfs.stored_bytes", Quantity.GB_HOURS, "kind", List.of("std", "tmp", "gdown"));
+        unit("gdown.db.queries", Quantity.COUNT, "kind", List.of("read", "write"));
+        unit("gdown.db.query_seconds", Quantity.SECONDS);
+        unit("gdown.db.rows", Quantity.COUNT);
+        unit("gdown.db.stored_bytes", Quantity.GB_HOURS);
+        unit("gdown.db.memory_reserved", Quantity.MB_SECONDS, false, false, Map.of());
+        unit("charm.tokens.issued", Quantity.COUNT, "kind", List.of("service", "node", "user"));
+        unit("charm.logins", Quantity.COUNT);
+        unit("top.env.reads", Quantity.COUNT);
+        unit("top.entries", Quantity.OBJECT_SECONDS);
+        unit("crystallon.render.documents", Quantity.COUNT);
+        unit("crystallon.render.pages", Quantity.COUNT);
+        unit("crystallon.convert.files", Quantity.COUNT, "op", List.of("image", "pdfa", "merge"));
+        unit("crystallon.convert.bytes_in", Quantity.BYTES, "op", List.of("image", "pdfa", "merge"));
+        unit("crystallon.store.bytes", Quantity.GB_HOURS);
+        unit("interfero.messages", Quantity.COUNT, "channel", List.of("email", "teams", "postal"));
+        unit("interfero.postal.pages", Quantity.COUNT);
+        unit("fermion.executions", Quantity.COUNT);
+        unit("fermion.steps", Quantity.COUNT);
+        unit("fermion.decisions", Quantity.COUNT);
+        unit("photon.hooks.received", Quantity.COUNT);
+        unit("photon.hooks.delivered", Quantity.COUNT);
+        unit("photon.hooks.attempts", Quantity.COUNT);
+        unit("photon.hooks.bytes", Quantity.BYTES);
+        unit("photon.hooks.stored_bytes", Quantity.GB_HOURS);
+        unit("field.site.requests", Quantity.COUNT);
+        unit("field.site.bytes_out", Quantity.BYTES);
+        unit("field.site.stored_bytes", Quantity.GB_HOURS);
+        unit("calorimeter.logs.stored_bytes", Quantity.GB_HOURS);
+        unit("calorimeter.metrics.samples", Quantity.COUNT);
+        unit("bup.build.seconds", Quantity.SECONDS, true, false, Map.of("arch", List.of("amd64", "arm64"), "mode", List.of("native", "jvm")));
+        unit("bup.builds", Quantity.COUNT, "result", List.of("success", "failure"));
+        unit("gauge.mcp.calls", Quantity.COUNT, "result", List.of("ok", "proposed"));
+        // analyses (analysis.md § 10)
+        unit(AnalysisUnits.BUP_ANALYSIS_RUNS, Quantity.COUNT, AnalysisUnits.DIM_KIND, AnalysisUnits.ANALYSIS_KINDS);
+        unit(AnalysisUnits.BUP_ANALYSIS_SECONDS, Quantity.SECONDS);
+        unit(AnalysisUnits.BUP_APITESTS_RUNS, Quantity.COUNT);
+        unit(AnalysisUnits.BUP_APITESTS_REQUESTS, Quantity.COUNT);
+        unit(AnalysisUnits.BUP_JOBS_SECONDS, Quantity.SECONDS, true, true, Map.of(AnalysisUnits.DIM_KIND, AnalysisUnits.JOB_KINDS));
+        unit(AnalysisUnits.TRACKER_CHECKS_RUNS, Quantity.COUNT, AnalysisUnits.DIM_KIND, AnalysisUnits.CHECK_KINDS);
+        unit(AnalysisUnits.TRACKER_SEO_RUNS, Quantity.COUNT);
+        unit(AnalysisUnits.TRACKER_SEO_PAGES, Quantity.COUNT);
+        unit(AnalysisUnits.TRACKER_ZAP_RUNS, Quantity.COUNT, AnalysisUnits.DIM_MODE, AnalysisUnits.ZAP_MODES);
+        unit(AnalysisUnits.TRACKER_ZAP_REQUESTS, Quantity.COUNT);
+    }
+
+    private static final Map<String, UsageUnit> VIEW = Collections.unmodifiableMap(UNITS);
+
+    /** L'unité de ce nom, ou null hors catalogue. */
+    public static UsageUnit get(String name) { return name == null ? null : VIEW.get(name); }
+
+    /** Toutes les unités, dans l'ordre du catalogue. */
+    public static Collection<UsageUnit> all() { return VIEW.values(); }
+
+    /** Les noms, dans l'ordre du catalogue. */
+    public static List<String> names() { return List.copyOf(VIEW.keySet()); }
+}

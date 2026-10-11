@@ -93,6 +93,11 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
         return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, org);
     }
 
+    /** Copie avec un autre quota par système de fichiers distribué (Mo ; null : aucun). Higgs y écrit le quota par défaut du contrat de l'organisation. */
+    public AppSpec withDistributedQuotaMb(Integer mb) {
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, mb, distributedLocks, sleep, organization);
+    }
+
     /** Organisation pour l'affichage et les filtres : {@link Organizations#UNASSIGNED} quand l'application n'est rattachée à aucune. */
     public String organizationOrUnassigned() { return Organizations.orUnassigned(organization); }
 
