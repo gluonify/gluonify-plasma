@@ -49,7 +49,7 @@ public class StoreDocument implements SkillHandler {
 }
 ```
 
-`TaskContext` : `getString`, `getLong`, `getBoolean`, `getMap`, `getList(clé, type)`, `get(clé, type)`, `optional(clé, type)`, `has`. Les handlers tournent hors du thread d'événements.
+`TaskContext` : `getString`, `getLong`, `getBoolean`, `getMap`, `getList(clé, type)`, `get(clé, type)`, `optional(clé, type)`, `has`. Les handlers tournent hors du thread d'événements, **en parallèle** (`InboundProcessingMode.CONCURRENT`) : une tâche longue (build natif, attente d'une décision humaine) ne retarde pas les autres commandes du nœud, et chaque `Result` part dès la fin de sa tâche (fermion les apparie par `correlationId`). Un handler doit donc être sûr en accès concurrent.
 
 ## Comportement
 

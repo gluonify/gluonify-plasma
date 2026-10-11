@@ -5,7 +5,7 @@ POM parent Maven des composants Gluonify (`io.gluonify.plasma:gluonify-plasma` :
 | Module (`io.gluonify.plasma:…`) | Contenu | Java |
 |---|---|---|
 | `gluonify-plasma-sdk` (`sdk/`) | contrats JSON : `AppSpec`, `Instance`, messages WebSocket entre nœuds et control-plane, hachage de rendez-vous, capacités de stockage, manifeste signé, protocole de fermion, records de Crystallon (`io.gluonify.plasma.crystallon`) | 17 |
-| `gluonify-plasma-fermion-client` (`fermion-client/`) | client WebSocket de gluonify-fermion (Quarkus, CDI) | 25 |
+| `gluonify-plasma-fermion-client` (`fermion-client/`) | client WebSocket de gluonify-fermion (Quarkus, CDI) ; commandes exécutées en parallèle | 26 |
 | `gluonify-plasma-crystallon-client` (`crystallon-client/`) | client HTTP de gluonify-crystallon : rendre en PDF un modèle par son nom ou son identifiant, ou un modèle envoyé avec la demande (`inline`) ; sans CDI, Jackson 2 ou 3 détecté à l'exécution ; [README](crystallon-client/README.md) | 17 |
 
 `sdk` et `crystallon-client` sont les modules publiés pour les applications des clients (dépôt Maven `https://images.gluonify.io/maven`) : ils se compilent pour Java 17 (`maven.compiler.release` 17), le parent et les autres modules pour Java 25. La version `0.1.0-SNAPSHOT` du dépôt est fixée à la publication (elle suit celle de la plateforme). Le fichier `gluonify.code-workspace` ouvre dans VS Code tous les dépôts Gluonify (supposés côte à côte).

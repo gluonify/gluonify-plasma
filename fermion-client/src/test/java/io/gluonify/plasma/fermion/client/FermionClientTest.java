@@ -66,7 +66,7 @@ class FermionClientTest {
         assertEquals("3", hello.nodeId());
         assertEquals("orders-3", FakeFermionServer.lastNodeId);
         assertEquals("http://orders:8080/q/openapi", hello.openApiUrl());
-        assertEquals(List.of("BOOM", "ECHO", "FAIL"), hello.skills().stream().map(s -> s.id()).toList());
+        assertEquals(List.of("BOOM", "ECHO", "FAIL", "RELEASE", "SLOW"), hello.skills().stream().map(s -> s.id()).toList());
         final var echo = hello.skills().stream().filter(s -> s.id().equals("ECHO")).findFirst().orElseThrow();
         assertEquals(5, echo.translations().size());
         assertEquals(Language.FR, echo.translations().get(1).language());
@@ -104,6 +104,16 @@ class FermionClientTest {
         assertEquals("boom", byId.get("c3").error());
         assertEquals("NO_HANDLER", byId.get("c4").errorKind());
         assertEquals("MISSING_PARAMETER", byId.get("c5").errorKind());
+    }
+
+    @Test
+    void aLongTaskDoesNotBlockTheOthers() throws Exception {
+        FakeFermionServer.send(mapper, new FermionMsg.Command("s1", null, "SLOW", Map.of()));
+        FakeFermionServer.send(mapper, new FermionMsg.Command("s2", null, "RELEASE", Map.of()));
+        await("2 results", () -> received(FermionMsg.Result.class).size() == 2);
+        final List<FermionMsg.Result> results = received(FermionMsg.Result.class);
+        assertEquals(List.of("s2", "s1"), results.stream().map(FermionMsg.Result::correlationId).toList(), "RELEASE answers while SLOW is still running");
+        assertEquals(Boolean.TRUE, results.get(1).payload().get("released"));
     }
 
     @Test

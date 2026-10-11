@@ -2,6 +2,7 @@ package io.gluonify.plasma.fermion.client;
 
 import io.gluonify.plasma.fermion.FermionMsg;
 import io.quarkus.logging.Log;
+import io.quarkus.websockets.next.InboundProcessingMode;
 import io.quarkus.websockets.next.OnClose;
 import io.quarkus.websockets.next.OnError;
 import io.quarkus.websockets.next.OnTextMessage;
@@ -15,8 +16,13 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * Côté client du canal : exécute les {@code Command} (hors du thread d'événements) et répond par un {@code Result}, relaie les {@code Error}.
  * L'authentification et le {@code Hello} sont émis par {@link FermionClient} dès la connexion obtenue.
+ * <p>
+ * Traitement {@link InboundProcessingMode#CONCURRENT} : chaque {@code Command} est exécutée sur un fil de travail dès sa réception, sans attendre la
+ * fin des précédentes. Une compétence longue (build natif, attente d'une décision humaine) ne bloque donc plus les autres tâches du nœud ; chaque
+ * {@code Result} part dès que sa tâche se termine, dans l'ordre des fins et non des arrivées (fermion les apparie par {@code correlationId}).
+ * Un handler doit donc être sûr en accès concurrent (ce que sont déjà les beans {@code @ApplicationScoped} sans état).
  */
-@WebSocketClient(path = "/ws/fermion/{nodeId}")
+@WebSocketClient(path = "/ws/fermion/{nodeId}", inboundProcessingMode = InboundProcessingMode.CONCURRENT)
 public class FermionClientEndpoint {
 
     @Inject

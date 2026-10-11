@@ -81,4 +81,34 @@ public final class TestBeans {
             return List.of(new WorkflowDescriptor("order-flow", List.of(), List.of()));
         }
     }
+
+    /** Compétence longue : attend que RELEASE soit exécutée (10 s au plus) ; prouve qu'une tâche longue ne bloque pas les autres. */
+    public static final java.util.concurrent.CountDownLatch RELEASED = new java.util.concurrent.CountDownLatch(1);
+
+    @ApplicationScoped
+    public static class Slow implements SkillHandler {
+        @Override
+        public String action() {
+            return "SLOW";
+        }
+
+        @Override
+        public Map<String, Object> handle(final TaskContext context) throws Exception {
+            return Map.of("released", RELEASED.await(10, java.util.concurrent.TimeUnit.SECONDS));
+        }
+    }
+
+    @ApplicationScoped
+    public static class Release implements SkillHandler {
+        @Override
+        public String action() {
+            return "RELEASE";
+        }
+
+        @Override
+        public Map<String, Object> handle(final TaskContext context) {
+            RELEASED.countDown();
+            return Map.of();
+        }
+    }
 }
