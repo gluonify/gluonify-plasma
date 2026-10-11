@@ -48,4 +48,23 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+
+  <!-- Versions de surefire et failsafe fixées pour tous les modules et tous les dépôts enfants : sans elles, la version vient de la distribution
+       de Maven (le paquet Debian de Maven 3.9.9 lie surefire 2.17, qui ne voit pas les tests JUnit 5 et en exécute zéro, constaté sur quark le 2026-10-11). -->
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${surefire.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${surefire.version}</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
 </project>
