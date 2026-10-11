@@ -141,12 +141,12 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
         if (env.size() > 64) throw new IllegalArgumentException("trop de variables (64 au plus)");
         for (var e : env.entrySet()) {
             if (!e.getKey().matches("[A-Z_][A-Z0-9_]{0,127}")) throw new IllegalArgumentException("nom de variable invalide : " + e.getKey());
-            if (RESERVED_ENV.contains(e.getKey()) || e.getKey().startsWith("GLUONIFY_SERVICE_")) throw new IllegalArgumentException("variable réservée au PaaS : " + e.getKey());
+            if (RESERVED_ENV.contains(e.getKey()) || e.getKey().startsWith("GLUONIFY_SERVICE_") || ServiceToken.isReservedEnv(e.getKey())) throw new IllegalArgumentException("variable réservée au PaaS : " + e.getKey());
             if (e.getValue() == null || e.getValue().length() > 4096) throw new IllegalArgumentException("valeur invalide pour " + e.getKey());
         }
         if (generated.size() > 16) throw new IllegalArgumentException("trop de secrets générés (16 au plus)");
         for (String g : generated) {
-            if (!g.matches("[A-Z_][A-Z0-9_]{0,127}") || RESERVED_ENV.contains(g) || g.startsWith("GLUONIFY_SERVICE_") || env.containsKey(g)) throw new IllegalArgumentException("secret généré invalide : " + g);
+            if (!g.matches("[A-Z_][A-Z0-9_]{0,127}") || RESERVED_ENV.contains(g) || g.startsWith("GLUONIFY_SERVICE_") || ServiceToken.isReservedEnv(g) || env.containsKey(g)) throw new IllegalArgumentException("secret généré invalide : " + g);
         }
         if (uses.size() > 16) throw new IllegalArgumentException("trop de services utilisés (16 au plus)");
         for (String u : uses) if (!u.matches("\\??[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?")) throw new IllegalArgumentException("service invalide : " + u); // « ?nom » : facultatif (déjà prêt ou non)

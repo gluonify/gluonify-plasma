@@ -47,7 +47,7 @@ class AppSpecTest {
         assertEquals("n-1a2b", s.pin());
         assertTrue(s.internal());
         assertEquals(0, s.scratchMb());
-        for (String reserve : java.util.List.of("QUARKUS_HTTP_PORT", "GLUONIFY_ENVIRONMENT", "GLUONIFY_SERVICE_X_URL")) {
+        for (String reserve : java.util.List.of("QUARKUS_HTTP_PORT", "GLUONIFY_ENVIRONMENT", "GLUONIFY_SERVICE_X_URL", "GLUONIFY_CRYSTALLON_TOKEN_FILE")) {
             assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "img", null, null, null, null, null, null, null, null, Map.of(reserve, "x"), null, null, null, null), reserve);
         }
         assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "img", null, null, null, null, null, null, null, null, Map.of("minuscule", "x"), null, null, null, null));

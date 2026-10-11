@@ -72,6 +72,26 @@ public interface CrystallonTokens {
         };
     }
 
+    /**
+     * Le jeton d'application que la plateforme fournit à une application qui déclare {@code "uses": ["crystallon"]} : le fichier de
+     * {@code GLUONIFY_CRYSTALLON_TOKEN_FILE}, déposé par l'agent du nœud, relu à chaque appel et renouvelé avant son expiration
+     * (jeton Charm, audience {@code gluonify-crystallon}, rôle {@code gluonify:crystallon:render}, sujet {@code app:<nom>}).
+     *
+     * @throws IllegalStateException si la variable est absente (pas de {@code crystallon} dans {@code uses}, ou plateforme sans jetons de service)
+     */
+    static CrystallonTokens platform() {
+        return platform(System::getenv);
+    }
+
+    /** Comme {@link #platform()} avec un environnement fourni (tests). */
+    static CrystallonTokens platform(final Function<String, String> environment) {
+        final String file = environment.apply(ENV_TOKEN_FILE);
+        if (file == null || file.isBlank()) {
+            throw new IllegalStateException(ENV_TOKEN_FILE + " is not set: declare \"uses\": [\"crystallon\"] in the application spec, the platform then provides the application token");
+        }
+        return file(Path.of(file.strip()));
+    }
+
     /** {@code GLUONIFY_CRYSTALLON_TOKEN} s'il est défini, sinon le fichier de {@code GLUONIFY_CRYSTALLON_TOKEN_FILE}, sinon {@link #none()}. */
     static CrystallonTokens fromEnvironment() {
         return fromEnvironment(System::getenv);

@@ -2,6 +2,7 @@ package io.gluonify.plasma.ws;
 
 import io.gluonify.plasma.AppTokensResponse;
 import io.gluonify.plasma.Instance;
+import io.gluonify.plasma.ServiceToken;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import java.util.List;
@@ -12,8 +13,8 @@ import java.util.Map;
  * Le nœud ouvre la connexion (sortante) puis s'authentifie dans son premier message — jamais dans l'URL :
  * <ul>
  *   <li>nœud -> CP : {@link Hello} (identité connue) ou {@link Enroll} (premier démarrage, jeton à usage unique), puis {@link Ready} (une instance devient prête, ou ne l'est plus : tout de suite) et {@link State}
- *       toutes les 5 s, {@link TokensRequest} et {@link Redeploy} (le top a redéployé un namespace) à la demande ;</li>
- *   <li>CP -> nœud : {@link Welcome} ou {@link Enrolled}, puis {@link Desired} (état désiré) dès qu'il change, {@link Tokens} en réponse
+ *       toutes les 5 s, {@link TokensRequest}, {@link ServiceTokensRequest} et {@link Redeploy} (le top a redéployé un namespace) à la demande ;</li>
+ *   <li>CP -> nœud : {@link Welcome} ou {@link Enrolled}, puis {@link Desired} (état désiré) dès qu'il change, {@link Tokens} et {@link ServiceTokens} en réponse
  *       et {@link Error} (suivie de la fermeture) en cas de refus.</li>
  * </ul>
  */
@@ -25,6 +26,7 @@ import java.util.Map;
         @JsonSubTypes.Type(value = Msg.Ready.class, name = "ready"),
         @JsonSubTypes.Type(value = Msg.Slept.class, name = "slept"),
         @JsonSubTypes.Type(value = Msg.TokensRequest.class, name = "tokens-request"),
+        @JsonSubTypes.Type(value = Msg.ServiceTokensRequest.class, name = "service-tokens-request"),
         @JsonSubTypes.Type(value = Msg.LockRequest.class, name = "lock-request"),
         @JsonSubTypes.Type(value = Msg.LockReply.class, name = "lock-reply"),
         @JsonSubTypes.Type(value = Msg.Redeploy.class, name = "redeploy"),
@@ -47,6 +49,7 @@ import java.util.Map;
         @JsonSubTypes.Type(value = Msg.Enrolled.class, name = "enrolled"),
         @JsonSubTypes.Type(value = Msg.Desired.class, name = "desired"),
         @JsonSubTypes.Type(value = Msg.Tokens.class, name = "tokens"),
+        @JsonSubTypes.Type(value = Msg.ServiceTokens.class, name = "service-tokens"),
         @JsonSubTypes.Type(value = Msg.Error.class, name = "error")
 })
 public sealed interface Msg {
@@ -187,6 +190,12 @@ public sealed interface Msg {
     record TokensRequest(long id, List<String> apps) implements Msg {}
 
     /**
+     * Jetons d'application vers service ({@link ServiceToken}) pour des applications du nœud : un par service de leur {@code uses} que la politique
+     * du control-plane couvre. Un control-plane plus ancien ignore ce message : l'agent ne bloque jamais un démarrage sur la réponse.
+     */
+    record ServiceTokensRequest(long id, List<String> apps) implements Msg {}
+
+    /**
      * Verrou de fichier entre nœuds (nœud -> control-plane), demandé par le démon de montage de l'application. {@code op} : « set » (pose ; 409 si un autre propriétaire gêne),
      * « test » (F_GETLK : 200, avec le verrou gênant s'il y en a un), « unset » (déverrouille la plage), « release » (retire tout ce que ce propriétaire tient sur le fichier),
      * « release-app » (retire tout ce que CE nœud tient pour l'application : montage arrêté). {@code key} : « application/genre/chemin » ; {@code end} : {@link Long#MAX_VALUE} = fin du fichier.
@@ -246,6 +255,16 @@ public sealed interface Msg {
 
     /** status 200 : tokens renseigné ; 501 : gluonify-charm non configuré ; 503 : gluonify-charm injoignable. */
     record Tokens(long id, int status, Map<String, AppTokensResponse.AppToken> tokens, String error) implements Msg {}
+
+    /**
+     * Réponse à {@link ServiceTokensRequest} : application -> ses jetons (liste vide : aucun service couvert ; application absente : pas placée sur ce
+     * nœud ou inconnue). status 200 : tokens renseigné ; 501 : gluonify-charm non configuré ; 503 : gluonify-charm injoignable ; 403 : refusé (hors tunnel chiffré).
+     */
+    record ServiceTokens(long id, int status, Map<String, List<ServiceToken>> tokens, String error) implements Msg {
+        public ServiceTokens {
+            tokens = tokens == null ? Map.of() : tokens;
+        }
+    }
 
     /** Demande d'amorçage reconnue : identifiant, rôle visé, version de distribution attendue et plus petite séquence de manifeste acceptée (anti-retour en arrière). */
     record BootstrapAccepted(String request, String role, String release, long minSequence) implements Msg {}

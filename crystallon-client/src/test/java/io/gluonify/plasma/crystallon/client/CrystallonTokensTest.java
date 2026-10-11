@@ -133,4 +133,21 @@ class CrystallonTokensTest {
         assertEquals(Optional.of("from-file"), CrystallonTokens.fromEnvironment(Map.of("GLUONIFY_CRYSTALLON_TOKEN_FILE", file.toString())::get).token());
         assertEquals(Optional.empty(), CrystallonTokens.fromEnvironment(Map.<String, String>of()::get).token());
     }
+
+    @Test
+    void platformLitLeFichierDeposeParLaPlateformeEtSuitSonRenouvellement() throws IOException {
+        final Path file = dir.resolve("crystallon.token");
+        final CrystallonTokens tokens = CrystallonTokens.platform(Map.of("GLUONIFY_CRYSTALLON_TOKEN_FILE", file.toString())::get);
+        assertEquals(Optional.empty(), tokens.token(), "fichier pas encore déposé : pas de jeton");
+        Files.writeString(file, "first\n");
+        assertEquals(Optional.of("first"), tokens.token());
+        Files.writeString(file, "renewed");
+        assertEquals(Optional.of("renewed"), tokens.token(), "relu à chaque appel");
+    }
+
+    @Test
+    void platformSansLaVariableExpliqueQuoiDeclarer() {
+        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> CrystallonTokens.platform(Map.<String, String>of()::get));
+        assertTrue(e.getMessage().contains("GLUONIFY_CRYSTALLON_TOKEN_FILE") && e.getMessage().contains("uses"), e.getMessage());
+    }
 }

@@ -14,7 +14,7 @@
 ## Pas encore fait
 - [ ] Client de Crystallon : vérifier dans une vraie application Quarkus native (le programme d'essai natif seul est fait) et contre un vrai Crystallon (e2e du cluster de développement) ; tests unitaires et essai natif seulement pour l'instant.
 - [ ] Publication de `sdk` et `crystallon-client` sur `https://images.gluonify.io/maven` : fixer la version de la plateforme (retirer `-SNAPSHOT`), publier aussi le POM parent (les deux modules y pointent) ; `mvn dependency:get` depuis une machine sans `~/.m2` pour vérifier.
-- [ ] `CrystallonTokens.platform()` : jeton d'application vers service (`client_credentials` de Charm, autorisé par Higgs selon `uses`, injecté par Strange), quand la plateforme l'émettra.
+- [ ] `CrystallonTokens.platform()` : jeton d'application vers service. **Contrat posé le 2026-10-11** : `ServiceToken` (service, audience, jeton, expiration ; fichier `/run/gluonify-tokens/<service>.token`, variable `GLUONIFY_<SERVICE>_TOKEN_FILE` réservée), messages `service-tokens-request` / `service-tokens`, `CrystallonTokens.platform()` et `FermionTokenProvider.platform()`. Reste : l'émission par Higgs (politique « service de `uses` -> audience et rôles », Charm) et le dépôt et le renouvellement par Strange.
 - [ ] Module `crystallon-client-quarkus` (producteur CDI, mapper et jeton de la requête) seulement si plusieurs applications répètent la classe donnée dans le README.
 - [ ] Client de fermion : vérifier en natif et contre un vrai fermion (e2e) ; le module est fait (tests unitaires seulement).
 - [ ] `install.sh` (shell, hors du SDK) ne lit pas la signature par fichier : reste sur le manifeste, qui suffit.
