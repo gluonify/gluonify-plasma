@@ -77,11 +77,22 @@ public sealed interface Msg {
     record TaskProgress(String id, String message) implements Msg {}
 
     /** Instances en cours, prêtes (health check Quarkus UP) et génération avec laquelle chacune a démarré ; sert aussi de battement de cœur. */
-    record State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures, Host host, Map<String, Startup> startups) implements Msg {
+    /**
+     * {@code pins} : empreintes des images désignées par une étiquette que CE nœud a résolues (application -> {@link ImagePin}) ; le control-plane enregistre la première
+     * pour tout le cluster (gluonify-codex/provenance.md § 8). Absent d'un ancien agent : vide.
+     */
+    record State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures, Host host, Map<String, Startup> startups,
+                 Map<String, ImagePin> pins) implements Msg {
         public State {
             metrics = metrics == null ? Map.of() : metrics;
             failures = failures == null ? Map.of() : failures;
             startups = startups == null ? Map.of() : startups;
+            pins = pins == null ? Map.of() : pins;
+        }
+
+        /** Compatibilité : état sans empreintes d'images. */
+        public State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures, Host host, Map<String, Startup> startups) {
+            this(running, ready, generations, metrics, failures, host, startups, Map.of());
         }
 
         /** Compatibilité : état sans temps de démarrage. */
@@ -212,14 +223,21 @@ public sealed interface Msg {
 
     /** {@code sleeping} : état de sommeil voulu des instances de CE nœud (instance -> « frozen » ou « stopped » ; une instance absente est active) : l'agent gèle ou arrête, jamais ne redémarre une instance « stopped », et dégèle ou démarre quand elle redevient active. Mode endormi : voir gluonify-codex/ARCHITECTURE.md.
      * État désiré du nœud, URLs API des control-planes membres (pour le basculement) environnement du cluster (GLUONIFY_ENVIRONMENT) et adresse d'une instance prête de chaque application (services : app -> http://hôte:port, pour GLUONIFY_SERVICE_<APP>_URL) adresse de ce nœud (GLUONIFY_SELF_URL), adresses de tous les nœuds vivants (pairs des ports supplémentaires), maillage WireGuard (wireguard) et adresses des control-planes dans le maillage (overlayControlPlanes : l'agent s'y reconnecte, c'est par là que passent les secrets) et secrets de démarrage demandés par les instances de CE nœud (nom -> valeur ; détenus par le control-plane, jamais écrits dans l'état Raft). */
-    record Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store, Map<String, String> sleeping) implements Msg {
+    record Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store, Map<String, String> sleeping,
+                   Map<String, ImagePin> pins) implements Msg {
         public Desired {
             sleeping = sleeping == null ? Map.of() : sleeping;
+            pins = pins == null ? Map.of() : pins;
+        }
+
+        /** Compatibilité : sans empreintes d'images épinglées pour le cluster. */
+        public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store, Map<String, String> sleeping) {
+            this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, store, sleeping, Map.of());
         }
 
         /** Compatibilité : sans instances endormies. */
         public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store) {
-            this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, store, Map.of());
+            this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, store, Map.of(), Map.of());
         }
 
         /** Compatibilité : sans nœuds de stockage. */
@@ -244,6 +262,13 @@ public sealed interface Msg {
             this(desired, controlPlanes, envName, services, secrets, null, List.of(), null, List.of(), null);
         }
     }
+
+    /**
+     * Empreinte d'une image désignée par une étiquette ({@code image} : la chaîne de l'AppSpec, {@code dépôt:1.0} ; {@code digest} : {@code sha256:…} du manifeste).
+     * Dans {@link State} : résolue par le nœud au premier démarrage. Dans {@link Desired} : épingle du cluster (la première signalée), que chaque nœud lance par
+     * {@code dépôt@digest} sans plus résoudre l'étiquette (gluonify-codex/provenance.md § 8).
+     */
+    record ImagePin(String image, String digest) {}
 
     /** Nœuds de stockage prêts (adresses des instances du service « store ») et jeton d'accès (sous WireGuard, seulement par le tunnel). L'agent y télécharge les exécutables {@code gluonify-rup:<sha256>}. */
     record Store(List<String> urls, String token) {}
