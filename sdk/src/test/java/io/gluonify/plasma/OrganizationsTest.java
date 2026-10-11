@@ -52,6 +52,9 @@ class OrganizationsTest {
         assertThrows(IllegalArgumentException.class, () -> s.withOrganization("_unassigned"));
         assertEquals("acme", new DeployRequest("img", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, "acme").toSpec("shop").organization());
         assertNull(new DeployRequest("img", null, null, null, null, null, null).toSpec("shop").organization());
+        var retrait = new DeployRequest("img", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, "_unassigned");
+        assertEquals("_unassigned", retrait.organization(), "la demande garde la valeur (retrait explicite)");
+        assertNull(retrait.toSpec("shop").organization(), "la spécification n'en a aucune");
     }
 
     @Test
