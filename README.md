@@ -4,7 +4,7 @@ POM parent Maven des composants Gluonify (`io.gluonify.plasma:gluonify-plasma` :
 
 | Module (`io.gluonify.plasma:…`) | Contenu | Java |
 |---|---|---|
-| `gluonify-plasma-sdk` (`sdk/`) | contrats JSON : `AppSpec`, `Instance`, messages WebSocket entre nœuds et control-plane, hachage de rendez-vous, capacités de stockage, manifeste signé, protocole de fermion, records de Crystallon (`io.gluonify.plasma.crystallon`) | 17 |
+| `gluonify-plasma-sdk` (`sdk/`) | contrats JSON : `AppSpec`, `Instance`, messages WebSocket entre nœuds et control-plane, hachage de rendez-vous, capacités de stockage, manifeste signé, protocole de fermion, records de Crystallon (`io.gluonify.plasma.crystallon`), format commun des constats d'analyse (`io.gluonify.plasma.analysis`) | 17 |
 | `gluonify-plasma-fermion-client` (`fermion-client/`) | client WebSocket de gluonify-fermion (Quarkus, CDI) | 25 |
 | `gluonify-plasma-crystallon-client` (`crystallon-client/`) | client HTTP de gluonify-crystallon : rendre en PDF un modèle par son nom ou son identifiant, ou un modèle envoyé avec la demande (`inline`) ; sans CDI, Jackson 2 ou 3 détecté à l'exécution ; [README](crystallon-client/README.md) | 17 |
 
@@ -38,6 +38,17 @@ Documentation d'ensemble : [gluonify-codex](https://github.com/gluonify/gluonify
 | `org:developer` | dépôts, builds, déploiements, configuration, DNS et API |
 | `org:viewer` | lecture seule |
 | `org:billing` | consommation et factures |
+
+## Format commun des constats d'analyse
+
+Paquet `io.gluonify.plasma.analysis` (SDK, Java 17 ; spécification `gluonify-codex/analysis.md` § 3.6), partagé par Bup, le futur tracker et Prism. Un constat ne contient **aucune phrase** : un code de règle stable et des arguments, que l'interface traduit (`analysis.rules.<code>.title|why|fix`).
+
+- `Finding` : `v` (1), `id` (`sha256(kind|cible|règle|emplacement)` en hexadécimal, `Finding.idOf`, stable d'un passage à l'autre), `kind` (`FindingKind` : `native`, `deps`, `sonar`, `conformity`, `apitest`, `passive`, `zap`, `seo`), `rule` (`N-ELF`, `R-SECRET`, `GN04`, `gluonify:GN01`… ; motif `Finding.RULE`), `severity` (`Severity` : `blocker`, `critical`, `major`, `minor`, `info`), `blocking`, `location` (`Location` : chemin **relatif au dépôt**, ligne facultative ; chemin absolu, `..` et barre oblique inverse refusés), `args` (chaînes, 32 au plus, 1024 caractères au plus par valeur, jamais `null`), `ref` (avis `GHSA-…`, clé Sonar), `status` (`FindingStatus` : `open`, `accepted`, `fixed`). `Finding.open(...)` calcule l'identifiant.
+- `AnalysisSummary` (le `BuildRecord.analysis` de Bup) : `status` (`AnalysisStatus` : `skipped`, `ok`, `pending`, `unavailable`, `warning`, `blocked` ; `worst` garde le plus grave), volets `native` (`NativeSummary` : architecture, taille, écart, glibc, GraalVM, types réfléchis, ressources, `Startup`), `deps` (`DepsSummary`, `Db`), `sonar` (`SonarSummary`), nombre de constats.
+- `AnalysisReport` : `v`, `buildId`, `summary`, `findings` triés (sévérité, bloquants d'abord, volet, règle) : contenu d'`analysis.json` et de `GET /v1/builds/{id}/analysis`.
+- `AnalysisUnits` : noms des unités de mesure des analyses (`bup.analysis.runs{kind}`, `bup.analysis.seconds`, `bup.apitests.*`, `bup.jobs.seconds{kind}`, `tracker.checks.runs{kind}`, `tracker.seo.*`, `tracker.zap.*`) et valeurs énumérées des dimensions (`metering.md` § 3.1).
+
+Champs absents omis du JSON, propriétés inconnues ignorées à la lecture, `v`, `blocking` et le nombre de constats en types objets (un document qui les omet se relit : Jackson 3 refuse sinon un primitif absent). Image native : les types sont déclarés dans `META-INF/native-image/io.gluonify.plasma/gluonify-plasma-sdk/reachability-metadata.json` du SDK. Tests : `AnalysisFormatTest` (11).
 
 ## Protocole de gluonify-fermion (workflows BPMN et règles DMN)
 
