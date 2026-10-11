@@ -50,42 +50,76 @@ public sealed interface FermionMsg {
         }
     }
 
-    /** Soumet un workflow. */
+    /**
+     * Soumet un workflow. {@code organization} (facultative) est l'organisation de l'exécution, posée par le nœud de confiance qui soumet
+     * (Prism, Bup) : fermion la transmet à chaque tâche à la place de toute valeur {@code organization} de la charge utile.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record Start(String workflow, String correlationId, String globalTransactionId, Map<String, Object> payload) implements FermionMsg {
+    record Start(String workflow, String correlationId, String globalTransactionId, Map<String, Object> payload, String organization) implements FermionMsg {
         public Start {
             payload = payload == null ? Map.of() : payload;
         }
 
+        public Start(String workflow, String correlationId, String globalTransactionId, Map<String, Object> payload) {
+            this(workflow, correlationId, globalTransactionId, payload, null);
+        }
+
         public Start(String workflow, String correlationId, Map<String, Object> payload) {
-            this(workflow, correlationId, null, payload);
+            this(workflow, correlationId, null, payload, null);
         }
     }
 
-    /** Ordre d'exécuter une tâche (l'action est le nom de la compétence). */
+    /**
+     * Ordre d'exécuter une tâche : {@code action} est le nom de la compétence, {@code stepId} l'identifiant de l'étape dans le workflow (id du
+     * nœud BPMN ; facultatif). Une même compétence peut figurer plusieurs fois dans un workflow ({@code BUP_DEPLOY} en SBX puis en QUA) : le nœud
+     * renvoie {@code stepId} tel quel dans son {@link Result}, et peut s'en servir avec {@code correlationId} comme clé d'idempotence (fermion
+     * renvoie la tâche en cours à un nœud qui se reconnecte).
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record Command(String correlationId, String globalTransactionId, String action, Map<String, Object> payload) implements FermionMsg {
+    record Command(String correlationId, String globalTransactionId, String action, Map<String, Object> payload, String stepId) implements FermionMsg {
         public Command {
             payload = payload == null ? Map.of() : payload;
         }
+
+        public Command(String correlationId, String globalTransactionId, String action, Map<String, Object> payload) {
+            this(correlationId, globalTransactionId, action, payload, null);
+        }
     }
 
-    /** Fin d'une tâche : succès avec une charge utile, ou échec avec un message et un genre lisible par la machine ({@code errorKind}). */
+    /**
+     * Fin d'une tâche : succès avec une charge utile, ou échec avec un message et un genre lisible par la machine ({@code errorKind}).
+     * {@code stepId} reprend celui du {@link Command} (facultatif : sans lui, fermion retrouve l'étape qu'il a confiée au nœud).
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record Result(String correlationId, String globalTransactionId, String action, boolean success, String error, String errorKind, Map<String, Object> payload) implements FermionMsg {
+    record Result(String correlationId, String globalTransactionId, String action, boolean success, String error, String errorKind, Map<String, Object> payload,
+                  String stepId) implements FermionMsg {
         public Result {
             payload = payload == null ? Map.of() : payload;
         }
 
+        public Result(String correlationId, String globalTransactionId, String action, boolean success, String error, String errorKind, Map<String, Object> payload) {
+            this(correlationId, globalTransactionId, action, success, error, errorKind, payload, null);
+        }
+
         public static Result ok(String correlationId, String action, Map<String, Object> payload) {
-            return new Result(correlationId, null, action, true, null, null, payload);
+            return new Result(correlationId, null, action, true, null, null, payload, null);
         }
 
         public static Result failure(String correlationId, String action, String error, String errorKind) {
-            return new Result(correlationId, null, action, false, error, errorKind, null);
+            return new Result(correlationId, null, action, false, error, errorKind, null, null);
+        }
+
+        /** Succès en réponse à {@code command} : reprend sa transaction, son action et son {@code stepId}. */
+        public static Result ok(Command command, Map<String, Object> payload) {
+            return new Result(command.correlationId(), command.globalTransactionId(), command.action(), true, null, null, payload, command.stepId());
+        }
+
+        /** Échec en réponse à {@code command} : reprend sa transaction, son action et son {@code stepId}. */
+        public static Result failure(Command command, String error, String errorKind) {
+            return new Result(command.correlationId(), command.globalTransactionId(), command.action(), false, error, errorKind, null, command.stepId());
         }
     }
 
