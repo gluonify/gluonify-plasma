@@ -1,6 +1,7 @@
 # plan.md : gluonify-plasma (SDK + racine)
 
 ## Fait récemment
+- [x] **Format commun des constats d'analyse** (2026-10-11, phase A0 de `gluonify-codex/analysis.md`, branche `analysis-a1`) : `io.gluonify.plasma.analysis` (`Finding`, `Location`, `Severity`, `FindingKind`, `FindingStatus`, `AnalysisStatus`, `AnalysisSummary`, `AnalysisReport`, `AnalysisUnits`), métadonnées de réflexion native dans le SDK ; 11 tests. Utilisé par Bup (phase A1) et Prism. Reste : le tracker (phase B2) et l'émission des unités de mesure.
 - [x] **Organisation** (2026-10-11, phase 0 de Prism) : `AppSpec.organization` et `DeployRequest.organization` (facultatifs, `[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?` (étiquette DNS de 1 à 40 caractères, le motif de gluonify-charm), `_unassigned` à l'affichage seulement), `Organizations` (motif, filtre, revendication `org`, rôles des clients `org:owner|developer|viewer|billing`) ; 5 tests. Suite : Higgs (persistance, filtres, revendication `org`), Charm (`Account.organization`).
 - [x] `Requires` : dépendances système d'un artefact par distribution (`debian13`…), noms validés.
 - [x] Protocole de gluonify-fermion (`io.gluonify.plasma.fermion` : `FermionMsg`, descripteurs de compétences et de workflows), 3 tests.
