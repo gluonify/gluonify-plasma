@@ -11,7 +11,7 @@ class OrganizationsTest {
     @Test
     void identifiants() {
         for (String ok : new String[] {"acme", "a", "globex-2", "0", "a".repeat(40)}) assertTrue(Organizations.isValid(ok), ok);
-        for (String bad : new String[] {"", "Acme", "a_b", "a b", "a.b", "a".repeat(41), Organizations.UNASSIGNED}) assertFalse(Organizations.isValid(bad), bad);
+        for (String bad : new String[] {"", "Acme", "a_b", "a b", "a.b", "a".repeat(41), Organizations.UNASSIGNED, "-acme", "acme-", "-"}) assertFalse(Organizations.isValid(bad), bad);
         assertFalse(Organizations.isValid(null));
         assertDoesNotThrow(() -> Organizations.requireValid(null));
         assertThrows(IllegalArgumentException.class, () -> Organizations.requireValid("_unassigned"));

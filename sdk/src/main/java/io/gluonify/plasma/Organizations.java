@@ -26,8 +26,8 @@ public final class Organizations {
     public static final String UNASSIGNED = "_unassigned";
     /** Nom de la revendication des jetons Charm qui porte l'organisation (lue telle quelle par Crystallon et Interfero). */
     public static final String CLAIM = "org";
-    /** Forme d'un identifiant d'organisation. */
-    public static final Pattern PATTERN = Pattern.compile("[a-z0-9-]{1,40}");
+    /** Forme d'un identifiant d'organisation : étiquette DNS de 1 à 40 caractères (a-z, 0-9, tiret, ni en tête ni en fin), la même que gluonify-charm. */
+    public static final Pattern PATTERN = Pattern.compile("[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?");
 
     public static final String OWNER = "org:owner";
     public static final String DEVELOPER = "org:developer";
@@ -42,7 +42,7 @@ public final class Organizations {
 
     /** Refuse un identifiant invalide ; null (aucune organisation) est accepté. */
     public static void requireValid(String org) {
-        if (org != null && !isValid(org)) throw new IllegalArgumentException("organization invalide (a-z, 0-9 et -, 1 à 40 caractères)");
+        if (org != null && !isValid(org)) throw new IllegalArgumentException("organization invalide (étiquette DNS : a-z, 0-9 et -, ni en tête ni en fin, 1 à 40 caractères)");
     }
 
     /** Organisation pour l'affichage : {@link #UNASSIGNED} à défaut. */
