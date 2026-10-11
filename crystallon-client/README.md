@@ -113,9 +113,10 @@ Crystallon exige un jeton Charm d'audience `gluonify-crystallon` ; le rôle `glu
 | `fixed(token)` | jeton fixe (vide : `IllegalArgumentException`) |
 | `file(path)` | lu **à chaque appel**, espaces de début et de fin retirés ; fichier absent ou vide : pas de jeton ; illisible : `CrystallonException` (statut 0) |
 | `forwarding(supplier)` | le jeton de la personne connectée, demandé à chaque appel (`null` ou vide : pas de jeton) |
+| `platform()` | le **jeton d'application** que fournit la plateforme à une application qui déclare `"uses": ["crystallon"]` : fichier de `GLUONIFY_CRYSTALLON_TOKEN_FILE`, déposé et renouvelé par l'agent du nœud (sujet `app:<nom>`, rôle `gluonify:crystallon:render`, 900 s), relu à chaque appel ; variable absente : `IllegalStateException` qui le dit |
 | `fromEnvironment()` | `GLUONIFY_CRYSTALLON_TOKEN`, sinon `GLUONIFY_CRYSTALLON_TOKEN_FILE`, sinon `none()` ; `fromEnvironment(Function<String,String>)` lit une autre source (MicroProfile Config…) |
 
-Le jeton n'est jamais écrit dans un message d'erreur ni un journal. La plateforme n'émet pas encore de jeton d'application vers service : en attendant, le jeton est fourni par la configuration de l'application (fichier renouvelé de l'extérieur, ou `forwarding`).
+Le jeton n'est jamais écrit dans un message d'erreur ni un journal. **Lequel choisir** : `forwarding` quand Crystallon doit voir la personne connectée (ses rôles, son organisation) ; `platform()` pour un appel fait au nom de l'application (tâche planifiée, webhook, file de messages), depuis le 2026-10-11 : Higgs émet le jeton selon `uses`, Strange le dépose dans `/run/gluonify-tokens/crystallon.token` (lecture seule dans le bac à sable de l'instance) et le renouvelle avant son expiration. Un jeton d'application porte l'organisation par défaut de Crystallon (`default`) : les modèles d'une autre organisation ne lui sont pas visibles.
 
 ## Erreurs
 

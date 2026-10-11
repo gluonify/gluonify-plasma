@@ -28,7 +28,7 @@ quarkus.websockets-next.client.max-frame-size=4194304
 quarkus.websockets-next.client.max-message-size=83886080
 ```
 
-L'application fournit un bean `FermionTokenProvider` (jeton Charm d'audience `gluonify-fermion`) : le jeton part dans la première trame `Auth`, jamais dans l'URL, puis vient le `Hello` (compétences, workflows utilisés, OpenAPI).
+L'application fournit un bean `FermionTokenProvider` (jeton Charm d'audience `gluonify-fermion`) : le jeton part dans la première trame `Auth`, jamais dans l'URL, puis vient le `Hello` (compétences, workflows utilisés, OpenAPI). Avec `"uses": ["fermion"]` dans l'appspec, la plateforme fournit ce jeton (sujet `app:<nom>`, rôle `gluonify:fermion:user`, renouvelé par l'agent du nœud) : `@Produces FermionTokenProvider tokens() { return FermionTokenProvider.platform(); }` (fichier de `GLUONIFY_FERMION_TOKEN_FILE`, relu à chaque connexion).
 
 ## Exemple de handler
 
