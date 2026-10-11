@@ -50,6 +50,7 @@ public class StoreDocument implements SkillHandler {
 ```
 
 `TaskContext` : `getString`, `getLong`, `getBoolean`, `getMap`, `getList(clé, type)`, `get(clé, type)`, `optional(clé, type)`, `has`. Les handlers tournent hors du thread d'événements.
+Il porte aussi `stepId()` (l’étape BPMN, la même compétence pouvant servir deux fois dans un workflow ; le `Result` la renvoie tout seul) et `organization()` (l’organisation de l’exécution, posée par fermion). Avec `correlationId`, `stepId` est une bonne clé d’idempotence : fermion renvoie la tâche en cours à un nœud qui se reconnecte. `startWorkflow(workflow, correlationId, globalTransactionId, payload, organization)` fixe l’organisation de l’exécution (nœuds de la plateforme).
 
 ## Comportement
 

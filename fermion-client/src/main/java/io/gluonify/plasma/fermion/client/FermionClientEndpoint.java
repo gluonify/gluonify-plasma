@@ -57,8 +57,8 @@ public class FermionClientEndpoint {
         }
         try {
             final Map<String, Object> out = handler.handle(
-                    new TaskContext(command.globalTransactionId(), command.correlationId(), command.action(), command.payload(), mapper));
-            return new FermionMsg.Result(command.correlationId(), command.globalTransactionId(), command.action(), true, null, null, out);
+                    new TaskContext(command.globalTransactionId(), command.correlationId(), command.action(), command.payload(), mapper, command.stepId()));
+            return FermionMsg.Result.ok(command, out);
         }
         catch (final SkillFailureException e) {
             Log.warnv("fermion-client=task correlationId={0} action={1} errorKind={2} error={3}", command.correlationId(), command.action(), e.errorKind(), e.getMessage());
@@ -71,7 +71,7 @@ public class FermionClientEndpoint {
     }
 
     private static FermionMsg.Result failure(final FermionMsg.Command command, final String error, final String errorKind) {
-        return new FermionMsg.Result(command.correlationId(), command.globalTransactionId(), command.action(), false, error, errorKind, null);
+        return FermionMsg.Result.failure(command, error, errorKind);
     }
 
     @OnClose

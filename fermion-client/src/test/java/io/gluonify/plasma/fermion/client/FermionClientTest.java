@@ -76,20 +76,21 @@ class FermionClientTest {
 
     @Test
     void executesCommandsAndAnswersWithResults() throws Exception {
-        FakeFermionServer.send(mapper, new FermionMsg.Command("c1", "g1", "ECHO", Map.of("text", "abc")));
+        FakeFermionServer.send(mapper, new FermionMsg.Command("c1", "g1", "ECHO", Map.of("text", "abc"), "Task_Echo"));
         await("result", () -> !received(FermionMsg.Result.class).isEmpty());
         final FermionMsg.Result r = received(FermionMsg.Result.class).get(0);
         assertTrue(r.success());
         assertEquals("c1", r.correlationId());
         assertEquals("g1", r.globalTransactionId());
         assertEquals("ECHO", r.action());
+        assertEquals("Task_Echo", r.stepId(), "the step id of the command is echoed back");
         assertEquals("ABC", r.payload().get("upper"));
         assertFalse(String.valueOf(r.payload().get("thread")).contains("vert.x-eventloop"), "handler must run off the event loop");
     }
 
     @Test
     void failuresCarryTheirErrorKind() throws Exception {
-        FakeFermionServer.send(mapper, new FermionMsg.Command("c2", null, "FAIL", Map.of()));
+        FakeFermionServer.send(mapper, new FermionMsg.Command("c2", null, "FAIL", Map.of(), "Task_Fail"));
         FakeFermionServer.send(mapper, new FermionMsg.Command("c3", null, "BOOM", Map.of()));
         FakeFermionServer.send(mapper, new FermionMsg.Command("c4", null, "NOPE", Map.of()));
         FakeFermionServer.send(mapper, new FermionMsg.Command("c5", null, "ECHO", Map.of()));
@@ -99,6 +100,7 @@ class FermionClientTest {
         assertFalse(byId.get("c2").success());
         assertEquals("STORAGE_UNAVAILABLE", byId.get("c2").errorKind());
         assertEquals("disk is gone", byId.get("c2").error());
+        assertEquals("Task_Fail", byId.get("c2").stepId());
         assertFalse(byId.get("c3").success());
         assertNull(byId.get("c3").errorKind());
         assertEquals("boom", byId.get("c3").error());
