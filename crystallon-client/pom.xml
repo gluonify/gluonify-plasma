@@ -19,6 +19,8 @@
 
   <dependencies>
     <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-sdk</artifactId></dependency>
+    <!-- Résolution sans configuration (adresse et jeton) : jar sans dépendance, Java 17. -->
+    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-services</artifactId></dependency>
 
     <!-- Jackson 2 et Jackson 3 : jamais transitifs, l'application apporte celui qu'elle utilise (détection à l'exécution). -->
     <dependency><groupId>tools.jackson.core</groupId><artifactId>jackson-databind</artifactId><scope>provided</scope></dependency>

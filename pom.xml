@@ -11,8 +11,12 @@
 
   <modules>
     <module>sdk</module>
+    <module>services</module>
     <module>fermion-client</module>
     <module>crystallon-client</module>
+    <module>testing</module>
+    <module>quarkus</module>
+    <module>cli</module>
   </modules>
 
   <properties>
@@ -44,6 +48,27 @@
       <dependency>
         <groupId>io.gluonify.plasma</groupId>
         <artifactId>gluonify-plasma-crystallon-client</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.gluonify.plasma</groupId>
+        <artifactId>gluonify-plasma-services</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.gluonify.plasma</groupId>
+        <artifactId>gluonify-plasma-services</artifactId>
+        <version>${project.version}</version>
+        <type>test-jar</type>
+      </dependency>
+      <dependency>
+        <groupId>io.gluonify.plasma</groupId>
+        <artifactId>gluonify-plasma-testing</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.gluonify.plasma</groupId>
+        <artifactId>gluonify-plasma-quarkus</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

@@ -4,6 +4,8 @@ import io.gluonify.plasma.crystallon.Check;
 import io.gluonify.plasma.crystallon.ErrorBody;
 import io.gluonify.plasma.crystallon.InlineRenderRequest;
 import io.gluonify.plasma.crystallon.RenderRequest;
+import io.gluonify.plasma.services.Endpoint;
+import io.gluonify.plasma.services.GluonifyServices;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -22,7 +24,7 @@ import java.util.function.Function;
  * identifiant ou par son nom, ou un modèle que l'application envoie avec la demande ({@link #inline(Object)}).
  *
  * <pre>{@code
- * CrystallonClient crystallon = CrystallonClient.fromEnvironment();
+ * CrystallonClient crystallon = CrystallonClient.create();                 // aucune configuration : plateforme, poste du développeur ou faux services
  * RenderedPdf pdf = crystallon.byName("Gluonify invoice").render(payload);
  * RenderedPdf quote = crystallon.inline("quote").render(payload);          // modèle prédéfini, ou un objet modèle : rien à stocker
  * }</pre>
@@ -62,6 +64,25 @@ public final class CrystallonClient {
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    /**
+     * Un client sans aucune configuration : l'adresse et le jeton viennent de {@link GluonifyServices#endpoint(String)}, selon l'endroit où tourne
+     * l'application. Sur la plateforme, l'adresse injectée pour {@code "uses": ["crystallon"]} et le jeton d'application (fichier relu à chaque
+     * appel) ; sur le poste du développeur, l'adresse publique de la zone de {@code gluonify login} et le jeton du développeur (renouvelé) ; en
+     * test, la surcharge {@code GLUONIFY_SERVICE_CRYSTALLON_URL} (propriété système, posée par {@code GluonifyTestServices}). Le JSON vient de
+     * {@link PayloadCodec#detect()}.
+     *
+     * @throws io.gluonify.plasma.services.GluonifyServicesException si Crystallon ne peut pas être joint ; le message dit quoi faire
+     * @throws IllegalStateException si aucune bibliothèque JSON n'est présente
+     */
+    public static CrystallonClient create() {
+        return create(GluonifyServices.defaults());
+    }
+
+    /** Comme {@link #create()} avec une résolution fournie (tests, outils). */
+    public static CrystallonClient create(final GluonifyServices services) {
+        return builder().endpoint(services.resolve("crystallon")).build();
     }
 
     /**
@@ -350,6 +371,16 @@ public final class CrystallonClient {
             return this;
         }
 
+        /**
+         * L'adresse et la source du jeton d'un service résolu par {@link GluonifyServices} ({@code GluonifyServices.endpoint("crystallon")}).
+         * Un appel suivant à {@link #baseUrl(String)} ou {@link #tokens(CrystallonTokens)} remplace la valeur correspondante.
+         */
+        public Builder endpoint(final Endpoint endpoint) {
+            Objects.requireNonNull(endpoint, "endpoint");
+            baseUrl(endpoint.url());
+            return tokens(CrystallonTokens.of(endpoint));
+        }
+
         /** @param tokens la source du jeton (défaut : {@link CrystallonTokens#none()}) */
         public Builder tokens(final CrystallonTokens tokens) {
             this.tokens = Objects.requireNonNull(tokens, "tokens");
@@ -390,7 +421,7 @@ public final class CrystallonClient {
         /** @throws IllegalStateException si l'adresse manque, ou si aucune bibliothèque JSON n'est présente et qu'aucun codec n'est donné */
         public CrystallonClient build() {
             if (baseUrl == null) {
-                throw new IllegalStateException("the Crystallon base URL is required: baseUrl(...) or CrystallonClient.fromEnvironment()");
+                throw new IllegalStateException("the Crystallon base URL is required: baseUrl(...), endpoint(...) or CrystallonClient.create()");
             }
             return new CrystallonClient(this);
         }

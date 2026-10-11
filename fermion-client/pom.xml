@@ -14,10 +14,13 @@
 
   <dependencies>
     <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-sdk</artifactId></dependency>
+    <!-- Résolution sans configuration (adresse et jeton) : jar sans dépendance, Java 17. -->
+    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-services</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-websockets-next</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-jackson</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-scheduler</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-junit</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-services</artifactId><type>test-jar</type><scope>test</scope></dependency>
   </dependencies>
 
   <build>

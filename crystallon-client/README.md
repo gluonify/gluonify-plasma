@@ -2,7 +2,8 @@
 
 Client HTTP de **gluonify-crystallon** (documents PDF depuis un modèle) pour les applications des clients : on désigne un modèle stocké par son nom ou son identifiant, **ou on envoie le modèle avec la demande** (`inline`), on passe un payload (record, bean ou `Map`), on reçoit le PDF.
 
-- **Java 17**, sans CDI, sans Quarkus : une seule dépendance obligatoire, le SDK de la plateforme (`gluonify-plasma-sdk`, transitif).
+- **Aucune configuration** : `CrystallonClient.create()` trouve l'adresse et le jeton tout seul (plateforme, poste du développeur après `gluonify login`, faux services en test), par `gluonify-plasma-services`.
+- **Java 17**, sans CDI, sans Quarkus : deux dépendances obligatoires, transitives et sans dépendance elles-mêmes, le SDK de la plateforme (`gluonify-plasma-sdk`) et la résolution des services (`gluonify-plasma-services`).
 - **Jackson 2 ou Jackson 3**, celui de l'application, détecté à l'exécution (`PayloadCodec.detect()`) : aucun des deux n'est transitif.
 - Transport `java.net.http.HttpClient` créé au premier appel (compatible image native), délai, taille maximale du PDF, jeton Charm.
 - Le code que l'onglet « Code » de l'éditeur de Crystallon génère (records du payload et façade `<Nom>Document`) s'appuie sur ce module.
@@ -42,7 +43,7 @@ Jackson vient de l'application (Quarkus 4 : Jackson 3). Avec **Jackson 2**, ajou
 ## Exemple
 
 ```java
-CrystallonClient crystallon = CrystallonClient.fromEnvironment();
+CrystallonClient crystallon = CrystallonClient.create();                                   // aucune URL, aucun jeton à écrire
 
 RenderedPdf pdf = crystallon.byName("Gluonify invoice").render(payload);                 // payload : record, bean ou Map
 Files.write(Path.of("invoice.pdf"), pdf.bytes());                                         // pdf.pages(), pdf.warnings(), pdf.pdfa()
@@ -84,7 +85,18 @@ Un modèle (stocké, prédéfini ou envoyé) peut porter des `params` à sa raci
 
 ## Configuration
 
-`CrystallonClient.fromEnvironment()` lit l'environnement que la plateforme injecte :
+**Aucune**, avec `CrystallonClient.create()` : l'adresse et le jeton viennent de `GluonifyServices.endpoint("crystallon")` ([README de gluonify-plasma-services](../services/README.md)) :
+
+| Où tourne l'application | Adresse | Jeton |
+|---|---|---|
+| en test, après `GluonifyTestServices.start()` (ou surcharge `GLUONIFY_SERVICE_CRYSTALLON_URL` en propriété système) | le faux Crystallon | `GLUONIFY_CRYSTALLON_TOKEN` |
+| sur la plateforme (`GLUONIFY_ENVIRONMENT` présent), avec `"uses": ["crystallon"]` | `GLUONIFY_SERVICE_CRYSTALLON_URL` injectée | le jeton d'application (`GLUONIFY_CRYSTALLON_TOKEN_FILE`, relu à chaque appel) |
+| sur le poste du développeur, après `gluonify login <zone>` | l'adresse publique de la découverte (`https://adm.<zone>/crystallon`) | le jeton du développeur, renouvelé tout seul |
+| ailleurs | `GluonifyServicesException` qui dit quoi faire (`uses`, `gluonify login`, `GluonifyTestServices`) | |
+
+Un échec du jeton en cours de vie (session du développeur expirée, par exemple) devient une `CrystallonException` de statut 0 qui garde ce message. `create(GluonifyServices)` prend une résolution fournie (tests) ; `builder().endpoint(GluonifyServices.endpoint("crystallon"))` garde la résolution et laisse régler le reste (mapper, délai).
+
+`CrystallonClient.fromEnvironment()` (inchangé, pour les applications existantes) lit seulement l'environnement que la plateforme injecte :
 
 | Variable | Rôle |
 |---|---|
@@ -114,6 +126,7 @@ Crystallon exige un jeton Charm d'audience `gluonify-crystallon` ; le rôle `glu
 | `file(path)` | lu **à chaque appel**, espaces de début et de fin retirés ; fichier absent ou vide : pas de jeton ; illisible : `CrystallonException` (statut 0) |
 | `forwarding(supplier)` | le jeton de la personne connectée, demandé à chaque appel (`null` ou vide : pas de jeton) |
 | `platform()` | le **jeton d'application** que fournit la plateforme à une application qui déclare `"uses": ["crystallon"]` : fichier de `GLUONIFY_CRYSTALLON_TOKEN_FILE`, déposé et renouvelé par l'agent du nœud (sujet `app:<nom>`, rôle `gluonify:crystallon:render`, 900 s), relu à chaque appel ; variable absente : `IllegalStateException` qui le dit |
+| `of(Endpoint)` | les jetons d'un service résolu par `GluonifyServices` (ce que fait `create()`) ; un échec de la source devient une `CrystallonException` (statut 0) |
 | `fromEnvironment()` | `GLUONIFY_CRYSTALLON_TOKEN`, sinon `GLUONIFY_CRYSTALLON_TOKEN_FILE`, sinon `none()` ; `fromEnvironment(Function<String,String>)` lit une autre source (MicroProfile Config…) |
 
 Le jeton n'est jamais écrit dans un message d'erreur ni un journal. **Lequel choisir** : `forwarding` quand Crystallon doit voir la personne connectée (ses rôles, son organisation) ; `platform()` pour un appel fait au nom de l'application (tâche planifiée, webhook, file de messages), depuis le 2026-10-11 : Higgs émet le jeton selon `uses`, Strange le dépose dans `/run/gluonify-tokens/crystallon.token` (lecture seule dans le bac à sable de l'instance) et le renouvelle avant son expiration. Un jeton d'application porte l'organisation par défaut de Crystallon (`default`) : les modèles d'une autre organisation ne lui sont pas visibles.
@@ -146,23 +159,18 @@ ou implémenter `PayloadCodec` (deux méthodes : `byte[] write(Object)` et `<T> 
 
 ## Quarkus (CDI)
 
-Le module n'apporte ni `beans.xml` ni extension : ses classes ne sont pas des beans. Une application Quarkus produit son client en quelques lignes (un module `crystallon-client-quarkus` ne se justifierait que si plusieurs applications répétaient cette classe) :
+Le module n'apporte ni `beans.xml` ni extension : ses classes ne sont pas des beans. Avec la dépendance **`io.gluonify.plasma:gluonify-plasma-quarkus`**, l'application n'écrit rien : `@Inject CrystallonClient crystallon;` reçoit le client de `create()` avec le `ObjectMapper` de l'application (producteur `@DefaultBean`, créé à la première injection ; voir [quarkus/README.md](../quarkus/README.md)).
+
+Pour appeler en tant que la personne connectée, l'application produit son propre client, qui remplace celui par défaut :
 
 ```java
-@ApplicationScoped
-public class CrystallonConfiguration {
-    @Produces @Singleton
-    CrystallonClient crystallon(ObjectMapper mapper) {            // tools.jackson.databind.ObjectMapper de Quarkus 4
-        return CrystallonClient.builder()
-                .baseUrl(System.getenv("GLUONIFY_SERVICE_CRYSTALLON_URL"))
-                .tokens(CrystallonTokens.fromEnvironment())
-                .json(Jackson3Codec.of(mapper))
-                .build();
-    }
+@Produces @Singleton
+CrystallonClient crystallon(ObjectMapper mapper, JsonWebToken jwt) {     // tools.jackson.databind.ObjectMapper de Quarkus 4
+    return CrystallonClient.builder().endpoint(GluonifyServices.endpoint("crystallon"))
+            .tokens(CrystallonTokens.forwarding(jwt::getRawToken))        // hors d'une requête, le fournisseur doit renvoyer null
+            .json(Jackson3Codec.of(mapper)).build();
 }
 ```
-
-Pour appeler en tant que la personne connectée : `.tokens(CrystallonTokens.forwarding(() -> jwt.getRawToken()))` (avec `JsonWebToken jwt` injecté ; hors d'une requête, le fournisseur doit renvoyer `null`).
 
 ## Image native
 
@@ -185,4 +193,4 @@ Le corps d'un modèle stocké est un `RenderRequest` JSON `{"data": …, "params
 
 ## Tests
 
-`mvn clean verify` : 82 tests par chemin de classes (dont 26 de `InlineTemplateTest` pour `inline`), plus 3 (Jackson 2 sans `jsr310`) et 4 (aucun Jackson). Un faux Crystallon (`com.sun.net.httpserver.HttpServer`), aucun service externe. Les mêmes tests tournent avec cinq chemins de classes (exécutions surefire avec `classpathDependencyExcludes`, l'exclusion réelle est vérifiée) : Jackson 2 et 3 présents, Jackson 3 seul, Jackson 2 seul, Jackson 2 sans `jsr310`, aucun Jackson (erreur claire, client utilisable avec un `PayloadCodec` fourni). Le module et le SDK se compilent et se testent avec un JDK 17 (`maven.compiler.release` 17).
+`mvn clean verify` : 86 tests par chemin de classes (dont 26 de `InlineTemplateTest` pour `inline` et 4 de `CrystallonCreateTest` pour `create()`), plus 3 (Jackson 2 sans `jsr310`) et 4 (aucun Jackson). Un faux Crystallon (`com.sun.net.httpserver.HttpServer`), aucun service externe. Les mêmes tests tournent avec cinq chemins de classes (exécutions surefire avec `classpathDependencyExcludes`, l'exclusion réelle est vérifiée) : Jackson 2 et 3 présents, Jackson 3 seul, Jackson 2 seul, Jackson 2 sans `jsr310`, aucun Jackson (erreur claire, client utilisable avec un `PayloadCodec` fourni). Le module et le SDK se compilent et se testent avec un JDK 17 (`maven.compiler.release` 17).

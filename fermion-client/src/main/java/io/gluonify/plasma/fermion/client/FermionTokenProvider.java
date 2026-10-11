@@ -1,5 +1,6 @@
 package io.gluonify.plasma.fermion.client;
 
+import io.gluonify.plasma.services.GluonifyServices;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -10,7 +11,8 @@ import java.util.function.Function;
 
 /**
  * Fournit le jeton Charm (audience {@code gluonify-fermion}) envoyé dans la première trame {@code auth}. Appelé à chaque (re)connexion :
- * l'implémentation (un bean CDI de l'application) renvoie un jeton valide, au besoin renouvelé.
+ * l'implémentation renvoie un jeton valide, au besoin renouvelé. Sans bean de l'application, le client utilise {@link #gluonify()} (producteur
+ * {@code @DefaultBean} de ce module) : rien à écrire.
  */
 @FunctionalInterface
 public interface FermionTokenProvider {
@@ -19,6 +21,22 @@ public interface FermionTokenProvider {
     String ENV_TOKEN_FILE = "GLUONIFY_FERMION_TOKEN_FILE";
 
     String token();
+
+    /**
+     * Le jeton résolu par {@link GluonifyServices} pour le service {@code fermion}, à chaque (re)connexion : sur la plateforme, le jeton d'application
+     * ({@code GLUONIFY_FERMION_TOKEN_FILE}) ; sur le poste du développeur, le jeton de {@code gluonify login} (renouvelé) ; en test, la surcharge
+     * {@code GLUONIFY_FERMION_TOKEN}. C'est le fournisseur par défaut quand l'application n'en produit pas.
+     *
+     * @throws io.gluonify.plasma.services.GluonifyServicesException à l'appel de {@link #token()}, si fermion ne peut pas être joint
+     */
+    static FermionTokenProvider gluonify() {
+        return () -> GluonifyServices.endpoint("fermion").token().orElse(null);
+    }
+
+    /** Comme {@link #gluonify()} avec une résolution fournie (tests). */
+    static FermionTokenProvider gluonify(final GluonifyServices services) {
+        return () -> services.resolve("fermion").token().orElse(null);
+    }
 
     /**
      * Le jeton d'application que la plateforme fournit à une application qui déclare {@code "uses": ["fermion"]} : le fichier de

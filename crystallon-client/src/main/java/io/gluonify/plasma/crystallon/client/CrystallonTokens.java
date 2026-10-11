@@ -1,5 +1,7 @@
 package io.gluonify.plasma.crystallon.client;
 
+import io.gluonify.plasma.services.Endpoint;
+import io.gluonify.plasma.services.GluonifyServicesException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -90,6 +92,23 @@ public interface CrystallonTokens {
             throw new IllegalStateException(ENV_TOKEN_FILE + " is not set: declare \"uses\": [\"crystallon\"] in the application spec, the platform then provides the application token");
         }
         return file(Path.of(file.strip()));
+    }
+
+    /**
+     * Les jetons d'un service résolu par {@code GluonifyServices} : jeton d'application sur la plateforme, jeton du développeur (renouvelé) sur le
+     * poste, surcharge en test. Un échec de la source (session du développeur expirée, fichier illisible) devient une {@link CrystallonException}
+     * (statut 0) qui garde le message : il dit quoi faire.
+     */
+    static CrystallonTokens of(final Endpoint endpoint) {
+        Objects.requireNonNull(endpoint, "endpoint");
+        return () -> {
+            try {
+                return endpoint.token();
+            }
+            catch (final GluonifyServicesException e) {
+                throw new CrystallonException(0, null, e.getMessage(), null, e);
+            }
+        };
     }
 
     /** {@code GLUONIFY_CRYSTALLON_TOKEN} s'il est défini, sinon le fichier de {@code GLUONIFY_CRYSTALLON_TOKEN_FILE}, sinon {@link #none()}. */

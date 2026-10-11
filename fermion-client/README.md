@@ -13,7 +13,8 @@ Client WebSocket de **gluonify-fermion** (moteur de workflows BPMN et de règles
 
 | Propriété | Défaut | Rôle |
 |---|---|---|
-| `gluonify.fermion.client.url` | `${GLUONIFY_SERVICE_FERMION_URL:}` | URL de fermion ; vide = client inactif |
+| `gluonify.fermion.client.url` | `${GLUONIFY_SERVICE_FERMION_URL:}` | URL de fermion ; vide = résolue par `GluonifyServices` (si `discover`), sinon client inactif |
+| `gluonify.fermion.client.discover` | `true` | sans `url`, chercher fermion par `GluonifyServices.optional("fermion")` (surcharge, plateforme, poste du développeur après `gluonify login`), une fois ; `false` : inactif sans `url` |
 | `gluonify.fermion.client.enabled` | `true` | `false` désactive le client |
 | `gluonify.fermion.client.app-id` | `quarkus.application.name` | identifiant de l'application |
 | `gluonify.fermion.client.node-id` | `${GLUONIFY_REPLICA:0}` | identifiant de la réplique ; le chemin est `/ws/fermion/<app-id>-<node-id>` |
@@ -28,7 +29,7 @@ quarkus.websockets-next.client.max-frame-size=4194304
 quarkus.websockets-next.client.max-message-size=83886080
 ```
 
-L'application fournit un bean `FermionTokenProvider` (jeton Charm d'audience `gluonify-fermion`) : le jeton part dans la première trame `Auth`, jamais dans l'URL, puis vient le `Hello` (compétences, workflows utilisés, OpenAPI). Avec `"uses": ["fermion"]` dans l'appspec, la plateforme fournit ce jeton (sujet `app:<nom>`, rôle `gluonify:fermion:user`, renouvelé par l'agent du nœud) : `@Produces FermionTokenProvider tokens() { return FermionTokenProvider.platform(); }` (fichier de `GLUONIFY_FERMION_TOKEN_FILE`, relu à chaque connexion).
+**Aucun bean à écrire pour le jeton** : sans `FermionTokenProvider` de l'application, le module produit `FermionTokenProvider.gluonify()` (`@DefaultBean`, classe `GluonifyTokenProducer`) : le jeton résolu par `GluonifyServices` à chaque connexion, c'est-à-dire le jeton d'application sur la plateforme (`"uses": ["fermion"]`) et le jeton du développeur (`gluonify login`, renouvelé) sur le poste. Un bean `FermionTokenProvider` de l'application (jeton Charm d'audience `gluonify-fermion`) le remplace : le jeton part dans la première trame `Auth`, jamais dans l'URL, puis vient le `Hello` (compétences, workflows utilisés, OpenAPI). Avec `"uses": ["fermion"]` dans l'appspec, la plateforme fournit ce jeton (sujet `app:<nom>`, rôle `gluonify:fermion:user`, renouvelé par l'agent du nœud) (fichier de `GLUONIFY_FERMION_TOKEN_FILE`, relu à chaque connexion), que le fournisseur par défaut lit déjà ; `FermionTokenProvider.platform()` en est la version stricte (variable absente : `IllegalStateException`).
 
 ## Exemple de handler
 

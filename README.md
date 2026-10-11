@@ -1,20 +1,28 @@
 # Gluonify Plasma — POM parent, SDK et clients
 
-POM parent Maven des composants Gluonify (`io.gluonify.plasma:gluonify-plasma` : plateforme Quarkus, versions) et bibliothèques partagées, trois modules :
+POM parent Maven des composants Gluonify (`io.gluonify.plasma:gluonify-plasma` : plateforme Quarkus, versions) et bibliothèques partagées, sept modules :
 
 | Module (`io.gluonify.plasma:…`) | Contenu | Java |
 |---|---|---|
 | `gluonify-plasma-sdk` (`sdk/`) | contrats JSON : `AppSpec`, `Instance`, messages WebSocket entre nœuds et control-plane, hachage de rendez-vous, capacités de stockage, manifeste signé, protocole de fermion, records de Crystallon (`io.gluonify.plasma.crystallon`) | 17 |
 | `gluonify-plasma-fermion-client` (`fermion-client/`) | client WebSocket de gluonify-fermion (Quarkus, CDI) | 25 |
-| `gluonify-plasma-crystallon-client` (`crystallon-client/`) | client HTTP de gluonify-crystallon : rendre en PDF un modèle par son nom ou son identifiant, ou un modèle envoyé avec la demande (`inline`) ; sans CDI, Jackson 2 ou 3 détecté à l'exécution ; [README](crystallon-client/README.md) | 17 |
+| `gluonify-plasma-services` (`services/`) | **résolution sans configuration** d'un service (adresse et jeton) : surcharge, plateforme, poste du développeur (découverte de la zone, jeton de `gluonify login`) ; aucune dépendance ; [README](services/README.md) | 17 |
+| `gluonify-plasma-crystallon-client` (`crystallon-client/`) | client HTTP de gluonify-crystallon : rendre en PDF un modèle par son nom ou son identifiant, ou un modèle envoyé avec la demande (`inline`) ; `CrystallonClient.create()` sans configuration ; sans CDI, Jackson 2 ou 3 détecté à l'exécution ; [README](crystallon-client/README.md) | 17 |
+| `gluonify-plasma-testing` (`testing/`) | `GluonifyTestServices` : faux Crystallon en mémoire pour les tests des applications ; [README](testing/README.md) | 17 |
+| `gluonify-plasma-quarkus` (`quarkus/`) | producteurs CDI `@DefaultBean` (`CrystallonClient`) : rien à écrire dans une application Quarkus ; [README](quarkus/README.md) | 21 |
+| `gluonify-plasma-cli` (`cli/`) | la commande `gluonify` (jar exécutable) : `login <zone>` dans le navigateur (PKCE), `logout`, `status`, `token <service>` ; [README](cli/README.md) | 17 |
 
-`sdk` et `crystallon-client` sont les modules publiés pour les applications des clients (dépôt Maven `https://images.gluonify.io/maven`) : ils se compilent pour Java 17 (`maven.compiler.release` 17), le parent et les autres modules pour Java 25. La version `0.1.0-SNAPSHOT` du dépôt est fixée à la publication (elle suit celle de la plateforme). Le fichier `gluonify.code-workspace` ouvre dans VS Code tous les dépôts Gluonify (supposés côte à côte).
+`sdk`, `services`, `crystallon-client`, `testing`, `quarkus` et `cli` sont les modules publiés pour les applications des clients (dépôt Maven `https://images.gluonify.io/maven`) : ils se compilent pour Java 17 (`maven.compiler.release` 17 ; `quarkus` : 21, le minimum de Quarkus 4), le parent et `fermion-client` pour Java 25. La version `0.1.0-SNAPSHOT` du dépôt est fixée à la publication (elle suit celle de la plateforme). Le fichier `gluonify.code-workspace` ouvre dans VS Code tous les dépôts Gluonify (supposés côte à côte).
 
 ```
 mvn install      # installe le parent, le SDK et les clients dans ~/.m2 : prérequis de gluonify-higgs, -strange, -rup
 ```
 
 Documentation d'ensemble : [gluonify-codex](https://github.com/gluonify/gluonify-codex).
+
+## Services sans configuration (`gluonify-plasma-services`, depuis le 2026-10-11)
+
+Une application n'écrit **ni URL ni jeton** pour joindre un service de la plateforme : `CrystallonClient.create()`, le `FermionTokenProvider` par défaut de fermion-client et l'URL de fermion (vide = résolue), et les beans de `gluonify-plasma-quarkus` passent par `GluonifyServices.endpoint("<service>")`, qui résout dans cet ordre : **surcharge** (`GLUONIFY_SERVICE_<APP>_URL` en propriété système, ou en variable hors de la plateforme ; jeton `GLUONIFY_<APP>_TOKEN[_FILE]` : tests), **plateforme** (`GLUONIFY_ENVIRONMENT` : adresse de `uses`, jeton d'application relu à chaque appel ; service absent : « add "<app>" to "uses" in gluonify.json »), **poste du développeur** (zone de `~/.gluonify/config.json` écrite par `gluonify login <zone>`, adresse publique du document `https://<zone>/.well-known/gluonify` gardé 5 minutes, jeton du développeur `~/.gluonify/tokens/<zone>.json` renouvelé par le jeton de rafraîchissement sous verrou), sinon une erreur qui dit quoi faire (`gluonify login`, ou `GluonifyTestServices` en test). Fichiers 0600, aucun jeton dans un message ni un journal, aucun `HttpClient` statique. Le contrat du document de découverte (que Higgs publiera) est décrit dans [services/README.md](services/README.md) ; la CLI dans [cli/README.md](cli/README.md).
 
 ## Amorçage à distance : manifeste signé et catalogue de tâches
 

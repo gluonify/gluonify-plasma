@@ -2,6 +2,8 @@ package io.gluonify.plasma.fermion.client;
 
 import io.gluonify.plasma.fermion.FermionMsg;
 import io.gluonify.plasma.fermion.WorkflowDescriptor;
+import io.gluonify.plasma.services.Endpoint;
+import io.gluonify.plasma.services.GluonifyServices;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
@@ -18,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import tools.jackson.databind.ObjectMapper;
 
@@ -57,14 +60,44 @@ public class FermionClient {
     ObjectMapper mapper;
 
     private final Object lock = new Object();
+    private final Object urlLock = new Object();
     private final Deque<FermionMsg.Start> pending = new ArrayDeque<>();
     private volatile WebSocketClientConnection connection;
     private volatile BiConsumer<String, String> errorSink;
     private volatile int connectorsCreated;
+    private volatile Optional<String> resolvedUrl;
 
-    /** Client actif : activé et URL de fermion renseignée. */
+    /** Client actif : activé et URL de fermion connue (configurée, ou résolue par {@code GluonifyServices}). */
     public boolean isActive() {
-        return config.enabled() && config.url().filter(u -> !u.isBlank()).isPresent();
+        return config.enabled() && url().isPresent();
+    }
+
+    /**
+     * L'URL de fermion : {@code gluonify.fermion.client.url} si elle est renseignée, sinon (si {@code discover}) la résolution de
+     * {@link GluonifyServices#optional(String)}, faite une fois. Un échec de la résolution est journalisé et laisse le client inactif.
+     */
+    Optional<String> url() {
+        Optional<String> u = resolvedUrl;
+        if (u == null) {
+            synchronized (urlLock) {
+                u = resolvedUrl;
+                if (u == null) {
+                    u = config.url().map(String::strip).filter(s -> !s.isEmpty());
+                    if (u.isEmpty() && config.discover()) {
+                        try {
+                            u = GluonifyServices.optional("fermion").map(Endpoint::url).map(Object::toString);
+                            u.ifPresent(found -> Log.infov("fermion-client=discovered url={0}", found));
+                        }
+                        catch (final RuntimeException e) {
+                            Log.warnv("fermion-client=discovery error={0}", e.getMessage());
+                            u = Optional.empty();
+                        }
+                    }
+                    resolvedUrl = u;
+                }
+            }
+        }
+        return u;
     }
 
     public boolean isConnected() {
@@ -159,7 +192,7 @@ public class FermionClient {
                 Log.errorv("fermion-client=token node={0} error={1}", identity.id(), e.getMessage());
                 return;
             }
-            final String url = config.url().orElseThrow();
+            final String url = url().orElseThrow();
             final WebSocketConnector<FermionClientEndpoint> connector = connectorFactory.get();
             connectorsCreated++;
             try {

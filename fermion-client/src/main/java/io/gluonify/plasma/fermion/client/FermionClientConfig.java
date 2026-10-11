@@ -12,9 +12,19 @@ public interface FermionClientConfig {
     @WithDefault("true")
     boolean enabled();
 
-    /** URL de base de fermion (http(s):// ou ws(s)://), sans le chemin {@code /ws/fermion}. Fournie par la plateforme. */
+    /**
+     * URL de base de fermion (http(s):// ou ws(s)://), sans le chemin {@code /ws/fermion}. Fournie par la plateforme. Vide : l'adresse vient de
+     * la résolution de {@code GluonifyServices} si {@link #discover()} (poste du développeur : adresse publique de la zone de {@code gluonify login}).
+     */
     @WithDefault("${GLUONIFY_SERVICE_FERMION_URL:}")
     Optional<String> url();
+
+    /**
+     * Sans {@link #url()}, chercher fermion par {@code GluonifyServices} (surcharge, plateforme, poste du développeur). {@code false} : client inactif
+     * sans URL explicite.
+     */
+    @WithDefault("true")
+    boolean discover();
 
     /** Identifiant de l'application (défaut : {@code quarkus.application.name}). */
     Optional<String> appId();

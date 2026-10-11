@@ -16,7 +16,8 @@ class DisabledClientTest {
     public static class NoUrl implements QuarkusTestProfile {
         @Override
         public Map<String, String> getConfigOverrides() {
-            return Map.of("gluonify.fermion.client.url", "");
+            // sans URL ni découverte (la machine de test peut être connectée à un cluster par gluonify login)
+            return Map.of("gluonify.fermion.client.url", "", "gluonify.fermion.client.discover", "false");
         }
     }
 
