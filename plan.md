@@ -1,6 +1,7 @@
 # plan.md : gluonify-plasma (SDK + racine)
 
 ## Fait récemment
+- [x] **Organisation** (2026-10-11, phase 0 de Prism) : `AppSpec.organization` et `DeployRequest.organization` (facultatifs, `[a-z0-9-]{1,40}`, `_unassigned` à l'affichage seulement), `Organizations` (motif, filtre, revendication `org`, rôles des clients `org:owner|developer|viewer|billing`) ; 5 tests. Suite : Higgs (persistance, filtres, revendication `org`), Charm (`Account.organization`).
 - [x] `Requires` : dépendances système d'un artefact par distribution (`debian13`…), noms validés.
 - [x] Protocole de gluonify-fermion (`io.gluonify.plasma.fermion` : `FermionMsg`, descripteurs de compétences et de workflows), 3 tests.
 - [x] `GzipSignature` : signature par fichier dans l'en-tête gzip (RFC 1952, FEXTRA « GL »), vérifiable hors ligne, en plus du manifeste.

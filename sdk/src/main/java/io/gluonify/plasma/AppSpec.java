@@ -26,7 +26,13 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
                       @Schema(description = "Nom d'un secret de téléchargement (PULL_…, enregistré par PUT /stack/secrets/{nom}) : sa valeur est envoyée telle quelle dans l'en-tête Authorization pour télécharger l'exécutable (dépôt privé). Jamais écrit dans l'état du cluster ni injecté dans l'application.", example = "PULL_GITLAB") String pullSecret,
                       @Schema(description = "Quota par système de fichiers distribué (Mo, 1 à 1048576), appliqué à CHACUN des genres montés (std, tmp, graph) : au-delà, l'écriture est refusée (507) ; sans valeur, seuls les plafonds par défaut s'appliquent. Quota souple : la taille est relevée toutes les 20 s, plusieurs écritures simultanées peuvent le dépasser un instant.", example = "2048") Integer distributedQuotaMb,
                       @Schema(description = "true : verrous de fichiers (flock, fcntl/POSIX, O_EXCL) valables ENTRE NŒUDS sur les systèmes de fichiers distribués de l'application : un démon de montage (gluonify-bottom) est placé devant le montage rclone et délègue les verrous au control-plane (bail : un nœud sans signe de vie depuis 30 s perd ses verrous). Sans cela, les verrous ne valent que sur un même nœud. Coûte un second saut FUSE ; à demander explicitement. Pris en compte au démarrage de l'application (POST /apps/{nom}/redeploy après un changement).", example = "true") Boolean distributedLocks,
-                      @Schema(description = "Mode endormi (scale-to-zero) : l'application inactive est gelée puis arrêtée, et réveillée par la requête suivante ; absent ou enabled=false : jamais endormie. Voir gluonify-codex/ARCHITECTURE.md, « Mode endormi ».") SleepSpec sleep) {
+                      @Schema(description = "Mode endormi (scale-to-zero) : l'application inactive est gelée puis arrêtée, et réveillée par la requête suivante ; absent ou enabled=false : jamais endormie. Voir gluonify-codex/ARCHITECTURE.md, « Mode endormi ».") SleepSpec sleep,
+                      @Schema(description = "Organisation (le client) à laquelle l'application appartient : a-z, 0-9 et -, 40 caractères au plus. Fixée par l'administrateur de la plateforme seulement ; absente, l'application n'est rattachée à personne (affichée « _unassigned », jamais enregistrée ainsi). Voir io.gluonify.plasma.Organizations.", example = "acme") String organization) {
+    /** Compatibilité : sans organisation. */
+    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep) {
+        this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, null);
+    }
+
     /** Compatibilité : sans mode endormi. */
     public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, null);
@@ -81,6 +87,14 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
     public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace) {
         this(name, image, replicas, port, memoryMb, topNamespace, null);
     }
+
+    /** Copie de la spécification rattachée à une autre organisation (null : à aucune). */
+    public AppSpec withOrganization(String org) {
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, org);
+    }
+
+    /** Organisation pour l'affichage et les filtres : {@link Organizations#UNASSIGNED} quand l'application n'est rattachée à aucune. */
+    public String organizationOrUnassigned() { return Organizations.orUnassigned(organization); }
 
     /** Vrai si le mode endormi est activé pour cette application. */
     public boolean sleepEnabled() { return sleep != null && sleep.enabled(); }
@@ -165,6 +179,7 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
             if (role != null) throw new IllegalArgumentException("sleep : incompatible avec un rôle de nœud (composant de la pile)");
             if (Boolean.TRUE.equals(distributedLocks)) throw new IllegalArgumentException("sleep : incompatible avec distributedLocks");
         }
+        Organizations.requireValid(organization);
         if (replicas < 0 || replicas > 100) throw new IllegalArgumentException("replicas hors limites");
         if (port < 1 || port > 65535) throw new IllegalArgumentException("port invalide");
         if (memoryMb < 16) throw new IllegalArgumentException("mémoire minimale : 16 Mo");
