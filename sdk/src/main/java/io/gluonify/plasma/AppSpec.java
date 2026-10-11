@@ -27,7 +27,15 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
                       @Schema(description = "Quota par système de fichiers distribué (Mo, 1 à 1048576), appliqué à CHACUN des genres montés (std, tmp, graph) : au-delà, l'écriture est refusée (507) ; sans valeur, seuls les plafonds par défaut s'appliquent. Quota souple : la taille est relevée toutes les 20 s, plusieurs écritures simultanées peuvent le dépasser un instant.", example = "2048") Integer distributedQuotaMb,
                       @Schema(description = "true : verrous de fichiers (flock, fcntl/POSIX, O_EXCL) valables ENTRE NŒUDS sur les systèmes de fichiers distribués de l'application : un démon de montage (gluonify-bottom) est placé devant le montage rclone et délègue les verrous au control-plane (bail : un nœud sans signe de vie depuis 30 s perd ses verrous). Sans cela, les verrous ne valent que sur un même nœud. Coûte un second saut FUSE ; à demander explicitement. Pris en compte au démarrage de l'application (POST /apps/{nom}/redeploy après un changement).", example = "true") Boolean distributedLocks,
                       @Schema(description = "Mode endormi (scale-to-zero) : l'application inactive est gelée puis arrêtée, et réveillée par la requête suivante ; absent ou enabled=false : jamais endormie. Voir gluonify-codex/ARCHITECTURE.md, « Mode endormi ».") SleepSpec sleep,
-                      @Schema(description = "Organisation (le client) à laquelle l'application appartient : étiquette DNS (a-z, 0-9 et -, ni en tête ni en fin), 40 caractères au plus. Fixée par l'administrateur de la plateforme seulement ; absente, l'application n'est rattachée à personne (affichée « _unassigned », jamais enregistrée ainsi). Voir io.gluonify.plasma.Organizations.", example = "acme") String organization) {
+                      @Schema(description = "Organisation (le client) à laquelle l'application appartient : étiquette DNS (a-z, 0-9 et -, ni en tête ni en fin), 40 caractères au plus. Fixée par l'administrateur de la plateforme seulement ; absente, l'application n'est rattachée à personne (affichée « _unassigned », jamais enregistrée ainsi). Voir io.gluonify.plasma.Organizations.", example = "acme") String organization,
+                      @Schema(description = "Jeton de provenance (gluonify-codex/provenance.md) : déclaration signée en Ed25519 par une clé de confiance (Bup, version de la plateforme, clé locale) qui couvre "
+                              + "le nom de l'application et l'empreinte des exécutables (par architecture) ou de l'image (@sha256:…) ; base64url(déclaration).base64url(signature). "
+                              + "Sans jeton valide, changer d'exécutable exige gluonify:higgs:deploy:binary et changer d'image gluonify:higgs:deploy:image, rôles attribués à personne.", example = "Z2x1b25pZnktcHJvdmVuYW5jZSAx….ab12…") String provenance) {
+    /** Compatibilité : sans jeton de provenance. */
+    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, String organization) {
+        this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, null);
+    }
+
     /** Compatibilité : sans organisation. */
     public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, null);
@@ -90,12 +98,17 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
 
     /** Copie de la spécification rattachée à une autre organisation (null : à aucune). */
     public AppSpec withOrganization(String org) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, org);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, org, provenance);
     }
 
     /** Copie avec un autre quota par système de fichiers distribué (Mo ; null : aucun). Higgs y écrit le quota par défaut du contrat de l'organisation. */
     public AppSpec withDistributedQuotaMb(Integer mb) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, mb, distributedLocks, sleep, organization);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, mb, distributedLocks, sleep, organization, provenance);
+    }
+
+    /** Copie avec un autre jeton de provenance (null : aucun). */
+    public AppSpec withProvenance(String token) {
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, token);
     }
 
     /** Organisation pour l'affichage et les filtres : {@link Organizations#UNASSIGNED} quand l'application n'est rattachée à aucune. */
@@ -185,6 +198,8 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
             if (Boolean.TRUE.equals(distributedLocks)) throw new IllegalArgumentException("sleep : incompatible avec distributedLocks");
         }
         Organizations.requireValid(organization);
+        if (provenance != null && provenance.isBlank()) provenance = null;
+        if (provenance != null && !io.gluonify.plasma.provenance.Provenance.wellFormed(provenance)) throw new IllegalArgumentException("provenance : jeton illisible (base64url.base64url attendu)");
         if (replicas < 0 || replicas > 100) throw new IllegalArgumentException("replicas hors limites");
         if (port < 1 || port > 65535) throw new IllegalArgumentException("port invalide");
         if (memoryMb < 16) throw new IllegalArgumentException("mémoire minimale : 16 Mo");
