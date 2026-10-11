@@ -115,7 +115,14 @@ class InlineTemplateTest {
         final Map<String, Object> template = new LinkedHashMap<>();
         template.put("extends", "invoice");
         template.put("theme", Map.of("primary", "#005eb8"));
-        template.put("body", List.of(Map.of("type", "text", "text", "{{ customer }}", "size", 12, "ratio", 0.5, "bold", true)));
+        // LinkedHashMap et non Map.of : l'ordre de Map.of change à chaque JVM, et « "size":12, » exige que size ne soit pas la dernière clé
+        final Map<String, Object> text = new LinkedHashMap<>();
+        text.put("type", "text");
+        text.put("text", "{{ customer }}");
+        text.put("size", 12);
+        text.put("ratio", 0.5);
+        text.put("bold", true);
+        template.put("body", List.of(text));
 
         client().inline(template).render(Map.of("customer", "Ada"));
 

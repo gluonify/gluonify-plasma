@@ -137,6 +137,24 @@ class ReleaseTest {
         assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse(new byte[2 * 1024 * 1024]));
     }
 
+    /** Sonar java:S5998 : l'ancienne expression régulière répétait un groupe (une récursion par ligne) et débordait la pile dès ~5 000 lignes vides, très en deçà de la borne de taille. */
+    @Test
+    void manyEmptyLinesAreRefusedWithoutStackOverflow() {
+        String head = "{\n\"schema\":1,\n\"version\":\"1.0.0\",\n\"sequence\":1,\n\"createdAt\":\"2026-10-01T00:00:00Z\",\n\"expires\":\"2026-10-02T00:00:00Z\",\n\"artifacts\":[\n";
+        String text = head + "\n".repeat(ReleaseManifest.MAX_MANIFEST_BYTES - head.length() - 4) + "]\n}\n";
+        assertEquals(ReleaseManifest.MAX_MANIFEST_BYTES, text.length());
+        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse(text.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @Test
+    void manifestWithoutFootOrWithPartialLastLineIsRefused() throws Exception {
+        String json = manifest().toJson();
+        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse(json.substring(0, json.length() - 2).getBytes(StandardCharsets.UTF_8)), "pied tronqué");
+        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse(json.replace("}\n]\n}\n", "}]\n}\n").getBytes(StandardCharsets.UTF_8)), "dernière ligne sans fin de ligne");
+        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse(json.replace("\"artifacts\":[\n", "\"artifacts\":[\n\n").getBytes(StandardCharsets.UTF_8)), "ligne vide dans la liste");
+        assertEquals(manifest(), ReleaseManifest.parse(json.getBytes(StandardCharsets.UTF_8)), "le format canonique reste lu à l'identique");
+    }
+
     @Test
     void signedComparesByContent() {
         var a = new GzipSignature.Signed(new byte[] {1, 2}, new byte[] {3});

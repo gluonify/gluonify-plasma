@@ -83,7 +83,12 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
         return this;
     }
 
-    private static final Pattern HEAD = Pattern.compile("\\{\n\"schema\":([0-9]+),\n\"version\":\"([^\"]*)\",\n\"sequence\":([0-9]{1,15}),\n\"createdAt\":\"([^\"]*)\",\n\"expires\":\"([^\"]*)\",\n\"artifacts\":\\[\n((?:[^\n]*\n)*)\\]\n\\}\n");
+    /**
+     * L'en-tête, jusqu'à « "artifacts":[ ». Le corps (une ligne par artefact) et le pied ({@link #FOOT}) se lisent SANS expression régulière : la répétition d'un groupe
+     * ({@code (?:[^\n]*\n)*}) est récursive dans {@code java.util.regex} et débordait la pile dès ~5 000 lignes (bien en deçà de {@link #MAX_MANIFEST_BYTES}).
+     */
+    private static final Pattern HEAD = Pattern.compile("\\{\n\"schema\":([0-9]+),\n\"version\":\"([^\"]*)\",\n\"sequence\":([0-9]{1,15}),\n\"createdAt\":\"([^\"]*)\",\n\"expires\":\"([^\"]*)\",\n\"artifacts\":\\[\n");
+    private static final String FOOT = "]\n}\n";
     private static final Pattern LINE = Pattern.compile("\\{\"name\":\"([^\"]*)\",\"arch\":\"([^\"]*)\",\"file\":\"([^\"]*)\",\"sha256\":\"([^\"]*)\",\"size\":([0-9]{1,15})\\},?");
 
     /**
@@ -96,12 +101,13 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
 
     /** Comme {@link #parse(byte[])} avec le critère de noms de composants de l'appelant (voir {@link #validate(java.util.function.Predicate)}). */
     public static ReleaseManifest parse(byte[] bytes, java.util.function.Predicate<String> nameOk) {
-        if (bytes.length > MAX_MANIFEST_BYTES) throw new Invalid("manifeste trop volumineux"); // borne l'entrée de l'expression régulière (récursion)
+        if (bytes.length > MAX_MANIFEST_BYTES) throw new Invalid("manifeste trop volumineux"); // borne la mémoire et le travail de l'analyse
         String text = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
         java.util.regex.Matcher m = HEAD.matcher(text);
-        if (!m.matches()) throw new Invalid("manifeste illisible");
+        if (!m.lookingAt() || !text.endsWith(FOOT) || text.length() - FOOT.length() < m.end()) throw new Invalid("manifeste illisible");
+        String body = text.substring(m.end(), text.length() - FOOT.length()); // lignes complètes (terminées par \n) ou rien
+        if (!body.isEmpty() && body.charAt(body.length() - 1) != '\n') throw new Invalid("manifeste illisible");
         List<Artifact> list = new java.util.ArrayList<>();
-        String body = m.group(6);
         for (String line : body.isEmpty() ? new String[0] : body.split("\n")) {
             java.util.regex.Matcher a = LINE.matcher(line);
             if (!a.matches()) throw new Invalid("ligne d'artefact illisible");
