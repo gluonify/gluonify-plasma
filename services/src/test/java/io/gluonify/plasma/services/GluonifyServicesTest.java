@@ -122,6 +122,7 @@ class GluonifyServicesTest {
         login(3600); // ignoré sur la plateforme
         final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> services().resolve("crystallon"));
         assertTrue(e.getMessage().contains("\"crystallon\"") && e.getMessage().contains("uses") && e.getMessage().contains("gluonify.json"), e.getMessage());
+        assertTrue(e.getMessage().contains("did not grant") && e.getMessage().contains("Bup") && e.getMessage().contains("GLUONIFY_SERVICE_CRYSTALLON_URL"), e.getMessage());
         assertTrue(services().resolveOptional("crystallon").isEmpty());
         assertEquals(0, cluster.discoveryHits.get());
     }

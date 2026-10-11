@@ -233,6 +233,54 @@
       "allDeclaredConstructors": true,
       "allDeclaredMethods": true,
       "allDeclaredFields": true
+    },
+    {
+      "type": "io.gluonify.plasma.analysis.Finding[]"
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.ContractTerms$PriceOverride[]"
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.ContractTerms$Tier[]"
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.ContractVersion[]"
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.Organization[]"
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.PriceLine[]"
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.PriceListVersion[]"
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.PriceList[]"
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.Pricing$Line[]"
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.Pricing$SectionResult[]"
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.Pricing$TierAmount[]"
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.Pricing$Usage[]"
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.Violation[]"
+    },
+    {
+      "type": "java.lang.Integer[]"
+    },
+    {
+      "type": "java.lang.String[]"
+    },
+    {
+      "type": "io.gluonify.plasma.ServiceToken[]"
     }
   ]
 }

@@ -99,8 +99,8 @@ public final class CrystallonClient {
     static CrystallonClient fromEnvironment(final Function<String, String> environment) {
         final String url = environment.apply(ENV_URL);
         if (url == null || url.isBlank()) {
-            throw new IllegalStateException(ENV_URL + " is not set: declare crystallon in the application's uses (appspec), or build the client with "
-                    + "CrystallonClient.builder().baseUrl(...)");
+            throw new IllegalStateException(ENV_URL + " is not set: the platform did not grant the service \"crystallon\" (build the application with Bup with this module "
+                    + "on its runtime classpath, or add \"crystallon\" to \"uses\" in gluonify.json), or build the client with CrystallonClient.builder().baseUrl(...)");
         }
         return builder().baseUrl(url.strip()).tokens(CrystallonTokens.fromEnvironment(environment)).build();
     }

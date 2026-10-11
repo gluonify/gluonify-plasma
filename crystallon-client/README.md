@@ -90,7 +90,7 @@ Un modèle (stocké, prédéfini ou envoyé) peut porter des `params` à sa raci
 | Où tourne l'application | Adresse | Jeton |
 |---|---|---|
 | en test, après `GluonifyTestServices.start()` (ou surcharge `GLUONIFY_SERVICE_CRYSTALLON_URL` en propriété système) | le faux Crystallon | `GLUONIFY_CRYSTALLON_TOKEN` |
-| sur la plateforme (`GLUONIFY_ENVIRONMENT` présent), avec `"uses": ["crystallon"]` | `GLUONIFY_SERVICE_CRYSTALLON_URL` injectée | le jeton d'application (`GLUONIFY_CRYSTALLON_TOKEN_FILE`, relu à chaque appel) |
+| sur la plateforme (`GLUONIFY_ENVIRONMENT` présent), `crystallon` dans `uses` (déduit par Bup du marqueur de ce module, ou déclaré) | `GLUONIFY_SERVICE_CRYSTALLON_URL` injectée | le jeton d'application (`GLUONIFY_CRYSTALLON_TOKEN_FILE`, relu à chaque appel) |
 | sur le poste du développeur, après `gluonify login <zone>` | l'adresse publique de la découverte (`https://adm.<zone>/crystallon`) | le jeton du développeur, renouvelé tout seul |
 | ailleurs | `GluonifyServicesException` qui dit quoi faire (`uses`, `gluonify login`, `GluonifyTestServices`) | |
 
@@ -100,7 +100,7 @@ Un échec du jeton en cours de vie (session du développeur expirée, par exempl
 
 | Variable | Rôle |
 |---|---|
-| `GLUONIFY_SERVICE_CRYSTALLON_URL` | adresse de Crystallon ; injectée quand l'application déclare `crystallon` dans `uses` (appspec). Absente : `IllegalStateException` qui dit quoi faire |
+| `GLUONIFY_SERVICE_CRYSTALLON_URL` | adresse de Crystallon ; injectée pour `crystallon` dans `uses` : Bup l'y met tout seul quand ce module est dans le chemin de classes d'exécution (marqueur `META-INF/gluonify/services/crystallon`), sinon à déclarer. Absente : `IllegalStateException` qui dit quoi faire |
 | `GLUONIFY_CRYSTALLON_TOKEN` | le jeton Charm lui-même |
 | `GLUONIFY_CRYSTALLON_TOKEN_FILE` | sinon, un fichier qui contient le jeton, relu à chaque appel |
 
@@ -125,7 +125,7 @@ Crystallon exige un jeton Charm d'audience `gluonify-crystallon` ; le rôle `glu
 | `fixed(token)` | jeton fixe (vide : `IllegalArgumentException`) |
 | `file(path)` | lu **à chaque appel**, espaces de début et de fin retirés ; fichier absent ou vide : pas de jeton ; illisible : `CrystallonException` (statut 0) |
 | `forwarding(supplier)` | le jeton de la personne connectée, demandé à chaque appel (`null` ou vide : pas de jeton) |
-| `platform()` | le **jeton d'application** que fournit la plateforme à une application qui déclare `"uses": ["crystallon"]` : fichier de `GLUONIFY_CRYSTALLON_TOKEN_FILE`, déposé et renouvelé par l'agent du nœud (sujet `app:<nom>`, rôle `gluonify:crystallon:render`, 900 s), relu à chaque appel ; variable absente : `IllegalStateException` qui le dit |
+| `platform()` | le **jeton d'application** que fournit la plateforme à une application qui a `crystallon` dans `uses` (déduit par Bup, ou déclaré) : fichier de `GLUONIFY_CRYSTALLON_TOKEN_FILE`, déposé et renouvelé par l'agent du nœud (sujet `app:<nom>`, rôle `gluonify:crystallon:render`, 900 s), relu à chaque appel ; variable absente : `IllegalStateException` qui le dit |
 | `of(Endpoint)` | les jetons d'un service résolu par `GluonifyServices` (ce que fait `create()`) ; un échec de la source devient une `CrystallonException` (statut 0) |
 | `fromEnvironment()` | `GLUONIFY_CRYSTALLON_TOKEN`, sinon `GLUONIFY_CRYSTALLON_TOKEN_FILE`, sinon `none()` ; `fromEnvironment(Function<String,String>)` lit une autre source (MicroProfile Config…) |
 

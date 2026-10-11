@@ -54,7 +54,8 @@ public interface FermionTokenProvider {
     static FermionTokenProvider platform(final Function<String, String> environment) {
         final String file = environment.apply(ENV_TOKEN_FILE);
         if (file == null || file.isBlank()) {
-            throw new IllegalStateException(ENV_TOKEN_FILE + " is not set: declare \"uses\": [\"fermion\"] in the application spec, the platform then provides the application token");
+            throw new IllegalStateException(ENV_TOKEN_FILE + " is not set: the platform did not grant the service \"fermion\" (build the application with Bup with this module "
+                    + "on its runtime classpath, or add \"fermion\" to \"uses\" in gluonify.json)");
         }
         final Path path = Path.of(file.strip());
         return () -> {

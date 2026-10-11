@@ -29,7 +29,8 @@ import java.util.regex.Pattern;
  *       propriété système d'abord, sinon aucun jeton.</li>
  *   <li><b>Sur la plateforme</b> ({@link Endpoint.Source#PLATFORM}, {@code GLUONIFY_ENVIRONMENT} présent) : l'adresse injectée pour un service de
  *       {@code uses} et le fichier du jeton d'application ({@code GLUONIFY_<APP>_TOKEN_FILE}, relu à chaque appel). Service absent : le message dit
- *       d'ajouter {@code "<app>"} dans {@code uses} de {@code gluonify.json}.</li>
+ *       que la plateforme ne l'a pas accordé (application non construite par Bup avec le module du SDK, que Bup détecte pour en déduire
+ *       {@code uses}, ou appel hors du SDK qui demande un {@code uses} explicite dans {@code gluonify.json}).</li>
  *   <li><b>Sur le poste du développeur</b> ({@link Endpoint.Source#DEVELOPER}) : la zone de {@code ~/.gluonify/config.json} (ou
  *       {@code GLUONIFY_ZONE}), écrite par {@code gluonify login <zone>} ; l'adresse publique du service vient du document de découverte
  *       {@code https://<zone>/.well-known/gluonify} (gardé 5 minutes) ; le jeton est celui du développeur ({@code ~/.gluonify/tokens/<zone>.json},
@@ -223,8 +224,8 @@ public final class GluonifyServices {
         final String key = urlKey(s);
         final String url = environment.apply(key);
         if (blank(url)) {
-            throw new GluonifyServicesException("the service " + s + " is not available to this application: add \"" + s + "\" to \"uses\" in gluonify.json, "
-                    + "then deploy again (the platform then provides " + key + " and the application token)");
+            throw new GluonifyServicesException("the platform did not grant the service \"" + s + "\" to this application (no " + key + "): build it with Bup "
+                    + "with the Gluonify SDK module of the service on its runtime classpath, or, for a call outside the SDK, add \"" + s + "\" to \"uses\" in gluonify.json; then deploy again");
         }
         final String file = environment.apply(tokenFileKey(s));
         final Supplier<String> tokens;
