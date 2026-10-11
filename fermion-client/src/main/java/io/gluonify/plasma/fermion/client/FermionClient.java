@@ -245,10 +245,19 @@ public class FermionClient {
      * @throws FermionQueueFullException si la coupure dure et que la file est pleine
      */
     public void startWorkflow(final String workflow, final String correlationId, final String globalTransactionId, final Map<String, Object> payload) {
+        startWorkflow(workflow, correlationId, globalTransactionId, payload, null);
+    }
+
+    /**
+     * Comme {@link #startWorkflow(String, String, String, Map)}, en fixant l'organisation de l'exécution : fermion la transmet à chaque tâche à la
+     * place de toute valeur {@code organization} de la charge utile. Réservé aux nœuds de la plateforme qui connaissent l'organisation de l'appelant.
+     */
+    public void startWorkflow(final String workflow, final String correlationId, final String globalTransactionId, final Map<String, Object> payload,
+                              final String organization) {
         if (!isActive()) {
             throw new FermionClientException("fermion client is not active (no URL or enabled=false)");
         }
-        final FermionMsg.Start start = new FermionMsg.Start(workflow, correlationId, globalTransactionId, payload);
+        final FermionMsg.Start start = new FermionMsg.Start(workflow, correlationId, globalTransactionId, payload, organization);
         synchronized (lock) {
             if (pending.isEmpty() && isConnected()) {
                 try {

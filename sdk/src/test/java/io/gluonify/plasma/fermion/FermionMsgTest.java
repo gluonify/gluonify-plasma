@@ -26,6 +26,9 @@ class FermionMsgTest {
                 new FermionMsg.Command("c1", "g1", "send-mail", Map.of("to", "x@example.org")),
                 FermionMsg.Result.ok("c1", "send-mail", Map.of("id", 1)),
                 FermionMsg.Result.failure("c1", "send-mail", "smtp down", "TRANSIENT"),
+                new FermionMsg.Start("build", "c2", "g2", Map.of("repo", "shop"), "acme"),
+                new FermionMsg.Command("c1", "g1", "BUP_DEPLOY", Map.of("environment", "QUA"), "Task_DeployQua"),
+                FermionMsg.Result.ok(new FermionMsg.Command("c1", "g1", "BUP_DEPLOY", Map.of(), "Task_DeployQua"), Map.of("status", "passed")),
                 new FermionMsg.Error("c1", "workflow inactive")))
             assertEquals(json.readTree(json.writeValueAsString(m)), json.readTree(json.writeValueAsString(roundTrip(m))), m.getClass().getSimpleName());
     }
@@ -43,5 +46,24 @@ class FermionMsgTest {
         assertTrue(h.usedWorkflows().isEmpty());
         assertTrue(new FermionMsg.Start("w", "c", null).payload().isEmpty());
         assertNull(new FermionMsg.Start("w", "c", Map.of()).globalTransactionId());
+    }
+
+    @Test
+    void stepIdEtOrganisationSontFacultatifsEtReprisParLaReponse() throws Exception {
+        // Un ancien nœud (Interfero) ignore stepId et ne l'envoie pas : les deux sens restent lisibles.
+        var c = (FermionMsg.Command) json.readValue("{\"t\":\"command\",\"correlationId\":\"c\",\"action\":\"A\"}", FermionMsg.class);
+        assertNull(c.stepId());
+        var r = (FermionMsg.Result) json.readValue("{\"t\":\"result\",\"correlationId\":\"c\",\"action\":\"A\",\"success\":true}", FermionMsg.class);
+        assertNull(r.stepId());
+        assertFalse(json.writeValueAsString(FermionMsg.Result.ok("c", "A", Map.of())).contains("stepId"));
+        var s = (FermionMsg.Start) json.readValue("{\"t\":\"start\",\"workflow\":\"w\",\"correlationId\":\"c\"}", FermionMsg.class);
+        assertNull(s.organization());
+
+        var cmd = new FermionMsg.Command("c", "g", "BUP_DEPLOY", Map.of(), "Task_DeploySbx");
+        assertEquals("Task_DeploySbx", FermionMsg.Result.ok(cmd, Map.of()).stepId());
+        var failed = FermionMsg.Result.failure(cmd, "boom", "TRANSIENT");
+        assertEquals("Task_DeploySbx", failed.stepId());
+        assertFalse(failed.success());
+        assertEquals("g", failed.globalTransactionId());
     }
 }

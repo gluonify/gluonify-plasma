@@ -10,10 +10,20 @@ import tools.jackson.databind.ObjectMapper;
  * absent ou d'un autre type lève une {@link SkillFailureException} claire (errorKind {@code MISSING_PARAMETER} ou {@code INVALID_PARAMETER}) ;
  * {@link #optional} renvoie un {@link Optional}.
  */
-public record TaskContext(String globalTransactionId, String correlationId, String action, Map<String, Object> payload, ObjectMapper mapper) {
+public record TaskContext(String globalTransactionId, String correlationId, String action, Map<String, Object> payload, ObjectMapper mapper, String stepId) {
 
     public TaskContext {
         payload = payload == null ? Map.of() : payload;
+    }
+
+    public TaskContext(final String globalTransactionId, final String correlationId, final String action, final Map<String, Object> payload, final ObjectMapper mapper) {
+        this(globalTransactionId, correlationId, action, payload, mapper, null);
+    }
+
+    /** Organisation de l'exécution, posée par fermion (jamais prise dans la charge utile du client), ou {@code null}. */
+    public String organization() {
+        final Object value = payload.get("organization");
+        return value == null ? null : value.toString();
     }
 
     public boolean has(final String key) {
