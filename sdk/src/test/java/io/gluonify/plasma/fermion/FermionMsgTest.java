@@ -29,6 +29,8 @@ class FermionMsgTest {
                 new FermionMsg.Start("build", "c2", "g2", Map.of("repo", "shop"), "acme"),
                 new FermionMsg.Command("c1", "g1", "BUP_DEPLOY", Map.of("environment", "QUA"), "Task_DeployQua"),
                 FermionMsg.Result.ok(new FermionMsg.Command("c1", "g1", "BUP_DEPLOY", Map.of(), "Task_DeployQua"), Map.of("status", "passed")),
+                FermionMsg.Progress.of(new FermionMsg.Command("c1", "g1", "BUP_NATIVE_BUILD", Map.of(), "Task_Build"), "linking"),
+                new FermionMsg.Hello("bup", "bup-0", List.of(new SkillDescriptor("BUP_CUSTOMER_APPROVAL", List.of(), List.of(), List.of(), "P7D")), List.of(), null),
                 new FermionMsg.Error("c1", "workflow inactive")))
             assertEquals(json.readTree(json.writeValueAsString(m)), json.readTree(json.writeValueAsString(roundTrip(m))), m.getClass().getSimpleName());
     }
@@ -65,5 +67,18 @@ class FermionMsgTest {
         assertEquals("Task_DeploySbx", failed.stepId());
         assertFalse(failed.success());
         assertEquals("g", failed.globalTransactionId());
+    }
+
+    @Test
+    void battementEtDureeAttendueSontFacultatifs() throws Exception {
+        var p = (FermionMsg.Progress) json.readValue("{\"t\":\"progress\",\"correlationId\":\"c\",\"action\":\"A\",\"stepId\":\"Task_A\"}", FermionMsg.class);
+        assertEquals("Task_A", p.stepId());
+        assertNull(p.message());
+        assertTrue(json.writeValueAsString(p).contains("\"t\":\"progress\""));
+        // Un nœud antérieur n'annonce pas de durée : le champ est absent du JSON et vaut null.
+        var skill = new SkillDescriptor("A", List.of(), List.of(), List.of());
+        assertNull(skill.expectedDuration());
+        assertFalse(json.writeValueAsString(skill).contains("expectedDuration"));
+        assertEquals("PT2H", json.readValue("{\"id\":\"B\",\"expectedDuration\":\"PT2H\"}", SkillDescriptor.class).expectedDuration());
     }
 }

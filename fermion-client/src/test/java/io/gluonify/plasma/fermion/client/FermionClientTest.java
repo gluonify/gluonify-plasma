@@ -66,12 +66,14 @@ class FermionClientTest {
         assertEquals("3", hello.nodeId());
         assertEquals("orders-3", FakeFermionServer.lastNodeId);
         assertEquals("http://orders:8080/q/openapi", hello.openApiUrl());
-        assertEquals(List.of("BOOM", "ECHO", "FAIL", "RELEASE", "SLOW"), hello.skills().stream().map(s -> s.id()).toList());
+        assertEquals(List.of("BOOM", "ECHO", "FAIL", "RELEASE", "SLOW", "WAIT"), hello.skills().stream().map(s -> s.id()).toList());
         final var echo = hello.skills().stream().filter(s -> s.id().equals("ECHO")).findFirst().orElseThrow();
         assertEquals(5, echo.translations().size());
         assertEquals(Language.FR, echo.translations().get(1).language());
         assertEquals("upper", echo.outputs().get(0).name());
         assertEquals("order-flow", hello.usedWorkflows().get(0).id());
+        assertEquals("PT2H", hello.skills().stream().filter(s -> s.id().equals("SLOW")).findFirst().orElseThrow().expectedDuration());
+        assertNull(echo.expectedDuration(), "no declared duration: fermion's own timeout applies");
     }
 
     @Test
@@ -116,6 +118,29 @@ class FermionClientTest {
         final List<FermionMsg.Result> results = received(FermionMsg.Result.class);
         assertEquals(List.of("s2", "s1"), results.stream().map(FermionMsg.Result::correlationId).toList(), "RELEASE answers while SLOW is still running");
         assertEquals(Boolean.TRUE, results.get(1).payload().get("released"));
+    }
+
+    @Test
+    void aRunningTaskSendsHeartbeatsThatStopWithItsResult() throws Exception {
+        final var gate = new java.util.concurrent.CountDownLatch(1);
+        TestBeans.Wait.GATE = gate;
+        FakeFermionServer.send(mapper, new FermionMsg.Command("h1", "g1", "WAIT", Map.of(), "Task_Wait"));
+        await("two heartbeats", () -> received(FermionMsg.Progress.class).size() >= 2);
+        final FermionMsg.Progress p = received(FermionMsg.Progress.class).get(0);
+        assertEquals("h1", p.correlationId());
+        assertEquals("Task_Wait", p.stepId());
+        assertEquals("WAIT", p.action());
+        gate.countDown();
+        await("result", () -> !received(FermionMsg.Result.class).isEmpty());
+        final int after = received(FermionMsg.Progress.class).size();
+        Thread.sleep(600);
+        assertEquals(after, received(FermionMsg.Progress.class).size(), "no heartbeat once the result is sent");
+        // ECHO is short (under one period): no heartbeat at all
+        FakeFermionServer.FRAMES.clear();
+        FakeFermionServer.send(mapper, new FermionMsg.Command("h2", null, "ECHO", Map.of("text", "x")));
+        await("echo", () -> !received(FermionMsg.Result.class).isEmpty());
+        Thread.sleep(300);
+        assertTrue(received(FermionMsg.Progress.class).isEmpty());
     }
 
     @Test

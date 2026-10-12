@@ -2,6 +2,7 @@ package io.gluonify.plasma.fermion.client;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
+import java.time.Duration;
 import java.util.Optional;
 
 /** Configuration du client : {@code gluonify.fermion.client.*}. */
@@ -44,4 +45,12 @@ public interface FermionClientConfig {
     /** Période de la tâche de ping et de reconnexion. */
     @WithDefault("10s")
     String reconnectInterval();
+
+    /**
+     * Période du battement ({@code progress}) envoyé pendant qu'une tâche s'exécute : fermion ne renvoie pas une tâche dont le nœud a donné
+     * signe de vie récemment. {@code 0s} le désactive (fermion se fie alors à {@link SkillHandler#expectedDuration()} ou à son propre délai).
+     * Le premier battement part une période après le début de la tâche : une tâche courte n'en envoie aucun.
+     */
+    @WithDefault("60s")
+    Duration heartbeatInterval();
 }

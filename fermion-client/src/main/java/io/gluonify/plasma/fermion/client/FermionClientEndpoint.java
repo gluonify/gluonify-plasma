@@ -10,7 +10,12 @@ import io.quarkus.websockets.next.WebSocketClient;
 import io.quarkus.websockets.next.WebSocketClientConnection;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.inject.Inject;
+import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -21,6 +26,9 @@ import tools.jackson.databind.ObjectMapper;
  * fin des précédentes. Une compétence longue (build natif, attente d'une décision humaine) ne bloque donc plus les autres tâches du nœud ; chaque
  * {@code Result} part dès que sa tâche se termine, dans l'ordre des fins et non des arrivées (fermion les apparie par {@code correlationId}).
  * Un handler doit donc être sûr en accès concurrent (ce que sont déjà les beans {@code @ApplicationScoped} sans état).
+ * <p>
+ * Battement : tant qu'une tâche s'exécute, un {@code Progress} part toutes les {@code gluonify.fermion.client.heartbeat-interval} (60 s par
+ * défaut) ; fermion ne renvoie donc pas une tâche longue à un autre nœud tant que celui-ci donne signe de vie.
  */
 @WebSocketClient(path = "/ws/fermion/{nodeId}", inboundProcessingMode = InboundProcessingMode.CONCURRENT)
 public class FermionClientEndpoint {
@@ -34,9 +42,15 @@ public class FermionClientEndpoint {
     @Inject
     ObjectMapper mapper;
 
+    @Inject
+    FermionClientConfig config;
+
+    /** Fil des battements, partagé par toutes les tâches (créé à la première tâche, jamais en statique). */
+    private volatile ScheduledExecutorService heartbeats;
+
     @OnTextMessage
     @Blocking
-    public String onMessage(final String raw) {
+    public String onMessage(final String raw, final WebSocketClientConnection connection) {
         final FermionMsg msg;
         try {
             msg = mapper.readValue(raw, FermionMsg.class);
@@ -50,9 +64,58 @@ public class FermionClientEndpoint {
             return null;
         }
         if (msg instanceof final FermionMsg.Command command) {
-            return write(execute(command));
+            final ScheduledFuture<?> beat = startHeartbeat(command, connection);
+            try {
+                return write(execute(command));
+            }
+            finally {
+                if (beat != null) {
+                    beat.cancel(false);
+                }
+            }
         }
         return null;
+    }
+
+    /** Programme les battements de {@code command} ; {@code null} si désactivés. */
+    private ScheduledFuture<?> startHeartbeat(final FermionMsg.Command command, final WebSocketClientConnection connection) {
+        final Duration every = config.heartbeatInterval();
+        if (every == null || every.isZero() || every.isNegative() || connection == null) {
+            return null;
+        }
+        final String frame = write(FermionMsg.Progress.of(command, null));
+        if (frame == null) {
+            return null;
+        }
+        final long millis = every.toMillis();
+        return scheduler().scheduleAtFixedRate(() -> {
+            try {
+                if (connection.isOpen()) {
+                    connection.sendTextAndAwait(frame);
+                }
+            }
+            catch (final RuntimeException e) {
+                Log.debugv("fermion-client=progress correlationId={0} error={1}", command.correlationId(), e.getMessage());
+            }
+        }, millis, millis, TimeUnit.MILLISECONDS);
+    }
+
+    private ScheduledExecutorService scheduler() {
+        ScheduledExecutorService s = heartbeats;
+        if (s == null) {
+            synchronized (this) {
+                s = heartbeats;
+                if (s == null) {
+                    s = Executors.newSingleThreadScheduledExecutor(r -> {
+                        final Thread t = new Thread(r, "fermion-client-heartbeat");
+                        t.setDaemon(true);
+                        return t;
+                    });
+                    heartbeats = s;
+                }
+            }
+        }
+        return s;
     }
 
     private FermionMsg.Result execute(final FermionMsg.Command command) {

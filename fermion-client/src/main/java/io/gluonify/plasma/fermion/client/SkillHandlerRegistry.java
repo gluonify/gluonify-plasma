@@ -57,7 +57,9 @@ public class SkillHandlerRegistry {
     public List<SkillDescriptor> skills() {
         final List<SkillDescriptor> skills = new ArrayList<>(byAction.size());
         for (final SkillHandler h : byAction.values()) {
-            skills.add(new SkillDescriptor(h.action(), h.descriptions() == null ? List.of() : h.descriptions(), h.inputs(), h.outputs()));
+            final java.time.Duration expected = h.expectedDuration();
+            skills.add(new SkillDescriptor(h.action(), h.descriptions() == null ? List.of() : h.descriptions(), h.inputs(), h.outputs(),
+                    expected == null ? null : expected.toString()));
         }
         return skills;
     }

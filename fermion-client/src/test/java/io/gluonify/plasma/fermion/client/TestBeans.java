@@ -93,6 +93,11 @@ public final class TestBeans {
         }
 
         @Override
+        public java.time.Duration expectedDuration() {
+            return java.time.Duration.ofHours(2);
+        }
+
+        @Override
         public Map<String, Object> handle(final TaskContext context) throws Exception {
             return Map.of("released", RELEASED.await(10, java.util.concurrent.TimeUnit.SECONDS));
         }
@@ -108,6 +113,23 @@ public final class TestBeans {
         @Override
         public Map<String, Object> handle(final TaskContext context) {
             RELEASED.countDown();
+            return Map.of();
+        }
+    }
+
+    /** Compétence qui attend son verrou (battements observables). */
+    @ApplicationScoped
+    public static class Wait implements SkillHandler {
+        static volatile java.util.concurrent.CountDownLatch GATE = new java.util.concurrent.CountDownLatch(0);
+
+        @Override
+        public String action() {
+            return "WAIT";
+        }
+
+        @Override
+        public Map<String, Object> handle(final TaskContext context) throws Exception {
+            GATE.await(10, java.util.concurrent.TimeUnit.SECONDS);
             return Map.of();
         }
     }

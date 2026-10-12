@@ -12,7 +12,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 /** Types (dé)sérialisés par Jackson, à garder pour l'image native. */
 @RegisterForReflection(targets = {
         FermionMsg.class, FermionMsg.Auth.class, FermionMsg.Hello.class, FermionMsg.Start.class, FermionMsg.Command.class,
-        FermionMsg.Result.class, FermionMsg.Error.class, Descriptor.class, SkillDescriptor.class, WorkflowDescriptor.class,
+        FermionMsg.Result.class, FermionMsg.Progress.class, FermionMsg.Error.class, Descriptor.class, SkillDescriptor.class, WorkflowDescriptor.class,
         SkillParam.class, Translation.class, Language.class
 })
 public final class Reflection {

@@ -12,7 +12,7 @@ import java.util.Map;
  * Le nœud ouvre la connexion puis s'authentifie dans son premier message — jamais dans l'URL :
  * <ul>
  *   <li>nœud -> fermion : {@link Auth} (jeton Charm), puis {@link Hello} (compétences et workflows utilisés), {@link Start} (soumettre un workflow),
- *       {@link Result} (une tâche est terminée) ;</li>
+ *       {@link Result} (une tâche est terminée), {@link Progress} (une tâche longue est toujours en cours) ;</li>
  *   <li>fermion -> nœud : {@link Command} (exécuter une tâche), {@link Error} (workflow refusé ou connexion refusée).</li>
  * </ul>
  * {@code globalTransactionId} ancre une transaction métier entière à travers un éclatement (un dépôt qui devient N documents, chacun avec son
@@ -25,6 +25,7 @@ import java.util.Map;
         @JsonSubTypes.Type(value = FermionMsg.Start.class, name = "start"),
         @JsonSubTypes.Type(value = FermionMsg.Command.class, name = "command"),
         @JsonSubTypes.Type(value = FermionMsg.Result.class, name = "result"),
+        @JsonSubTypes.Type(value = FermionMsg.Progress.class, name = "progress"),
         @JsonSubTypes.Type(value = FermionMsg.Error.class, name = "error")
 })
 public sealed interface FermionMsg {
@@ -120,6 +121,21 @@ public sealed interface FermionMsg {
         /** Échec en réponse à {@code command} : reprend sa transaction, son action et son {@code stepId}. */
         public static Result failure(Command command, String error, String errorKind) {
             return new Result(command.correlationId(), command.globalTransactionId(), command.action(), false, error, errorKind, null, command.stepId());
+        }
+    }
+
+    /**
+     * Battement d'une tâche en cours (nœud -> fermion) : le nœud travaille toujours sur la {@link Command} {@code correlationId} + {@code stepId}.
+     * Fermion repousse alors l'échéance au-delà de laquelle il juge le nœud muet et renvoie la tâche ; un nœud qui n'en envoie jamais reste
+     * compatible (l'échéance vient de la durée annoncée par la compétence, {@link SkillDescriptor#expectedDuration()}, ou du réglage de fermion).
+     * {@code message} est un texte libre facultatif (avancement lisible). Un fermion antérieur ignore la trame (erreur de lecture journalisée).
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record Progress(String correlationId, String globalTransactionId, String action, String stepId, String message) implements FermionMsg {
+        /** Battement en réponse à {@code command} : reprend sa transaction, son action et son {@code stepId}. */
+        public static Progress of(Command command, String message) {
+            return new Progress(command.correlationId(), command.globalTransactionId(), command.action(), command.stepId(), message);
         }
     }
 

@@ -21,6 +21,7 @@ Client WebSocket de **gluonify-fermion** (moteur de workflows BPMN et de règles
 | `gluonify.fermion.client.self-url` | `${GLUONIFY_SELF_URL:}` | annoncé avec `/q/openapi` dans `Hello` |
 | `gluonify.fermion.client.queue-size` | `100` | `Start` gardés pendant une coupure |
 | `gluonify.fermion.client.reconnect-interval` | `10s` | période du ping et de la reconnexion |
+| `gluonify.fermion.client.heartbeat-interval` | `60s` | période du battement (`progress`) envoyé tant qu'un handler s'exécute (le premier part après une période : une tâche courte n'en envoie aucun) ; `0s` le désactive |
 
 À ajouter dans l'application (gros messages fragmentés) :
 
@@ -54,6 +55,8 @@ public class StoreDocument implements SkillHandler {
 Il porte aussi `stepId()` (l’étape BPMN, la même compétence pouvant servir deux fois dans un workflow ; le `Result` la renvoie tout seul) et `organization()` (l’organisation de l’exécution, posée par fermion). Avec `correlationId`, `stepId` est une bonne clé d’idempotence : fermion renvoie la tâche en cours à un nœud qui se reconnecte. `startWorkflow(workflow, correlationId, globalTransactionId, payload, organization)` fixe l’organisation de l’exécution (nœuds de la plateforme).
 
 ## Comportement
+
+- Battement : tant qu'un handler tourne, un `Progress` (`correlationId`, `action`, `stepId`) part toutes les `heartbeat-interval` ; fermion ne renvoie pas une tâche dont le nœud bat. `SkillHandler.expectedDuration()` (facultative, annoncée dans `Hello` en ISO-8601) couvre ce que le battement ne voit pas, par exemple une validation humaine de plusieurs jours que le nœud garde hors du handler.
 
 - Reconnexion : tâche planifiée qui ping (5 s) et reconnecte ; un connecteur NEUF par tentative (un connecteur réutilisé accumule des en-têtes jusqu'au HTTP 431).
 - `startWorkflow(workflow, correlationId, [globalTransactionId], payload)` : pendant une coupure, le `Start` va dans une file bornée, rejouée dans l'ordre après `Auth` et `Hello`. File pleine : `FermionQueueFullException`. Client inactif : `FermionClientException`.

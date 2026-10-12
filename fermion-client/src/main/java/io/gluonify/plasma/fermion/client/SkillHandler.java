@@ -3,6 +3,7 @@ package io.gluonify.plasma.fermion.client;
 import io.gluonify.plasma.fermion.Language;
 import io.gluonify.plasma.fermion.SkillParam;
 import io.gluonify.plasma.fermion.Translation;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +27,15 @@ public interface SkillHandler {
     /** Descriptions localisées : vide, ou les cinq langues (voir {@link #translations}). */
     default List<Translation> descriptions() {
         return List.of();
+    }
+
+    /**
+     * Plus long délai pendant lequel fermion peut rester sans résultat ni battement de cette tâche sans la juger perdue (annoncé dans
+     * {@code Hello}). {@code null} : le délai de fermion ({@code gluonify.fermion.dispatch.result-timeout}). Pour une attente de plusieurs
+     * jours (validation par un humain), l'annoncer ici : le battement automatique couvre déjà une tâche qui tourne, pas un nœud redémarré.
+     */
+    default Duration expectedDuration() {
+        return null;
     }
 
     /**
