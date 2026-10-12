@@ -15,7 +15,15 @@ public record Instance(@Schema(description = "Nom de l'application", example = "
                        @Schema(description = "Systèmes de fichiers distribués montés (std, tmp)", example = "[\"std\"]") java.util.List<String> distributed,
                        @Schema(description = "Secret de téléchargement de l'exécutable (nom)", example = "PULL_GITLAB") String pullSecret,
                        @Schema(description = "Quota par système de fichiers distribué (Mo) ; absent : plafonds par défaut", example = "2048") Integer distributedQuotaMb,
-                       @Schema(description = "Verrous de fichiers entre nœuds (démon gluonify-bottom devant le montage)", example = "true") Boolean distributedLocks) {
+                       @Schema(description = "Verrous de fichiers entre nœuds (démon gluonify-bottom devant le montage)", example = "true") Boolean distributedLocks,
+                       @Schema(description = "Organisation propriétaire de l'application (attribution de l'usage par l'agent ; absent : _unassigned)", example = "acme") String organization,
+                       @Schema(description = "UUID de l'application (attribution de l'usage)", example = "0b6f7c1e-0000-4000-8000-000000000001") String uuid) {
+    /** Compatibilité : sans organisation ni UUID. */
+    public Instance(String app, int index, String image, int port, int hostPort, int memoryMb, String topNamespace, long generation, int scratchMb, boolean nas,
+                    java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks) {
+        this(app, index, image, port, hostPort, memoryMb, topNamespace, generation, scratchMb, nas, env, generated, uses, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, null, null);
+    }
+
     /** Compatibilité : sans verrous entre nœuds. */
     public Instance(String app, int index, String image, int port, int hostPort, int memoryMb, String topNamespace, long generation, int scratchMb, boolean nas,
                     java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb) {

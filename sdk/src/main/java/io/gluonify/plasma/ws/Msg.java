@@ -30,6 +30,8 @@ import java.util.Map;
         @JsonSubTypes.Type(value = Msg.LockRequest.class, name = "lock-request"),
         @JsonSubTypes.Type(value = Msg.LockReply.class, name = "lock-reply"),
         @JsonSubTypes.Type(value = Msg.Redeploy.class, name = "redeploy"),
+        @JsonSubTypes.Type(value = Msg.Usage.class, name = "usage"),
+        @JsonSubTypes.Type(value = Msg.UsageAck.class, name = "usage-ack"),
         @JsonSubTypes.Type(value = Msg.WgKey.class, name = "wg-key"),
         @JsonSubTypes.Type(value = Msg.Logs.class, name = "logs"),
         @JsonSubTypes.Type(value = Msg.LogsRequest.class, name = "logs-request"),
@@ -222,13 +224,42 @@ public sealed interface Msg {
      */
     record LockRequest(long id, String op, String key, boolean flock, String owner, boolean write, long start, long end) implements Msg {}
 
+    /**
+     * Lot d'enregistrements d'usage de l'agent (metering.md § 4.3), relayé par le control-plane au calorimètre : {@code body} est exactement le corps
+     * {@code {"records":[…]}} de {@code UsageEmitter}. Réponse : {@link UsageAck} de même {@code id}. Un control-plane ancien l'ignore (l'agent garde son spool).
+     */
+    record Usage(long id, String body) implements Msg {}
+    // n'est envoyé qu'à un control-plane qui annonce FEATURE_USAGE
+
     // ---- control-plane -> nœud
+    /** Réponse à {@link Usage} : statut de type HTTP (2xx accepté, 413 trop gros, 422 refusé, 503 calorimètre injoignable…). */
+    record UsageAck(long id, int status) implements Msg {}
+
     /** Réponse à {@link LockRequest} : 200, 409 (gêné : le verrou gênant est décrit) ou 400. */
     record LockReply(long id, int status, String conflictOwner, boolean conflictWrite, long conflictStart, long conflictEnd, String error) implements Msg {}
 
-    record Welcome(String node) implements Msg {}
+    /**
+     * Fonctions facultatives du protocole que le control-plane comprend, annoncées dans {@link Welcome} et {@link Enrolled} : un agent n'envoie un message additif
+     * qu'à un control-plane qui l'annonce (un control-plane ancien refuse un message inconnu et ferme la connexion).
+     */
+    String FEATURE_USAGE = "usage";
 
-    record Enrolled(String node, String secret) implements Msg {}
+    /** {@code features} : voir {@link #FEATURE_USAGE} ; vide pour un control-plane ancien. */
+    record Welcome(String node, List<String> features) implements Msg {
+        public Welcome {
+            features = features == null ? List.of() : List.copyOf(features);
+        }
+
+        public Welcome(String node) { this(node, null); }
+    }
+
+    record Enrolled(String node, String secret, List<String> features) implements Msg {
+        public Enrolled {
+            features = features == null ? List.of() : List.copyOf(features);
+        }
+
+        public Enrolled(String node, String secret) { this(node, secret, null); }
+    }
 
     /** {@code sleeping} : état de sommeil voulu des instances de CE nœud (instance -> « frozen » ou « stopped » ; une instance absente est active) : l'agent gèle ou arrête, jamais ne redémarre une instance « stopped », et dégèle ou démarre quand elle redevient active. Mode endormi : voir gluonify-codex/ARCHITECTURE.md.
      * État désiré du nœud, URLs API des control-planes membres (pour le basculement) environnement du cluster (GLUONIFY_ENVIRONMENT) et adresse d'une instance prête de chaque application (services : app -> http://hôte:port, pour GLUONIFY_SERVICE_<APP>_URL) adresse de ce nœud (GLUONIFY_SELF_URL), adresses de tous les nœuds vivants (pairs des ports supplémentaires), maillage WireGuard (wireguard) et adresses des control-planes dans le maillage (overlayControlPlanes : l'agent s'y reconnecte, c'est par là que passent les secrets) et secrets de démarrage demandés par les instances de CE nœud (nom -> valeur ; détenus par le control-plane, jamais écrits dans l'état Raft). */
