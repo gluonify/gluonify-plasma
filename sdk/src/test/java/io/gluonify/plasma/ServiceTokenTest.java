@@ -39,4 +39,17 @@ class ServiceTokenTest {
         assertEquals(new Msg.ServiceTokens(7, 200, Map.of("shop", List.of(tok)), null), res);
         assertTrue(new Msg.ServiceTokens(8, 501, null, "charm non configuré").tokens().isEmpty(), "tokens null devient une carte vide");
     }
+
+    @Test
+    void empreinteDeLaPolitiqueFacultative() {
+        var tok = new ServiceToken("crystallon", "gluonify-crystallon", "jwt", 1700000900000L);
+        var avec = new Msg.ServiceTokens(7, 200, Map.of("shop", List.of(tok)), null, "a1b2c3d4e5f60718");
+        assertEquals(avec, json.readValue(json.writeValueAsString((Msg) avec), Msg.class));
+        // control-plane plus ancien : champ absent du JSON, lu comme null
+        Msg ancien = json.readValue("{\"t\":\"service-tokens\",\"id\":7,\"status\":200,\"tokens\":{},\"error\":null}", Msg.class);
+        assertEquals(null, ((Msg.ServiceTokens) ancien).policy());
+        var d = new Msg.Desired(List.of(), List.of(), null, Map.of(), Map.of(), null, List.of(), null, List.of(), null, Map.of(), Map.of(), "a1b2c3d4e5f60718");
+        assertEquals("a1b2c3d4e5f60718", ((Msg.Desired) json.readValue(json.writeValueAsString((Msg) d), Msg.class)).tokenPolicy());
+        assertEquals(null, new Msg.Desired(List.of(), List.of()).tokenPolicy());
+    }
 }

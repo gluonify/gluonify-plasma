@@ -224,20 +224,30 @@ public sealed interface Msg {
     /** {@code sleeping} : état de sommeil voulu des instances de CE nœud (instance -> « frozen » ou « stopped » ; une instance absente est active) : l'agent gèle ou arrête, jamais ne redémarre une instance « stopped », et dégèle ou démarre quand elle redevient active. Mode endormi : voir gluonify-codex/ARCHITECTURE.md.
      * État désiré du nœud, URLs API des control-planes membres (pour le basculement) environnement du cluster (GLUONIFY_ENVIRONMENT) et adresse d'une instance prête de chaque application (services : app -> http://hôte:port, pour GLUONIFY_SERVICE_<APP>_URL) adresse de ce nœud (GLUONIFY_SELF_URL), adresses de tous les nœuds vivants (pairs des ports supplémentaires), maillage WireGuard (wireguard) et adresses des control-planes dans le maillage (overlayControlPlanes : l'agent s'y reconnecte, c'est par là que passent les secrets) et secrets de démarrage demandés par les instances de CE nœud (nom -> valeur ; détenus par le control-plane, jamais écrits dans l'état Raft). */
     record Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store, Map<String, String> sleeping,
-                   Map<String, ImagePin> pins) implements Msg {
+                   Map<String, ImagePin> pins, String tokenPolicy) implements Msg {
         public Desired {
             sleeping = sleeping == null ? Map.of() : sleeping;
             pins = pins == null ? Map.of() : pins;
         }
 
+        /**
+         * Compatibilité : sans empreinte de la politique des jetons de service. {@code tokenPolicy} : empreinte courte (catalogue effectif et applications de la
+         * plateforme) de la politique de jetons d'application vers service du control-plane ; quand elle change, l'agent oublie les jetons détenus et les redemande.
+         * Absente ({@code null}, control-plane plus ancien) : l'agent fait comme avant (renouvellement à l'approche de l'expiration).
+         */
+        public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store, Map<String, String> sleeping,
+                       Map<String, ImagePin> pins) {
+            this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, store, sleeping, pins, null);
+        }
+
         /** Compatibilité : sans empreintes d'images épinglées pour le cluster. */
         public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store, Map<String, String> sleeping) {
-            this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, store, sleeping, Map.of());
+            this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, store, sleeping, Map.of(), null);
         }
 
         /** Compatibilité : sans instances endormies. */
         public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store) {
-            this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, store, Map.of(), Map.of());
+            this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, store, Map.of(), Map.of(), null);
         }
 
         /** Compatibilité : sans nœuds de stockage. */
@@ -285,9 +295,14 @@ public sealed interface Msg {
      * Réponse à {@link ServiceTokensRequest} : application -> ses jetons (liste vide : aucun service couvert ; application absente : pas placée sur ce
      * nœud ou inconnue). status 200 : tokens renseigné ; 501 : gluonify-charm non configuré ; 503 : gluonify-charm injoignable ; 403 : refusé (hors tunnel chiffré).
      */
-    record ServiceTokens(long id, int status, Map<String, List<ServiceToken>> tokens, String error) implements Msg {
+    record ServiceTokens(long id, int status, Map<String, List<ServiceToken>> tokens, String error, String policy) implements Msg {
         public ServiceTokens {
             tokens = tokens == null ? Map.of() : tokens;
+        }
+
+        /** Compatibilité : sans {@code policy}, l'empreinte de la politique sous laquelle les jetons ont été émis (voir {@link Desired#tokenPolicy()}). */
+        public ServiceTokens(long id, int status, Map<String, List<ServiceToken>> tokens, String error) {
+            this(id, status, tokens, error, null);
         }
     }
 
