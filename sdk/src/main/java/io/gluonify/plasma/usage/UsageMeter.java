@@ -125,7 +125,7 @@ public final class UsageMeter {
         if (c == null) {
             if (cells.size() >= maxKeysPerWindow) {
                 overflowed.incrementAndGet();
-                UsageRecord.Subject o = new UsageRecord.Subject(subject.org(), OVERFLOW, null, subject.kind());
+                UsageRecord.Subject o = new UsageRecord.Subject(subject.org(), OVERFLOW, null, subject.kind(), null);
                 k = UsageRecord.key(env, o, unit, d) + (inner ? "|internal" : "");
                 final String fk = k;
                 c = cells.computeIfAbsent(fk, x -> new Cell(o, unit, d, inner, null));

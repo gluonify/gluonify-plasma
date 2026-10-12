@@ -37,18 +37,24 @@ public record UsageRecord(String id, long seq, Emitter emitter, String env, long
      */
     public record Emitter(String service, String replica, String node, String version, long epoch) {}
 
-    /** Sujet de l'usage ; {@code kind} : {@code service}, {@code user}, {@code node} ou {@code unknown}. {@code org} vaut {@code _unassigned} à défaut. */
-    public record Subject(String org, String app, String appUuid, String kind) {
+    /**
+     * Sujet de l'usage ; {@code kind} : {@code service}, {@code user}, {@code node} ou {@code unknown}. {@code org} vaut {@code _unassigned} à défaut.
+     * {@code resource} : la ressource d'où l'attribution est tirée quand l'émetteur ne connaît pas la spécification de l'application ({@code gdown:<base>},
+     * {@code rup:<genre>/<espace>}) ; le calorimètre en déduit alors l'organisation, le nom et l'UUID d'après les spécifications de Higgs (metering.md § 4.1).
+     */
+    public record Subject(String org, String app, String appUuid, String kind, String resource) {
         public Subject {
             org = org == null || org.isBlank() ? "_unassigned" : org;
             kind = kind == null ? "service" : kind;
         }
+
+        public Subject(String org, String app, String appUuid, String kind) { this(org, app, appUuid, kind, null); }
     }
 
     /** Clé de l'agrégat (sans l'émetteur ni la fenêtre). */
     public static String key(String env, Subject s, String unit, Map<String, String> dims) {
         StringBuilder b = new StringBuilder().append(env).append('|').append(s.org()).append('|').append(s.app() == null ? "" : s.app()).append('|')
-                .append(s.appUuid() == null ? "" : s.appUuid()).append('|').append(s.kind()).append('|').append(unit);
+                .append(s.appUuid() == null ? "" : s.appUuid()).append('|').append(s.kind()).append('|').append(s.resource() == null ? "" : s.resource()).append('|').append(unit);
         new TreeMap<>(dims == null ? Map.of() : dims).forEach((k, v) -> b.append('|').append(k).append('=').append(v));
         return b.toString();
     }
@@ -76,7 +82,9 @@ public record UsageRecord(String id, long seq, Emitter emitter, String env, long
         b.append(",\"subject\":{\"org\":").append(q(subject.org()));
         if (subject.app() != null) b.append(",\"app\":").append(q(subject.app()));
         if (subject.appUuid() != null) b.append(",\"appUuid\":").append(q(subject.appUuid()));
-        b.append(",\"kind\":").append(q(subject.kind())).append('}');
+        b.append(",\"kind\":").append(q(subject.kind()));
+        if (subject.resource() != null) b.append(",\"resource\":").append(q(subject.resource()));
+        b.append('}');
         b.append(",\"unit\":").append(q(unit));
         if (!dims.isEmpty()) {
             b.append(",\"dims\":{");

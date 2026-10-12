@@ -61,6 +61,7 @@ class UsageEmitterTest {
         assertEquals("acme", n.at("/subject/org").asString());
         assertEquals("shop", n.at("/subject/app").asString());
         assertEquals("std", n.at("/dims/kind").asString());
+        assertTrue(n.at("/subject/resource").isMissingNode());
         assertEquals("0.75", n.get("quantity").asString());
         assertEquals("billable", n.get("confidence").asString());
         assertFalse(n.get("internal").asBoolean());
