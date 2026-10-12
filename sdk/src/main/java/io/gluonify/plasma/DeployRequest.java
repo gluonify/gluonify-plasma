@@ -22,7 +22,15 @@ public record DeployRequest(@Schema(description = "Image OCI de l'application Qu
         @Schema(description = "true : base gDown DÉDIÉE à l'application (un groupe Raft propre, un compte confiné) : le control-plane la crée et injecte GLUONIFY_GDOWN_DATABASE, GLUONIFY_GDOWN_USER, GLUONIFY_GDOWN_PASSWORD (secret) et GLUONIFY_SERVICE_GDOWN_URL. La base n'est jamais supprimée avec l'application.", example = "true") Boolean gdownDatabase,
         @Schema(description = "Organisation (le client) de l'application : étiquette DNS (a-z, 0-9 et -, ni en tête ni en fin), 40 caractères au plus. Seul un administrateur de la plateforme peut la fixer ou la changer ; absente, l'organisation enregistrée est conservée ; « _unassigned » : la retirer (la spécification n'en a alors aucune).", example = "acme") String organization,
                             @Schema(description = "Jeton de provenance (gluonify-codex/provenance.md), signé par une clé de confiance (Bup le joint à chaque déploiement) : base64url(déclaration).base64url(signature). "
-                                    + "Sans lui, changer d'exécutable ou d'image exige gluonify:higgs:deploy:binary ou gluonify:higgs:deploy:image, rôles attribués à personne.") String provenance) {
+                                    + "Sans lui, changer d'exécutable ou d'image exige gluonify:higgs:deploy:binary ou gluonify:higgs:deploy:image, rôles attribués à personne.") String provenance,
+        @Schema(description = "Niveau du jeu d'instructions exigé par l'exécutable : « amd64:v1 » à « amd64:v4 » (Bup l'envoie avec le build) ; absent : v1, placé partout", example = "amd64:v3") String artifactLevel) {
+    /** Compatibilité : sans niveau d'exécutable. */
+    public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
+                         Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
+                         java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, Boolean gdownDatabase, String organization, String provenance) {
+        this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, gdownDatabase, organization, provenance, null);
+    }
+
     /** Compatibilité : sans jeton de provenance. */
     public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
                          Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
@@ -99,7 +107,7 @@ public record DeployRequest(@Schema(description = "Image OCI de l'application Qu
             u = new java.util.ArrayList<>(uses == null ? java.util.List.of() : uses);
             if (!u.contains("gdown")) u.add("gdown");
         }
-        return new AppSpec(name, image, replicas, port, memoryMb, ns, artifacts, uuid, scratchMb, nas, e, g, u, pin, internal, ports, null, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, Organizations.UNASSIGNED.equals(organization) ? null : organization, provenance);
+        return new AppSpec(name, image, replicas, port, memoryMb, ns, artifacts, uuid, scratchMb, nas, e, g, u, pin, internal, ports, null, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, Organizations.UNASSIGNED.equals(organization) ? null : organization, provenance, artifactLevel);
     }
 
     /** Nom du secret de démarrage qui porte le mot de passe de la base dédiée : propre à l'application, valeur générée et gardée par le control-plane. */

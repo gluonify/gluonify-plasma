@@ -147,7 +147,16 @@ public sealed interface Msg {
      * Description de l'hôte jointe à chaque {@link State} (lue dans /proc par l'agent) : version de l'agent, nombre de processeurs, mémoire utilisée (Mo), charge sur 1 minute,
      * espace disque libre du répertoire de données (Mo) et durée de fonctionnement de la machine (secondes). Une valeur inconnue vaut -1 (0 pour {@code cpuCount}).
      */
-    record Host(String version, int cpuCount, int memoryUsedMb, double load, int diskFreeMb, long uptimeSec) {}
+    /**
+     * Description de l'hôte. {@code x86Level} : niveau x86-64 du processeur (« v1 » à « v4 », lu dans les drapeaux de /proc/cpuinfo) ; null sur arm64, macOS, Windows et pour un ancien
+     * agent : le scheduler ne place jamais un exécutable d'un niveau supérieur sur ce nœud (voir {@link io.gluonify.plasma.AppSpec#artifactLevel}).
+     */
+    record Host(String version, int cpuCount, int memoryUsedMb, double load, int diskFreeMb, long uptimeSec, String x86Level) {
+        /** Compatibilité : sans niveau x86-64. */
+        public Host(String version, int cpuCount, int memoryUsedMb, double load, int diskFreeMb, long uptimeSec) {
+            this(version, cpuCount, memoryUsedMb, load, diskFreeMb, uptimeSec, null);
+        }
+    }
 
     /**
      * Dernières lignes du journal de l'instance {@code instance} de ce nœud, ou ses mesures Prometheus ({@code what} = "metrics" : ce que l'application expose sur
