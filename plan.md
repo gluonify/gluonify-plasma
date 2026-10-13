@@ -1,6 +1,7 @@
 # plan.md : gluonify-plasma (SDK + racine)
 
 ## Fait récemment
+- [x] Contrat du Bolt de gDown pour les applications (2026-10-13, branche `bolt-apps`) : `GdownBolt` (port, clé `gdown:bolt`, `GLUONIFY_GDOWN_BOLT_URL`, `GLUONIFY_GDOWN_CA_FILE`, réservées dans `AppSpec`).
 - [x] Relais de l'usage (2026-10-12, branche `meter-h`, metering phase 1) : `Msg.Usage`, `Msg.UsageAck`, `Msg.Welcome.features` / `Msg.Enrolled.features` (`FEATURE_USAGE`), `Instance.organization` et `Instance.uuid` (additifs, constructeurs de compatibilité ; `MsgUsageTest`).
 - [x] Empreinte de la politique des jetons de service (2026-10-12, branche `token-policy`) : `Msg.Desired.tokenPolicy` et `Msg.ServiceTokens.policy` (facultatifs, constructeurs de compatibilité) ; l'agent redemande les jetons quand elle change. `ServiceTokenTest` (+1).
 - [x] **Provenance des exécutables et des images** (2026-10-11, branche `provenance`, décision de l'utilisateur, `gluonify-codex/provenance.md`) : `io.gluonify.plasma.provenance` (`ProvenanceStatement`, `Provenance` : déclaration canonique, jeton, signature et vérification Ed25519 du JDK), champ `provenance` de `AppSpec` et `DeployRequest` (constructeurs de compatibilité) ; 8 tests avec vecteur fixe. Suite : gluonify-higgs (contrôle), gluonify-charm (rôles non attribuables), gluonify-bup (signature), gluonify-chamber (clé locale pour le cluster de développement et les e2e), signature des composants de la plateforme par la clé de publication (`sign-release.sh`).
