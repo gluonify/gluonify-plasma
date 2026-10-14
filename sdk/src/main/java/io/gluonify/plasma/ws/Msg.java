@@ -151,9 +151,16 @@ public sealed interface Msg {
      */
     /**
      * Description de l'hôte. {@code x86Level} : niveau x86-64 du processeur (« v1 » à « v4 », lu dans les drapeaux de /proc/cpuinfo) ; null sur arm64, macOS, Windows et pour un ancien
-     * agent : le scheduler ne place jamais un exécutable d'un niveau supérieur sur ce nœud (voir {@link io.gluonify.plasma.AppSpec#artifactLevel}).
+     * agent : le scheduler ne place jamais un exécutable d'un niveau supérieur sur ce nœud (voir {@link io.gluonify.plasma.AppSpec#artifactLevel}). {@code pythonVersion} : version
+     * mineure du {@code python3} du nœud (« 3.13 ») ; null : pas de python3 (ou ancien agent) : le scheduler n'y place aucune application Python, et une application Python n'y va
+     * que si sa version ({@link io.gluonify.plasma.AppSpec#pythonVersion}) est la même.
      */
-    record Host(String version, int cpuCount, int memoryUsedMb, double load, int diskFreeMb, long uptimeSec, String x86Level) {
+    record Host(String version, int cpuCount, int memoryUsedMb, double load, int diskFreeMb, long uptimeSec, String x86Level, String pythonVersion) {
+        /** Compatibilité : sans version de Python. */
+        public Host(String version, int cpuCount, int memoryUsedMb, double load, int diskFreeMb, long uptimeSec, String x86Level) {
+            this(version, cpuCount, memoryUsedMb, load, diskFreeMb, uptimeSec, x86Level, null);
+        }
+
         /** Compatibilité : sans niveau x86-64. */
         public Host(String version, int cpuCount, int memoryUsedMb, double load, int diskFreeMb, long uptimeSec) {
             this(version, cpuCount, memoryUsedMb, load, diskFreeMb, uptimeSec, null);

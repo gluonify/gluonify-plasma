@@ -33,7 +33,14 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
                               + "Sans jeton valide, changer d'exécutable exige gluonify:higgs:deploy:binary et changer d'image gluonify:higgs:deploy:image, rôles attribués à personne.", example = "Z2x1b25pZnktcHJvdmVuYW5jZSAx….ab12…") String provenance,
                       @Schema(description = "Niveau du jeu d'instructions exigé par l'exécutable, « architecture:niveau » : seul « amd64:v1 » à « amd64:v4 » existe (x86-64-v1 à v4). "
                               + "Le scheduler ne place jamais l'application sur un nœud amd64 de niveau inférieur (un exécutable v3 ne démarre pas sur un processeur v2). Écrit par Bup, qui connaît le niveau de son build ; "
-                              + "absent : v1, l'exécutable tourne partout (compatibilité).", example = "amd64:v3") String artifactLevel) {
+                              + "absent : v1, l'exécutable tourne partout (compatibilité).", example = "amd64:v3") String artifactLevel,
+                      @Schema(description = "Application Python (framework python de Bup, gluonify-codex/python.md § 3 bis) : version mineure de python3 visée, « 3.13 ». "
+                              + "Le scheduler ne la place que sur un nœud qui annonce la même version (Msg.Host.pythonVersion). Écrite par Bup ; absente : pas une application Python.", example = "3.13") String pythonVersion) {
+    /** Compatibilité : pas une application Python. */
+    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, String organization, String provenance, String artifactLevel) {
+        this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, null);
+    }
+
     /** Compatibilité : sans niveau d'exécutable (v1). */
     public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, String organization, String provenance) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, null);
@@ -106,22 +113,27 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
 
     /** Copie de la spécification rattachée à une autre organisation (null : à aucune). */
     public AppSpec withOrganization(String org) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, org, provenance, artifactLevel);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, org, provenance, artifactLevel, pythonVersion);
     }
 
     /** Copie avec un autre quota par système de fichiers distribué (Mo ; null : aucun). Higgs y écrit le quota par défaut du contrat de l'organisation. */
     public AppSpec withDistributedQuotaMb(Integer mb) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, mb, distributedLocks, sleep, organization, provenance, artifactLevel);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, mb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion);
     }
 
     /** Copie avec un autre jeton de provenance (null : aucun). */
     public AppSpec withProvenance(String token) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, token, artifactLevel);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, token, artifactLevel, pythonVersion);
     }
 
     /** Copie avec un autre niveau d'exécutable (null : v1). */
     public AppSpec withArtifactLevel(String level) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, level);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, level, pythonVersion);
+    }
+
+    /** Copie avec une autre version de Python (null : pas une application Python). */
+    public AppSpec withPythonVersion(String version) {
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, version);
     }
 
     /** Niveau x86-64 exigé sur un nœud de l'architecture {@code arch} : celui de {@link #artifactLevel} pour amd64, sinon 1 (aucune exigence). */
@@ -222,6 +234,7 @@ public record AppSpec(@Schema(description = "Label DNS (a-z, 0-9, -) ; sert de s
             artifactLevel = artifactLevel.trim().toLowerCase(java.util.Locale.ROOT);
             if (!artifactLevel.matches("amd64:v[1-4]")) throw new IllegalArgumentException("artifactLevel : « amd64:v1 » à « amd64:v4 » attendu");
         }
+        pythonVersion = PythonVersions.normalize(pythonVersion);
         if (provenance != null && !io.gluonify.plasma.provenance.Provenance.wellFormed(provenance)) throw new IllegalArgumentException("provenance : jeton illisible (base64url.base64url attendu)");
         if (replicas < 0 || replicas > 100) throw new IllegalArgumentException("replicas hors limites");
         if (port < 1 || port > 65535) throw new IllegalArgumentException("port invalide");
