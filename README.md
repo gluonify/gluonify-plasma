@@ -115,3 +115,12 @@ Paquet `io.gluonify.plasma.fermion` : le contrat WebSocket entre un nœud applic
 Paquet `io.gluonify.plasma.crystallon` (SDK, Java 17) : `RenderParams` (`lang`, `country`, `currency`, `timezone`, `dateStyle`, `numberStyle` ; `null` = défaut du serveur, omis du JSON), `RenderRequest` (`data`, jamais `null` : au minimum `{}`, sinon le serveur rendrait l'exemple du modèle ; `params`), `InlineRenderRequest` (`template` : le nom d'un modèle prédéfini ou un objet, jamais `null` ; `data`, `params` comme ci-dessus : corps de `POST /v1/render` et `/v1/render/validate`), `Issue` (`code`, `message`, `path`), `Check` (réponse de `…/render/validate` : `valid`, `pages`, `warnings`, `errors`, `warningDetails`, listes jamais `null`) et `ErrorBody` (`code`, `message`, `path`). Les types lus ignorent les propriétés inconnues.
 
 Le client est le module `crystallon-client` (`gluonify-plasma-crystallon-client`, paquet `io.gluonify.plasma.crystallon.client`) : `CrystallonClient` (`builder()`, `fromEnvironment()`, `byId`, `byName`, `inline`), `TemplateRef` (`version(n)`, `render`, `validate`), `InlineTemplate` (`render`, `validate` d'un modèle envoyé avec la demande), `RenderOptions`, `RenderedPdf`, `CrystallonTokens` (`none`, `fixed`, `file`, `forwarding`, `fromEnvironment`), `PayloadCodec` (`detect()` : Jackson 3 d'abord, sinon Jackson 2, `Jackson3Codec.of` / `Jackson2Codec.of` pour le mapper de l'application) et `CrystallonException` (`status`, `code`, `path`). Aucune dépendance obligatoire hors du SDK, ni CDI ; voir `crystallon-client/README.md` (dépendance, configuration, jetons, erreurs, image native : les types du payload sont à la charge de l'application). Le code Java généré par l'onglet « Code » de l'éditeur de Crystallon appelle exactement ces signatures.
+
+## Licence
+
+Copyright (c) 2026 David Cabillic.
+
+Ce dépôt est publié sous la [licence Apache, version 2.0](LICENSE). Vous pouvez l'utiliser, le modifier
+et le redistribuer, y compris à des fins commerciales, aux conditions de cette licence ; il est fourni
+« en l'état », sans garantie. Les composants tiers restent sous leurs propres licences (voir `NOTICE`
+s'il existe).

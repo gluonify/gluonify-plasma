@@ -9,6 +9,13 @@
   <name>Gluonify Plasma (parent)</name>
   <description>POM parent des composants Gluonify : plateforme Quarkus, versions, et le SDK partagé (gluonify-plasma-sdk).</description>
 
+  <licenses>
+    <license>
+      <name>Apache-2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+
   <modules>
     <module>sdk</module>
     <module>services</module>
