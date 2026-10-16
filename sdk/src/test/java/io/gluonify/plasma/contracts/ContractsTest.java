@@ -132,8 +132,8 @@ class ContractsTest {
         assertEquals(Contracts.fingerprint(x), Contracts.fingerprint(y));
         assertEquals("{\"quotasByEnv\":{\"PRD\":{\"apps\":2},\"SBX\":{\"apps\":1}}}", Contracts.canonical(x));
         // une liste vide (rien n'est permis) n'est pas une liste absente (tout est permis)
-        ContractTerms none = new ContractTerms(null, null, null, new ContractTerms.Services(List.of(), null, null, null, null, null, null, null), null, null, null, null, null, null);
-        ContractTerms all = new ContractTerms(null, null, null, new ContractTerms.Services(null, null, null, null, null, null, null, null), null, null, null, null, null, null);
+        ContractTerms none = new ContractTerms(null, null, null, new ContractTerms.Services(List.of(), null, null, null, null, null, null, null, null), null, null, null, null, null, null);
+        ContractTerms all = new ContractTerms(null, null, null, new ContractTerms.Services(null, null, null, null, null, null, null, null, null), null, null, null, null, null, null);
         assertNotEquals(Contracts.fingerprint(none), Contracts.fingerprint(all));
         assertEquals("{\"a\\\"b\\\\c\\u0001\":\"é\"}", Canonical.json(Map.of("a\"b\\c\u0001", "é")));
     }

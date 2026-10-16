@@ -70,12 +70,12 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
 
     /**
      * Services permis. {@code uses} : noms de {@code AppSpec.uses} (sans le « ? ») ; {@code distributed} : genres {@code std}, {@code tmp}, {@code gdown} ;
-     * {@code routeKinds} : {@code app}, {@code gdown}, {@code upstream}. Un booléen absent : permis.
+     * {@code routeKinds} : {@code app}, {@code gdown}, {@code upstream} ; {@code memory} : la base gDown de mémoire des assistants IA de l'organisation. Un booléen absent : permis.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Services(List<String> uses, Boolean gdownDatabase, List<String> distributed, Boolean distributedLocks, Boolean sleep, Boolean extraPorts, Boolean nas,
-                           List<String> routeKinds) {
+                           List<String> routeKinds, Boolean memory) {
         public Services {
             uses = uses == null ? null : List.copyOf(uses);
             distributed = distributed == null ? null : List.copyOf(distributed);
