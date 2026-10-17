@@ -67,6 +67,26 @@ class UsageContractTest {
         assertTrue(check(VALID.replace("1200.0", "900.0")).contains("Σ byApp.cpuSeconds + unattributedShare.cpuSeconds ≠ process.cpuSecondsTotal"));
     }
 
+    /** Storage (additive, 2026-10-17): optional; integers >= 0; rows need the total and never exceed it; storage alone with {@code none} is valid. */
+    @Test
+    void storageIsOptionalAndConsistent() {
+        final String row = "{\"app\":\"shop\",\"uuid\":\"u\",\"cpuSeconds\":34.5,\"memoryBytes\":52428800,\"basis\":\"prorata\"";
+        final String rest = "{\"cpuSeconds\":1200.0,\"memoryBytes\":760000000}";
+        final String withRow = withByApp("[" + row + ",\"storageBytes\":700}]", rest);
+        assertEquals(List.of(), check(withRow.replace("\"at\":", "\"storageBytes\":1000,\"at\":")));
+        assertEquals(List.of(), check(withRow.replace("\"at\":", "\"storageBytes\":700,\"at\":")), "rows' sum equal to the total");
+        assertTrue(check(withRow.replace("\"at\":", "\"storageBytes\":699,\"at\":")).contains("sum of byApp.storageBytes > storageBytes"));
+        assertTrue(check(withRow).contains("storageBytes: total required as soon as a byApp row carries storageBytes"));
+        assertTrue(check(withRow.replace("\"storageBytes\":700", "\"storageBytes\":-1").replace("\"at\":", "\"storageBytes\":1000,\"at\":")).stream()
+                .anyMatch(e -> e.startsWith("byApp[shop].storageBytes")));
+        assertTrue(check(VALID.replace("\"at\":", "\"storageBytes\":1.5,\"at\":")).contains("storageBytes: integer >= 0 expected"));
+        assertTrue(check(VALID.replace("\"at\":", "\"storageBytes\":\"lots\",\"at\":")).contains("storageBytes: integer >= 0 expected"));
+        assertEquals(List.of(), check(VALID.replace("\"at\":", "\"storageBytes\":null,\"at\":")), "null is absent");
+        final String none = withByApp("[]", null).replace("\"attribution\":\"estimated\"", "\"attribution\":\"none\"")
+                .replace("\"at\":", "\"storageBytes\":123456,\"at\":");
+        assertEquals(List.of(), check(none), "storage without any row (window without I/O)");
+    }
+
     @Test
     void plusDeCinqCentsLignesRefuseSaufOther() {
         final StringBuilder rows = new StringBuilder();

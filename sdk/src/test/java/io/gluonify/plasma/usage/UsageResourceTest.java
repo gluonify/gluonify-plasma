@@ -30,7 +30,12 @@ class UsageResourceTest extends UsageContractTests {
 
         @Override
         public List<AppShare> byApp() {
-            return List.of(new AppShare("shop", "u1", 0.001, 1024, "estimated", "db app1"));
+            return List.of(new AppShare("shop", "u1", 0.001, 1024, "estimated", "db app1", 300L));
+        }
+
+        @Override
+        public Long storageBytes() {
+            return 1000L;
         }
     };
 
@@ -100,6 +105,12 @@ class UsageResourceTest extends UsageContractTests {
     @Override
     protected List<String> secrets() {
         return List.of(SECRET);
+    }
+
+    /** The test contributor stores data: the inherited {@code storageIsConsistent} requires the total. */
+    @Override
+    protected boolean storesData() {
+        return true;
     }
 
     @Test

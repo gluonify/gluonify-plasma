@@ -97,6 +97,7 @@ public class UsageResource {
     public UsageReport report() {
         final List<AppShare> shares = new ArrayList<>();
         String attribution = UsageReport.NONE;
+        Long storage = null;
         final UsageReport.Process process = usage.process();
         try {
             for (final UsageContributor c : contributors.get()) {
@@ -105,14 +106,19 @@ public class UsageResource {
                     shares.addAll(rows);
                     attribution = weakest(attribution, c.attribution());
                 }
+                final Long stored = c.storageBytes();
+                if (stored != null) {
+                    storage = (storage == null ? 0 : storage) + stored;
+                }
             }
         } catch (RuntimeException e) {
             // Un contributeur en panne ne fait pas échouer le contrat : processus seul, sans détail dans la réponse.
             LOG.log(Level.WARNING, "contributeur d''usage en échec : {0}", e.getClass().getSimpleName());
             shares.clear();
             attribution = UsageReport.NONE;
+            storage = null;
         }
-        return UsageReport.of(component, version, instance, node, clock.getAsLong(), process, usage.cgroup(), attribution, shares);
+        return UsageReport.of(component, version, instance, node, clock.getAsLong(), process, usage.cgroup(), attribution, shares, storage);
     }
 
     /** La confiance la plus faible gagne : {@code measured} > {@code prorata} > {@code estimated} ; {@code none} cède devant toute attribution. */

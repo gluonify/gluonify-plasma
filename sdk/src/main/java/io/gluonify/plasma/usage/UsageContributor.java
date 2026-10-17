@@ -20,6 +20,15 @@ public interface UsageContributor {
         return byApp();
     }
 
+    /**
+     * The bytes this component stores in total (disk, measured or from its last snapshot; read from a cache, never a disk walk), the {@code storageBytes} of the
+     * report; null (default) when it stores nothing. Reported even when {@code byApp} is empty ({@code attribution: none}). Rows may carry their own share
+     * ({@link AppShare#storageBytes()}), whose sum must not exceed this total.
+     */
+    default Long storageBytes() {
+        return null;
+    }
+
     /** {@link UsageReport#MEASURED}, {@link UsageReport#ESTIMATED} ou {@link UsageReport#PRORATA} ; par défaut {@code estimated} (indicatif). */
     default String attribution() {
         return UsageReport.ESTIMATED;

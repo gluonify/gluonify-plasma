@@ -15,6 +15,8 @@ import tools.jackson.databind.json.JsonMapper;
  * Σ CPU de {@code byApp} + {@code unattributedShare} = {@code process.cpuSecondsTotal} à l'arrondi près.
  * <p><b>Plafond</b> : au plus {@link UsageReport#MAX_APPS} (500) lignes d'applications réelles (les plus grosses, par mémoire puis CPU), <b>plus une seule</b>
  * ligne {@link UsageReport#OTHER} ({@code _other}) qui regroupe le reste ; {@code _other} ne compte pas dans les 500. Même lecture pour tous les dépôts.
+ * <p><b>Storage</b> (additive, 2026-10-17): {@code storageBytes} is optional at the top level (bytes stored by the component) and on each row; when present it is an
+ * integer ≥ 0, and as soon as a row carries one the top-level total is required and the rows' sum is at most that total. A report without it stays valid.
  * Ne détecte pas un secret : les tests de composant cherchent leurs valeurs de configuration ({@code UsageContractTests.secrets()}).
  */
 public final class UsageContract {
@@ -34,6 +36,8 @@ public final class UsageContract {
     private static final String CGROUP_PREFIX = "cgroup.";
     private static final String BY_APP_PREFIX = "byApp[";
     private static final String NUMBER_EXPECTED = " : nombre ≥ 0 attendu";
+    private static final String STORAGE_BYTES = "storageBytes";
+    private static final String INTEGER_EXPECTED = ": integer >= 0 expected";
 
     private UsageContract() {}
 
@@ -77,7 +81,38 @@ public final class UsageContract {
         if (known(ATTRIBUTIONS, attribution) && !UsageReport.NONE.equals(attribution)) {
             checkUnattributed(root.path("unattributedShare"), sum, cpuTotal, byApp.size(), errors);
         }
+        checkStorage(root, byApp, errors);
         return errors;
+    }
+
+    /** {@code storageBytes}: optional integer ≥ 0 (total and rows); rows that carry storage need the total, and their sum is at most the total. */
+    private static void checkStorage(final JsonNode root, final JsonNode byApp, final List<String> errors) {
+        final JsonNode total = root.get(STORAGE_BYTES);
+        if (total != null && !total.isNull() && !isInteger(root, STORAGE_BYTES)) {
+            errors.add(STORAGE_BYTES + INTEGER_EXPECTED);
+        }
+        long rows = 0;
+        boolean any = false;
+        for (final JsonNode row : byApp) {
+            final JsonNode v = row.isObject() ? row.get(STORAGE_BYTES) : null;
+            if (v == null || v.isNull()) {
+                continue;
+            }
+            if (!isInteger(row, STORAGE_BYTES)) {
+                errors.add(BY_APP_PREFIX + text(row, "app") + "]." + STORAGE_BYTES + INTEGER_EXPECTED);
+                continue;
+            }
+            any = true;
+            rows += v.asLong();
+        }
+        if (!any) {
+            return;
+        }
+        if (!isInteger(root, STORAGE_BYTES)) {
+            errors.add("storageBytes: total required as soon as a byApp row carries storageBytes");
+        } else if (rows > root.get(STORAGE_BYTES).asLong()) {
+            errors.add("sum of byApp.storageBytes > storageBytes");
+        }
     }
 
     /** {@code contract}, {@code component}, {@code at}. */

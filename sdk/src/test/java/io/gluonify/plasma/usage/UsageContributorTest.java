@@ -28,5 +28,40 @@ class UsageContributorTest {
         assertEquals(6.0, r.unattributedShare().cpuSeconds(), 1e-9);
         assertEquals(UsageReport.ESTIMATED, r.attribution());
         assertEquals(List.of(), UsageContract.check(UsageResourceTest.JSON.readTree(UsageResourceTest.JSON.writeValueAsString(r))));
+        assertEquals(null, r.storageBytes(), "a contributor that stores nothing: no storageBytes");
+    }
+
+    /** Storage of several contributors adds up, and is reported even when nothing is attributed (no I/O in the window: {@code attribution: none}). */
+    @Test
+    void storageIsReportedEvenWithoutRows() {
+        UsageContributor idle = new UsageContributor() {
+            @Override
+            public List<AppShare> byApp() {
+                return List.of();
+            }
+
+            @Override
+            public Long storageBytes() {
+                return 4096L;
+            }
+        };
+        UsageContributor other = new UsageContributor() {
+            @Override
+            public List<AppShare> byApp() {
+                return List.of();
+            }
+
+            @Override
+            public Long storageBytes() {
+                return 1L;
+            }
+        };
+        UsageReport r = UsageResourceTest.resource(idle, other).report();
+        assertEquals(UsageReport.NONE, r.attribution());
+        assertEquals(List.of(), r.byApp());
+        assertEquals(4097L, r.storageBytes());
+        String json = UsageResourceTest.JSON.writeValueAsString(r);
+        assertEquals(List.of(), UsageContract.check(UsageResourceTest.JSON.readTree(json)));
+        assertEquals(true, json.contains("\"storageBytes\":4097"));
     }
 }
