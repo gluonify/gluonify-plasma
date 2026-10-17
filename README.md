@@ -118,7 +118,7 @@ Le client est le module `crystallon-client` (`gluonify-plasma-crystallon-client`
 
 ## Licence
 
-Copyright (c) 2026 David Cabillic.
+Copyright (c) 2026 Gluonify.
 
 Ce dépôt est publié sous la [licence Apache, version 2.0](LICENSE). Vous pouvez l'utiliser, le modifier
 et le redistribuer, y compris à des fins commerciales, aux conditions de cette licence ; il est fourni
