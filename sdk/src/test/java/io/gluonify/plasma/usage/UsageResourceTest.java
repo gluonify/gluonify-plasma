@@ -1,6 +1,7 @@
 package io.gluonify.plasma.usage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -147,5 +148,15 @@ class UsageResourceTest extends UsageContractTests {
         };
         assertEquals(UsageReport.MEASURED, resource(measured).report().attribution());
         assertEquals(UsageReport.ESTIMATED, resource(measured, CONTRIBUTOR).report().attribution());
+    }
+
+    /** Le contrôle hérité {@code aucunSecret} n'est pas tautologique : une valeur de {@link #secrets()} qui fuirait dans le corps serait bien vue. */
+    @Test
+    void unSecretQuiFuiraitSeraitDetecte() {
+        final UsageContributor leaking = () -> List.of(new AppShare("shop", "u1", 0.001, 1024, "estimated", "db " + SECRET));
+        final Response r = resource(leaking).usage(caller(Set.of(UsageResource.ROLE)));
+        final String body = new String(JSON.writeValueAsBytes(r.getEntity()), java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(secrets().stream().anyMatch(body::contains));
+        assertFalse(new String(authorizedBody(), java.nio.charset.StandardCharsets.UTF_8).contains(SECRET));
     }
 }

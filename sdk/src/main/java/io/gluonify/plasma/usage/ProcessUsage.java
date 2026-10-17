@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.function.LongSupplier;
 
 /**
@@ -15,6 +14,14 @@ import java.util.function.LongSupplier;
  * Ne lève jamais : une valeur illisible ou absente (système sans {@code /proc}, cgroup v1) donne un champ absent, jamais une valeur inventée.
  */
 public final class ProcessUsage {
+    private static final String MEMORY_CURRENT = "memory.current";
+    private static final String CPU_STAT = "cpu.stat";
+    private static final String USAGE_USEC = "usage_usec ";
+    /** Dans {@code /proc/self/stat}, après la parenthèse fermante du nom : utime = champ 14, stime = champ 15, num_threads = champ 20. */
+    private static final int UTIME = 11;
+    private static final int STIME = 12;
+    private static final int NUM_THREADS = 17;
+
     private final Path proc;
     private final Path cgroupRoot;
     private final long clockTicksPerSecond;
@@ -45,45 +52,43 @@ public final class ProcessUsage {
 
     /** Le processus : toujours un objet, ses champs illisibles sont {@code null}. */
     public Process process() {
-        Double cpu = null;
-        Integer threads = null;
-        final String stat = read(proc.resolve("stat"));
-        if (stat != null) {
-            // « pid (comm) état ppid … » : comm peut contenir espaces et parenthèses, on repart de la DERNIÈRE parenthèse fermante.
-            final int close = stat.lastIndexOf(')');
-            if (close >= 0) {
-                final String[] f = stat.substring(close + 1).trim().split("\\s+");
-                // f[0] = état (champ 3) ; utime = champ 14 → f[11], stime = champ 15 → f[12], num_threads = champ 20 → f[17].
-                final Long utime = number(f, 11), stime = number(f, 12), nt = number(f, 17);
-                if (utime != null && stime != null) {
-                    cpu = (utime + stime) / (double) clockTicksPerSecond;
-                }
-                if (nt != null) {
-                    threads = (int) Math.min(Integer.MAX_VALUE, nt);
-                }
+        final String[] stat = statFields(read(proc.resolve("stat")));
+        final Long utime = number(stat, UTIME);
+        final Long stime = number(stat, STIME);
+        final Double cpu = utime != null && stime != null ? (utime + stime) / (double) clockTicksPerSecond : null;
+        final Long nt = number(stat, NUM_THREADS);
+        final Integer threads = nt == null ? null : (int) Math.min(Integer.MAX_VALUE, nt);
+        final Long uptime = startMs > 0 ? Math.max(0, (nowMs.getAsLong() - startMs) / 1000) : null;
+        return new Process(cpu, rss(read(proc.resolve("status"))), "rss", heap(), threads, uptime);
+    }
+
+    /** Les champs de {@code stat} après « pid (comm) » : comm peut contenir espaces et parenthèses, on repart de la DERNIÈRE parenthèse fermante. */
+    private static String[] statFields(final String stat) {
+        final int close = stat == null ? -1 : stat.lastIndexOf(')');
+        return close < 0 ? new String[0] : stat.substring(close + 1).trim().split("\\s+");
+    }
+
+    /** {@code VmRSS} de {@code status}, en octets. */
+    private static Long rss(final String status) {
+        if (status == null) {
+            return null;
+        }
+        for (final String line : status.split("\n")) {
+            if (line.startsWith("VmRSS:")) {
+                return kib(line);
             }
         }
-        Long rss = null;
-        final String status = read(proc.resolve("status"));
-        if (status != null) {
-            for (final String line : status.split("\n")) {
-                if (line.startsWith("VmRSS:")) {
-                    rss = kib(line);
-                    break;
-                }
-            }
-        }
-        Long heap = null;
+        return null;
+    }
+
+    /** Le tas si le runtime le sait, sinon absent (jamais une exception). */
+    private Long heap() {
         try {
             final long h = heapBytes == null ? -1 : heapBytes.getAsLong();
-            if (h >= 0) {
-                heap = h;
-            }
+            return h >= 0 ? h : null;
         } catch (RuntimeException e) {
-            // pas de tas connu : champ absent
+            return null;
         }
-        final Long uptime = startMs > 0 ? Math.max(0, (nowMs.getAsLong() - startMs) / 1000) : null;
-        return new Process(cpu, rss, "rss", heap, threads, uptime);
     }
 
     /** Le cgroup v2 du processus ({@code memory.current}, {@code cpu.stat usage_usec}, {@code memory.max}), ou {@code null} s'il n'existe pas (v1, absent). */
@@ -92,22 +97,26 @@ public final class ProcessUsage {
         if (dir == null) {
             return null;
         }
-        final Long memory = longOf(read(dir.resolve("memory.current")));
-        Double cpu = null;
-        final String cpuStat = read(dir.resolve("cpu.stat"));
-        if (cpuStat != null) {
-            for (final String line : cpuStat.split("\n")) {
-                if (line.startsWith("usage_usec ")) {
-                    final Long us = longOf(line.substring("usage_usec ".length()));
-                    cpu = us == null ? null : us / 1_000_000d;
-                    break;
-                }
-            }
-        }
+        final Long memory = longOf(read(dir.resolve(MEMORY_CURRENT)));
+        final Double cpu = usageSeconds(read(dir.resolve(CPU_STAT)));
         if (memory == null && cpu == null) {
             return null;
         }
         return new Cgroup(cpu, memory, longOf(read(dir.resolve("memory.max"))));
+    }
+
+    /** {@code usage_usec} de {@code cpu.stat}, en secondes. */
+    private static Double usageSeconds(final String cpuStat) {
+        if (cpuStat == null) {
+            return null;
+        }
+        for (final String line : cpuStat.split("\n")) {
+            if (line.startsWith(USAGE_USEC)) {
+                final Long us = longOf(line.substring(USAGE_USEC.length()));
+                return us == null ? null : us / 1_000_000d;
+            }
+        }
+        return null;
     }
 
     /** Le dossier cgroup v2 du processus : {@code 0::/chemin} de {@code <proc>/cgroup} sous la racine, sinon la racine elle-même (conteneur). */
@@ -115,21 +124,36 @@ public final class ProcessUsage {
         if (!Files.isRegularFile(cgroupRoot.resolve("cgroup.controllers"))) {
             return null; // pas de v2 unifié
         }
-        final String own = read(proc.resolve("cgroup"));
+        final Path own = ownCgroup(read(proc.resolve("cgroup")));
         if (own != null) {
-            for (final String line : List.of(own.split("\n"))) {
-                if (line.startsWith("0::")) {
-                    final String rel = line.substring(3).trim();
-                    if (!rel.isEmpty() && !rel.equals("/") && !rel.contains("..")) {
-                        final Path p = cgroupRoot.resolve(rel.startsWith("/") ? rel.substring(1) : rel);
-                        if (Files.isRegularFile(p.resolve("memory.current")) || Files.isRegularFile(p.resolve("cpu.stat"))) {
-                            return p;
-                        }
-                    }
-                }
+            return own;
+        }
+        return hasCgroupFiles(cgroupRoot) ? cgroupRoot : null;
+    }
+
+    /** Le dossier désigné par la ligne {@code 0::/chemin} (jamais la racine, jamais {@code ..}), s'il porte les fichiers attendus. */
+    private Path ownCgroup(final String cgroupFile) {
+        if (cgroupFile == null) {
+            return null;
+        }
+        for (final String line : cgroupFile.split("\n")) {
+            if (!line.startsWith("0::")) {
+                continue;
+            }
+            final String rel = line.substring(3).trim();
+            if (rel.isEmpty() || rel.equals("/") || rel.contains("..")) {
+                continue;
+            }
+            final Path p = cgroupRoot.resolve(rel.startsWith("/") ? rel.substring(1) : rel);
+            if (hasCgroupFiles(p)) {
+                return p;
             }
         }
-        return Files.isRegularFile(cgroupRoot.resolve("memory.current")) || Files.isRegularFile(cgroupRoot.resolve("cpu.stat")) ? cgroupRoot : null;
+        return null;
+    }
+
+    private static boolean hasCgroupFiles(final Path dir) {
+        return Files.isRegularFile(dir.resolve(MEMORY_CURRENT)) || Files.isRegularFile(dir.resolve(CPU_STAT));
     }
 
     private static String read(final Path file) {

@@ -7,22 +7,29 @@ import java.util.List;
 
 /**
  * Réponse du contrat d'usage {@code gluonify-usage/1} ({@code usage-mcp.md} § 3.2), servie par {@code GET /q/usage} de chaque composant.
- * Additif : un lecteur ignore les champs inconnus ; {@link #CONTRACT} ne change que pour une rupture. Les champs absents ne sont pas écrits
+ * Additif : un lecteur ignore les champs inconnus ; {@link #CONTRACT_ID} ne change que pour une rupture. Les champs absents ne sont pas écrits
  * (jamais de valeur inventée). Le CPU est un compteur CUMULÉ en secondes, jamais un pourcentage.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record UsageReport(String contract, String component, String version, String instance, String node, long at, Process process, Cgroup cgroup,
         String attribution, List<AppShare> byApp, Share unattributedShare) {
 
-    public static final String CONTRACT = "gluonify-usage/1";
+    /** La valeur du champ {@code contract} : nom et version du contrat. */
+    public static final String CONTRACT_ID = "gluonify-usage/1";
 
-    /** {@code attribution} et {@code basis} : {@code none} (rien à attribuer), {@code measured} (compté à la source), {@code estimated}, {@code prorata}. */
-    public static final String NONE = "none", MEASURED = "measured", ESTIMATED = "estimated", PRORATA = "prorata";
+    /** {@code attribution} : rien à attribuer. */
+    public static final String NONE = "none";
+    /** {@code attribution} ou {@code basis} : compté à la source, sans estimation. */
+    public static final String MEASURED = "measured";
+    /** {@code attribution} ou {@code basis} : au prorata d'une grandeur mesurée (indicatif). */
+    public static final String ESTIMATED = "estimated";
+    /** {@code attribution} ou {@code basis} : au prorata du temps ou des requêtes (indicatif). */
+    public static final String PRORATA = "prorata";
 
-    /** Nombre maximal de lignes {@code byApp} (hors la ligne {@link #OTHER}). */
+    /** Nombre maximal de lignes {@code byApp} d'applications réelles (la ligne {@link #OTHER} ne compte pas). */
     public static final int MAX_APPS = 500;
 
-    /** Application fictive qui regroupe les lignes au-delà de {@link #MAX_APPS}. */
+    /** Application fictive, une seule ligne, qui regroupe les lignes au-delà de {@link #MAX_APPS}. */
     public static final String OTHER = "_other";
 
     /** Le processus du composant : obligatoire. {@code memoryKind} : {@code rss}, {@code pss} ou {@code cgroup}. */
@@ -51,48 +58,71 @@ public record UsageReport(String contract, String component, String version, Str
      */
     public static UsageReport of(final String component, final String version, final String instance, final String node, final long at, final Process process,
             final Cgroup cgroup, final String attribution, final List<AppShare> shares) {
-        final List<AppShare> rows = shares == null ? List.of() : new ArrayList<>(shares);
-        if (rows.isEmpty() || NONE.equals(attribution)) {
-            return new UsageReport(CONTRACT, component, version, instance, node, at, process, cgroup, NONE, List.of(), null);
-        }
-        rows.sort(Comparator.comparingLong(AppShare::memoryBytes).reversed().thenComparing(Comparator.comparingDouble(AppShare::cpuSeconds).reversed())
-                .thenComparing(AppShare::app));
-        List<AppShare> kept = rows;
-        if (rows.size() > MAX_APPS) {
-            kept = new ArrayList<>(rows.subList(0, MAX_APPS));
-            double cpu = 0;
-            long memory = 0;
-            String basis = rows.get(MAX_APPS).basis();
-            for (final AppShare s : rows.subList(MAX_APPS, rows.size())) {
-                cpu += s.cpuSeconds();
-                memory += s.memoryBytes();
-                if (basis != null && !basis.equals(s.basis())) {
-                    basis = ESTIMATED;
-                }
-            }
-            kept.add(new AppShare(OTHER, null, cpu, memory, basis));
+        if (shares == null || shares.isEmpty() || NONE.equals(attribution)) {
+            return new UsageReport(CONTRACT_ID, component, version, instance, node, at, process, cgroup, NONE, List.of(), null);
         }
         final double totalCpu = process.cpuSecondsTotal() == null ? 0 : process.cpuSecondsTotal();
         final long totalMemory = process.memoryBytes() == null ? 0 : process.memoryBytes();
-        double sumCpu = 0;
-        long sumMemory = 0;
-        for (final AppShare s : kept) {
-            sumCpu += s.cpuSeconds();
-            sumMemory += s.memoryBytes();
+        final List<AppShare> rows = fitToTotal(fold(sorted(shares)), totalCpu, totalMemory);
+        final Share rest = new Share(Math.max(0, totalCpu - sumCpu(rows)), Math.max(0, totalMemory - sumMemory(rows)));
+        return new UsageReport(CONTRACT_ID, component, version, instance, node, at, process, cgroup, attribution == null ? ESTIMATED : attribution,
+                List.copyOf(rows), rest);
+    }
+
+    /** Les parts, les plus grosses d'abord (mémoire, puis CPU, puis nom). */
+    private static List<AppShare> sorted(final List<AppShare> shares) {
+        final List<AppShare> rows = new ArrayList<>(shares);
+        rows.sort(Comparator.comparingLong(AppShare::memoryBytes).reversed().thenComparing(Comparator.comparingDouble(AppShare::cpuSeconds).reversed())
+                .thenComparing(AppShare::app));
+        return rows;
+    }
+
+    /** Au-delà de {@link #MAX_APPS} lignes, le reste est fondu dans une ligne {@link #OTHER} ({@code basis} commun, sinon {@link #ESTIMATED}). */
+    private static List<AppShare> fold(final List<AppShare> rows) {
+        if (rows.size() <= MAX_APPS) {
+            return rows;
         }
+        final List<AppShare> rest = rows.subList(MAX_APPS, rows.size());
+        String basis = rest.get(0).basis();
+        for (final AppShare s : rest) {
+            if (basis != null && !basis.equals(s.basis())) {
+                basis = ESTIMATED;
+            }
+        }
+        final List<AppShare> kept = new ArrayList<>(rows.subList(0, MAX_APPS));
+        kept.add(new AppShare(OTHER, null, sumCpu(rest), sumMemory(rest), basis));
+        return kept;
+    }
+
+    /** Des parts dont la somme dépasse le processus sont des estimations : réduites au prorata pour tenir dans le total. */
+    private static List<AppShare> fitToTotal(final List<AppShare> rows, final double totalCpu, final long totalMemory) {
+        final double sumCpu = sumCpu(rows);
+        final long sumMemory = sumMemory(rows);
         final double cpuScale = sumCpu > totalCpu && sumCpu > 0 ? totalCpu / sumCpu : 1;
         final double memoryScale = sumMemory > totalMemory && sumMemory > 0 ? (double) totalMemory / sumMemory : 1;
-        final List<AppShare> out = new ArrayList<>(kept.size());
-        double cpu = 0;
-        long memory = 0;
-        for (final AppShare s : kept) {
-            final double c = s.cpuSeconds() * cpuScale;
-            final long m = (long) Math.floor(s.memoryBytes() * memoryScale);
-            out.add(new AppShare(s.app(), s.uuid(), c, m, s.basis(), s.unit()));
-            cpu += c;
-            memory += m;
+        if (cpuScale == 1 && memoryScale == 1) {
+            return rows;
         }
-        return new UsageReport(CONTRACT, component, version, instance, node, at, process, cgroup, attribution == null ? ESTIMATED : attribution,
-                List.copyOf(out), new Share(Math.max(0, totalCpu - cpu), Math.max(0, totalMemory - memory)));
+        final List<AppShare> out = new ArrayList<>(rows.size());
+        for (final AppShare s : rows) {
+            out.add(new AppShare(s.app(), s.uuid(), s.cpuSeconds() * cpuScale, (long) Math.floor(s.memoryBytes() * memoryScale), s.basis(), s.unit()));
+        }
+        return out;
+    }
+
+    private static double sumCpu(final List<AppShare> rows) {
+        double cpu = 0;
+        for (final AppShare s : rows) {
+            cpu += s.cpuSeconds();
+        }
+        return cpu;
+    }
+
+    private static long sumMemory(final List<AppShare> rows) {
+        long memory = 0;
+        for (final AppShare s : rows) {
+            memory += s.memoryBytes();
+        }
+        return memory;
     }
 }

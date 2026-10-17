@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -24,8 +25,9 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  * <p>Jamais anonyme : 401 sans identité, 403 sans le rôle {@code gluonify:usage:read} (commun) ni {@code gluonify:<produit>:usage:read}. Pas de secret,
  * pas de donnée de client autre que l'identité des applications attribuées ; {@code Cache-Control: no-store}. Le point d'accès ne doit pas coûter plus que
  * {@code /q/health} : quelques fichiers {@code /proc}, et les valeurs que fournit l'éventuel {@link UsageContributor}.
- * <p>Opt-in : le SDK n'est pas indexé par défaut ; une application l'active avec {@code quarkus.index-dependency.plasma-sdk.group-id=io.gluonify.plasma} et
- * {@code quarkus.index-dependency.plasma-sdk.artifact-id=gluonify-plasma-sdk}, et écrit un bean {@link UsageContributor} si elle sait attribuer.
+ * <p>Activation explicite (décision du 2026-10-17) : le SDK n'est pas indexé par défaut, le point d'accès n'apparaît donc dans aucune application qui ne l'a
+ * pas demandé ; un composant l'active avec {@code quarkus.index-dependency.plasma-sdk.group-id=io.gluonify.plasma} et
+ * {@code quarkus.index-dependency.plasma-sdk.artifact-id=gluonify-plasma-sdk}, et écrit un bean {@link UsageContributor} s'il sait attribuer.
  * Propriétés : {@code quarkus.application.name} (le composant, sans le préfixe {@code gluonify-}) et {@code quarkus.application.version}, surchargeables
  * par {@code gluonify.usage.component} ; {@code gluonify.usage.instance} et {@code gluonify.usage.node} (facultatifs).
  */
@@ -37,11 +39,17 @@ public class UsageResource {
     public static final String ROLE = "gluonify:usage:read";
 
     private static final Logger LOG = Logger.getLogger(UsageResource.class.getName());
+    private static final String CACHE_CONTROL = "Cache-Control";
+    private static final String NO_STORE = "no-store";
+    private static final String BRAND_PREFIX = "gluonify-";
 
     private final ProcessUsage usage;
     private final LongSupplier clock;
-    private final String component, version, instance, node;
-    private final java.util.function.Supplier<List<UsageContributor>> contributors;
+    private final String component;
+    private final String version;
+    private final String instance;
+    private final String node;
+    private final Supplier<List<UsageContributor>> contributors;
 
     @Inject
     public UsageResource(final Instance<UsageContributor> found, @ConfigProperty(name = "quarkus.application.name", defaultValue = "unknown") final String name,
@@ -53,10 +61,10 @@ public class UsageResource {
             final List<UsageContributor> all = new ArrayList<>();
             found.forEach(all::add);
             return all;
-        }, component.orElse(name.startsWith("gluonify-") ? name.substring("gluonify-".length()) : name), version, instance.orElse(null), node.orElse(null));
+        }, component.orElse(name.startsWith(BRAND_PREFIX) ? name.substring(BRAND_PREFIX.length()) : name), version, instance.orElse(null), node.orElse(null));
     }
 
-    UsageResource(final ProcessUsage usage, final LongSupplier clock, final java.util.function.Supplier<List<UsageContributor>> contributors,
+    UsageResource(final ProcessUsage usage, final LongSupplier clock, final Supplier<List<UsageContributor>> contributors,
             final String component, final String version, final String instance, final String node) {
         this.usage = usage;
         this.clock = clock;
@@ -71,12 +79,12 @@ public class UsageResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response usage(@Context final SecurityContext security) {
         if (security == null || security.getUserPrincipal() == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).header("Cache-Control", "no-store").build();
+            return Response.status(Response.Status.UNAUTHORIZED).header(CACHE_CONTROL, NO_STORE).build();
         }
         if (!security.isUserInRole(ROLE) && !security.isUserInRole("gluonify:" + component + ":usage:read")) {
-            return Response.status(Response.Status.FORBIDDEN).header("Cache-Control", "no-store").build();
+            return Response.status(Response.Status.FORBIDDEN).header(CACHE_CONTROL, NO_STORE).build();
         }
-        return Response.ok(report()).header("Cache-Control", "no-store").build();
+        return Response.ok(report()).header(CACHE_CONTROL, NO_STORE).build();
     }
 
     UsageReport report() {
@@ -92,7 +100,7 @@ public class UsageResource {
             }
         } catch (RuntimeException e) {
             // Un contributeur en panne ne fait pas échouer le contrat : processus seul, sans détail dans la réponse.
-            LOG.log(Level.WARNING, "contributeur d'usage en échec : {0}", e.getClass().getSimpleName());
+            LOG.log(Level.WARNING, "contributeur d''usage en échec : {0}", e.getClass().getSimpleName());
             shares.clear();
             attribution = UsageReport.NONE;
         }

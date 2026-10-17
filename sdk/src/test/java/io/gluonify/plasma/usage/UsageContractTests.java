@@ -23,10 +23,11 @@ public abstract class UsageContractTests {
     /** Le statut HTTP de {@code GET /q/usage} avec un jeton valide mais sans le rôle d'usage. */
     protected abstract int statusWithoutRole();
 
-    /** Les valeurs de configuration sensibles du composant (mots de passe, clés, jetons) : aucune ne doit figurer dans la réponse. */
-    protected Collection<String> secrets() {
-        return List.of();
-    }
+    /**
+     * Les valeurs de configuration sensibles du composant (mots de passe, clés, jetons, tels que les tests les connaissent) : aucune ne doit figurer dans la
+     * réponse. Abstraite à dessein : chaque composant doit la fournir, et {@link #aucunSecret()} refuse une liste vide (le contrôle serait tautologique).
+     */
+    protected abstract Collection<String> secrets();
 
     @Test
     void reponseConforme() {
@@ -50,9 +51,12 @@ public abstract class UsageContractTests {
 
     @Test
     void aucunSecret() {
+        final Collection<String> secrets = secrets();
+        assertTrue(secrets != null && !secrets.isEmpty(), "secrets() doit donner au moins une valeur sensible du composant");
         final String body = new String(authorizedBody(), StandardCharsets.UTF_8);
-        for (final String secret : secrets()) {
-            assertFalse(secret != null && !secret.isBlank() && body.contains(secret), "une valeur secrète figure dans la réponse");
+        for (final String secret : secrets) {
+            assertFalse(secret == null || secret.isBlank(), "une valeur de secrets() est vide");
+            assertFalse(body.contains(secret), "une valeur secrète figure dans la réponse");
         }
     }
 }

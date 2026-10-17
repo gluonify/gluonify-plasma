@@ -22,6 +22,14 @@ class UsageContractTest {
         return UsageContract.check(JSON.readTree(json));
     }
 
+    /** {@link #VALID} avec un autre tableau {@code byApp} et un autre {@code unattributedShare} (découpage par indices : aucune expression régulière). */
+    private static String withByApp(final String byAppArray, final String unattributedShare) {
+        final int from = VALID.indexOf("\"byApp\"");
+        final int to = VALID.indexOf("\"futur\"");
+        return VALID.substring(0, from) + "\"byApp\":" + byAppArray + "," + (unattributedShare == null ? "" : "\"unattributedShare\":" + unattributedShare + ",")
+                + VALID.substring(to);
+    }
+
     @Test
     void exempleDuPlanEstValideEtLesChampsInconnusSontToleres() {
         assertEquals(List.of(), check(VALID));
@@ -35,7 +43,8 @@ class UsageContractTest {
         assertTrue(check(VALID.replace("\"memoryKind\":\"rss\",", "")).stream().anyMatch(e -> e.startsWith("process.memoryKind")));
         assertTrue(check(VALID.replace("\"byApp\"", "\"x\"")).stream().anyMatch(e -> e.startsWith("byApp")));
         assertTrue(check(VALID.replace("\"attribution\":\"estimated\"", "\"attribution\":\"guess\"")).stream().anyMatch(e -> e.startsWith("attribution")));
-        assertTrue(check(VALID.replaceAll("(?s),\\s*\"unattributedShare\":\\{[^}]*\\}", "")).stream().anyMatch(e -> e.startsWith("unattributedShare")));
+        assertTrue(check(withByApp(VALID.substring(VALID.indexOf("[{\"app\""), VALID.indexOf("}]") + 2), null)).stream()
+                .anyMatch(e -> e.startsWith("unattributedShare")));
     }
 
     @Test
@@ -48,7 +57,7 @@ class UsageContractTest {
     @Test
     void noneAvecPartsRefuse() {
         assertTrue(check(VALID.replace("\"attribution\":\"estimated\"", "\"attribution\":\"none\"")).contains("attribution = none avec des lignes byApp"));
-        final String ok = VALID.replace("\"attribution\":\"estimated\"", "\"attribution\":\"none\"").replaceAll("(?s)\"byApp\":\\[.*\\],\\s*\"unattributedShare\":\\{[^}]*\\}", "\"byApp\":[]");
+        final String ok = withByApp("[]", null).replace("\"attribution\":\"estimated\"", "\"attribution\":\"none\"");
         assertEquals(List.of(), check(ok));
     }
 
@@ -64,7 +73,7 @@ class UsageContractTest {
         for (int i = 0; i < 501; i++) {
             rows.append(i == 0 ? "" : ",").append("{\"app\":\"a").append(i).append("\",\"cpuSeconds\":0,\"memoryBytes\":1,\"basis\":\"estimated\"}");
         }
-        final String many = VALID.replaceAll("(?s)\"byApp\":\\[.*\\],\\s*\"unattributedShare\"", "\"byApp\":[" + rows + "],\"unattributedShare\"").replace("1200.0", "1234.5");
+        final String many = withByApp("[" + rows + "]", "{\"cpuSeconds\":1234.5,\"memoryBytes\":760000000}");
         assertTrue(check(many).stream().anyMatch(e -> e.contains("501 lignes")));
         final String other = many.replace("\"a500\"", "\"_other\"");
         assertEquals(List.of(), check(other));
@@ -75,6 +84,11 @@ class UsageContractTest {
     void ligneSansIdentiteOuSansBasis() {
         assertTrue(check(VALID.replace("\"app\":\"shop\",", "")).contains("byApp : app absent"));
         assertTrue(check(VALID.replace("\"basis\":\"estimated\"", "\"basis\":\"?\"")).stream().anyMatch(e -> e.contains(".basis")));
+        // « none » est une attribution du composant, jamais le basis d'une ligne : une ligne est toujours attribuée d'une façon
+        assertTrue(check(VALID.replace("\"basis\":\"estimated\"", "\"basis\":\"none\"")).contains("byApp[shop].basis : measured, estimated ou prorata attendu"));
+        for (final String basis : List.of("measured", "prorata")) {
+            assertEquals(List.of(), check(VALID.replace("\"basis\":\"estimated\"", "\"basis\":\"" + basis + "\"")));
+        }
     }
 
     @Test
