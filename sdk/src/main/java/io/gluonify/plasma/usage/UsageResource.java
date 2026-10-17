@@ -1,6 +1,7 @@
 package io.gluonify.plasma.usage;
 
 import io.gluonify.plasma.usage.UsageReport.AppShare;
+import jakarta.annotation.security.PermitAll;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -33,6 +34,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  */
 @ApplicationScoped
 @Path(UsageResource.PATH)
+@PermitAll // the resource decides 401/403 itself; without this a component with quarkus.security.jaxrs.deny-unannotated-endpoints=true answers 403 even with the right role
 public class UsageResource {
     public static final String PATH = "/q/usage";
     /** Rôle commun à tous les composants. */
