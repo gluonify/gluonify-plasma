@@ -1,5 +1,5 @@
-Gluonify Plasma (POM parent, SDK et clients de Gluonify)
+Gluonify Plasma (parent POM, SDK and clients of Gluonify)
 Copyright (c) 2026 Gluonify
 
-Ce produit est distribué sous la licence Apache, version 2.0 (fichier LICENSE).
-Les composants tiers qu'il utilise restent sous leurs propres licences.
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+Third-party components it uses remain under their own licenses.
