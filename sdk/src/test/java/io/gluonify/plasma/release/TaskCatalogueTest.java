@@ -16,7 +16,7 @@ class TaskCatalogueTest {
         return p;
     }
 
-    @Test void tachesValides() {
+    @Test void validTasks() {
         assertEquals(Map.of(), TaskCatalogue.validate("report-status", Map.of(), B));
         TaskCatalogue.validate("install-strange", Map.of("version", "1.2.3", "role", "worker", "runtime", "process", "address", "10.0.0.5", "wireguard", "true"), B);
         TaskCatalogue.validate("install-higgs", higgs(), B);
@@ -25,17 +25,17 @@ class TaskCatalogueTest {
         TaskCatalogue.validate("uninstall", Map.of("component", "all", "purge", "false"), A);
     }
 
-    @Test void typeInconnuOuAbsentRefuse() {
+    @Test void unknownOrAbsentTypeRefused() {
         for (String t : new String[]{"exec", "shell", "install-strange ", "INSTALL-STRANGE", "", null, "../report-status", "report-status;id"})
             assertThrows(TaskCatalogue.Invalid.class, () -> TaskCatalogue.validate(t, Map.of(), B), String.valueOf(t));
     }
 
-    @Test void tacheHorsModeRefusee() {
+    @Test void outOfModeTaskRefused() {
         assertThrows(TaskCatalogue.Invalid.class, () -> TaskCatalogue.validate("install-higgs", higgs(), A));
         assertThrows(TaskCatalogue.Invalid.class, () -> TaskCatalogue.validate("update", Map.of("component", "strange", "version", "1.3.0"), B));
     }
 
-    @Test void parametresInvalidesRefuses() {
+    @Test void invalidParametersRefused() {
         var base = Map.of("version", "1.2.3", "role", "worker");
         for (String[] bad : new String[][]{{"version", "1.2"}, {"version", "1.2.3; rm -rf /"}, {"version", "$(id)"}, {"role", "root"}, {"role", "worker --token x"}, {"runtime", "docker"},
                 {"address", "-x"}, {"address", "a b"}, {"address", "a;b"}, {"address", "`id`"}, {"address", "../x"}, {"wireguard", "yes"}, {"version", "1.2.3\n"}}) {
@@ -46,7 +46,7 @@ class TaskCatalogueTest {
         assertThrows(TaskCatalogue.Invalid.class, () -> TaskCatalogue.validate("install-strange", Map.of("version", "1.2.3"), B)); // role obligatoire
         var extra = new HashMap<>(base);
         extra.put("command", "id");
-        assertThrows(TaskCatalogue.Invalid.class, () -> TaskCatalogue.validate("install-strange", extra, B)); // paramètre inconnu
+        assertThrows(TaskCatalogue.Invalid.class, () -> TaskCatalogue.validate("install-strange", extra, B)); // unknown parameter
         var long1 = new HashMap<>(base);
         long1.put("address", "a".repeat(600));
         assertThrows(TaskCatalogue.Invalid.class, () -> TaskCatalogue.validate("install-strange", long1, B));
@@ -55,7 +55,7 @@ class TaskCatalogueTest {
         assertThrows(TaskCatalogue.Invalid.class, () -> TaskCatalogue.validate("install-strange", nul, B));
     }
 
-    @Test void parametresDeCheminOuDurlRefuses() {
+    @Test void pathOrUrlParametersRefused() {
         for (String v : List.of("/etc/passwd", "../../x", "file:///etc/x", "http://evil/x.sh", "a/b"))
             assertThrows(TaskCatalogue.Invalid.class, () -> TaskCatalogue.validate("update", Map.of("component", v, "version", "1.0.0"), A), v);
         var h = higgs();
@@ -63,7 +63,7 @@ class TaskCatalogueTest {
         assertThrows(TaskCatalogue.Invalid.class, () -> TaskCatalogue.validate("install-higgs", h, B));
     }
 
-    @Test void secretsMasques() {
+    @Test void maskedSecrets() {
         var m = TaskCatalogue.masked("install-higgs", higgs());
         assertEquals("***", m.get("seedToken"));
         assertEquals("cp2", m.get("nodeId"));

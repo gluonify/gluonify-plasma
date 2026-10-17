@@ -10,11 +10,11 @@
   </parent>
   <artifactId>gluonify-plasma-fermion-client</artifactId>
   <name>Gluonify Plasma Fermion client</name>
-  <description>Client WebSocket de gluonify-fermion : compétences, soumission de workflows, reconnexion.</description>
+  <description>WebSocket client for gluonify-fermion: skills, workflow submission, reconnection.</description>
 
   <dependencies>
     <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-sdk</artifactId></dependency>
-    <!-- Résolution sans configuration (adresse et jeton) : jar sans dépendance, Java 17. -->
+    <!-- Resolution without configuration (address and token): dependency-free jar, Java 17. -->
     <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-services</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-websockets-next</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-jackson</artifactId></dependency>

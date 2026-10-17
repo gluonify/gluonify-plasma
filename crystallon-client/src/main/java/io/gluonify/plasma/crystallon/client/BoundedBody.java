@@ -9,16 +9,16 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 
 /**
- * Corps de réponse en mémoire, borné : une réponse trop grande n'est jamais gardée en entier (ni annoncée par {@code Content-Length}, ni
- * envoyée en morceaux) ; la lecture s'arrête et la connexion est coupée. Le délai de la requête couvre la lecture complète du corps.
+ * Bounded in-memory response body: a response that is too large is never kept whole (neither announced by {@code Content-Length}, nor
+ * sent in chunks); reading stops and the connection is cut. The request timeout covers the complete reading of the body.
  */
 final class BoundedBody {
-    /** Un corps d'erreur plus grand que cela est ignoré (ce n'est pas un {@code ErrorBody}). */
+    /** An error body larger than this is ignored (it is not an {@code ErrorBody}). */
     static final long ERROR_LIMIT = 64 * 1024;
 
     private static final byte[] EMPTY = new byte[0];
 
-    /** @param bytes le corps (vide si {@code tooLarge}) @param tooLarge le corps dépassait la limite */
+    /** @param bytes the body (empty if {@code tooLarge}) @param tooLarge the body exceeded the limit */
     record Body(byte[] bytes, boolean tooLarge) {
     }
 

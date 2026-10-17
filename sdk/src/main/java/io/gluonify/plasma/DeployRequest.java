@@ -2,114 +2,114 @@ package io.gluonify.plasma;
 
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
-/** Corps de PUT /apps/{name}. */
-@Schema(description = "Spécification de déploiement ; seule l'image (ou les exécutables par architecture) est obligatoire.")
-public record DeployRequest(@Schema(description = "Image OCI de l'application Quarkus native", example = "registry.example.org/shop:1.0") String image, @Schema(description = "Nombre de répliques (défaut 1, max 100)", example = "2") Integer replicas, @Schema(description = "Port HTTP du conteneur (défaut 8080)", example = "8080") Integer port, @Schema(description = "Limite mémoire par réplique en Mo (défaut 64, min 16)", example = "64") Integer memoryMb, @Schema(description = "Namespace gluonify-top injecté en variables d'environnement (optionnel)", example = "shop") String topNamespace, @Schema(description = "Exécutables natifs par architecture (amd64, arm64), à la place de « image »") java.util.Map<String, String> artifacts,
-        @Schema(description = "true : l'application utilise les espaces du top <uuid>.app et <uuid>.gluonify (à la place de topNamespace)", example = "true") Boolean top,
-        @Schema(description = "Espace de travail temporaire par réplique en Mo (0 à 2048, défaut 64)", example = "64") Integer scratchMb,
-        @Schema(description = "Monter le NAS de l'hébergeur dans /nas (option)", example = "false") Boolean nas,
-        @Schema(description = "Variables d'environnement non secrètes") java.util.Map<String, String> env,
-        @Schema(description = "Secrets de démarrage générés et détenus par le control-plane (noms de variables, globaux)") java.util.List<String> generated,
-        @Schema(description = "Applications utilisées (injection de GLUONIFY_SERVICE_<APP>_URL)") java.util.List<String> uses,
-        @Schema(description = "Identifiant du nœud imposé") String pin,
-        @Schema(description = "true : pas de route publique") Boolean internal,
-        @Schema(description = "Ports TCP supplémentaires (même numéro sur le nœud)") java.util.List<Integer> ports,
-        @Schema(description = "Systèmes de fichiers distribués : std (durable) et/ou tmp (expire 24 h après la dernière écriture), montés dans /distributed/<nom>", example = "[\"std\"]") java.util.List<String> distributed,
-        @Schema(description = "Secret de téléchargement PULL_… (dépôt privé de l'exécutable)", example = "PULL_GITLAB") String pullSecret,
-        @Schema(description = "Quota par système de fichiers distribué en Mo (1 à 1048576), appliqué à chaque genre monté ; au-delà, l'écriture est refusée (507). Souple : taille relevée toutes les 20 s", example = "2048") Integer distributedQuotaMb,
-        @Schema(description = "true : verrous de fichiers (flock, fcntl/POSIX, O_EXCL) valables ENTRE NŒUDS sur les systèmes de fichiers distribués de l'application : un démon de montage (gluonify-bottom) est placé devant le montage rclone et délègue les verrous au control-plane (bail : un nœud sans signe de vie depuis 30 s perd ses verrous). Sans cela, les verrous ne valent que sur un même nœud. Coûte un second saut FUSE ; à demander explicitement. Pris en compte au démarrage de l'application (POST /apps/{nom}/redeploy après un changement).", example = "true") Boolean distributedLocks,
-        @Schema(description = "Mode endormi : {enabled, freezeAfterSeconds (défaut 60), stopAfterSeconds (défaut 900), wakeTimeoutMs (défaut 5000)}") SleepSpec sleep,
-        @Schema(description = "true : base gDown DÉDIÉE à l'application (un groupe Raft propre, un compte confiné) : le control-plane la crée et injecte GLUONIFY_GDOWN_DATABASE, GLUONIFY_GDOWN_USER, GLUONIFY_GDOWN_PASSWORD (secret) et GLUONIFY_SERVICE_GDOWN_URL. La base n'est jamais supprimée avec l'application.", example = "true") Boolean gdownDatabase,
-        @Schema(description = "Organisation (le client) de l'application : étiquette DNS (a-z, 0-9 et -, ni en tête ni en fin), 40 caractères au plus. Seul un administrateur de la plateforme peut la fixer ou la changer ; absente, l'organisation enregistrée est conservée ; « _unassigned » : la retirer (la spécification n'en a alors aucune).", example = "acme") String organization,
-                            @Schema(description = "Jeton de provenance (gluonify-codex/provenance.md), signé par une clé de confiance (Bup le joint à chaque déploiement) : base64url(déclaration).base64url(signature). "
-                                    + "Sans lui, changer d'exécutable ou d'image exige gluonify:higgs:deploy:binary ou gluonify:higgs:deploy:image, rôles attribués à personne.") String provenance,
-        @Schema(description = "Niveau du jeu d'instructions exigé par l'exécutable : « amd64:v1 » à « amd64:v4 » (Bup l'envoie avec le build) ; absent : v1, placé partout", example = "amd64:v3") String artifactLevel,
-        @Schema(description = "Application Python : version mineure de python3 visée, « 3.13 » (Bup l'envoie avec une archive du framework python) ; placée seulement sur les nœuds qui annoncent la même version. Absente : pas une application Python", example = "3.13") String pythonVersion) {
-    /** Compatibilité : pas une application Python. */
+/** Body of PUT /apps/{name}. */
+@Schema(description = "Deployment specification; only the image (or the per-architecture executables) is mandatory.")
+public record DeployRequest(@Schema(description = "OCI image of the native Quarkus application", example = "registry.example.org/shop:1.0") String image, @Schema(description = "Number of replicas (default 1, max 100)", example = "2") Integer replicas, @Schema(description = "HTTP port of the container (default 8080)", example = "8080") Integer port, @Schema(description = "Memory limit per replica in MB (default 64, min 16)", example = "64") Integer memoryMb, @Schema(description = "gluonify-top namespace injected as environment variables (optional)", example = "shop") String topNamespace, @Schema(description = "Native executables per architecture (amd64, arm64), instead of \"image\"") java.util.Map<String, String> artifacts,
+        @Schema(description = "true: the application uses the top namespaces <uuid>.app and <uuid>.gluonify (instead of topNamespace)", example = "true") Boolean top,
+        @Schema(description = "Temporary workspace per replica in MB (0 to 2048, default 64)", example = "64") Integer scratchMb,
+        @Schema(description = "Mount the host's NAS at /nas (option)", example = "false") Boolean nas,
+        @Schema(description = "Non-secret environment variables") java.util.Map<String, String> env,
+        @Schema(description = "Startup secrets generated and held by the control-plane (variable names, global)") java.util.List<String> generated,
+        @Schema(description = "Applications used (injection of GLUONIFY_SERVICE_<APP>_URL)") java.util.List<String> uses,
+        @Schema(description = "Identifier of the pinned node") String pin,
+        @Schema(description = "true: no public route") Boolean internal,
+        @Schema(description = "Additional TCP ports (same number on the node)") java.util.List<Integer> ports,
+        @Schema(description = "Distributed file systems: std (durable) and/or tmp (expires 24 h after the last write), mounted at /distributed/<name>", example = "[\"std\"]") java.util.List<String> distributed,
+        @Schema(description = "PULL_… download secret (private repository of the executable)", example = "PULL_GITLAB") String pullSecret,
+        @Schema(description = "Quota per distributed file system in MB (1 to 1048576), applied to each mounted kind; beyond it, the write is refused (507). Soft: size sampled every 20 s", example = "2048") Integer distributedQuotaMb,
+        @Schema(description = "true: file locks (flock, fcntl/POSIX, O_EXCL) valid ACROSS NODES on the application's distributed file systems: a mount daemon (gluonify-bottom) is placed in front of the rclone mount and delegates the locks to the control-plane (lease: a node with no sign of life for 30 s loses its locks). Without it, locks only hold on a single node. Costs a second FUSE hop; to be requested explicitly. Taken into account when the application starts (POST /apps/{name}/redeploy after a change).", example = "true") Boolean distributedLocks,
+        @Schema(description = "Sleep mode: {enabled, freezeAfterSeconds (default 60), stopAfterSeconds (default 900), wakeTimeoutMs (default 5000)}") SleepSpec sleep,
+        @Schema(description = "true: gDown database DEDICATED to the application (its own Raft group, a confined account): the control-plane creates it and injects GLUONIFY_GDOWN_DATABASE, GLUONIFY_GDOWN_USER, GLUONIFY_GDOWN_PASSWORD (secret) and GLUONIFY_SERVICE_GDOWN_URL. The database is never deleted with the application.", example = "true") Boolean gdownDatabase,
+        @Schema(description = "Organization (the customer) of the application: DNS label (a-z, 0-9 and -, neither leading nor trailing), at most 40 characters. Only a platform administrator can set or change it; when absent, the stored organization is kept; \"_unassigned\": remove it (the specification then has none).", example = "acme") String organization,
+                            @Schema(description = "Provenance token (gluonify-codex/provenance.md), signed by a trusted key (Bup attaches it to every deployment): base64url(statement).base64url(signature). "
+                                    + "Without it, changing the executable or the image requires gluonify:higgs:deploy:binary or gluonify:higgs:deploy:image, roles granted to nobody.") String provenance,
+        @Schema(description = "Instruction-set level required by the executable: \"amd64:v1\" to \"amd64:v4\" (Bup sends it with the build); absent: v1, placed everywhere", example = "amd64:v3") String artifactLevel,
+        @Schema(description = "Python application: targeted python3 minor version, \"3.13\" (Bup sends it with a python framework archive); placed only on nodes that advertise the same version. Absent: not a Python application", example = "3.13") String pythonVersion) {
+    /** Compatibility: not a Python application. */
     public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
                          Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
                          java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, Boolean gdownDatabase, String organization, String provenance, String artifactLevel) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, gdownDatabase, organization, provenance, artifactLevel, null);
     }
 
-    /** Compatibilité : sans niveau d'exécutable. */
+    /** Compatibility: no executable level. */
     public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
                          Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
                          java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, Boolean gdownDatabase, String organization, String provenance) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, gdownDatabase, organization, provenance, null);
     }
 
-    /** Compatibilité : sans jeton de provenance. */
+    /** Compatibility: no provenance token. */
     public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
                          Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
                          java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, Boolean gdownDatabase, String organization) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, gdownDatabase, organization, null);
     }
 
-    /** Compatibilité : sans organisation. */
+    /** Compatibility: no organization. */
     public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
                          Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
                          java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, Boolean gdownDatabase) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, gdownDatabase, null);
     }
 
-    /** Compatibilité : sans base dédiée. */
+    /** Compatibility: no dedicated database. */
     public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
                          Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
                          java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, null);
     }
 
-    /** Compatibilité : sans mode endormi. */
+    /** Compatibility: no sleep mode. */
     public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
                          Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
                          java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, null);
     }
 
-    /** Compatibilité : sans verrous entre nœuds. */
+    /** Compatibility: no cross-node locks. */
     public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
                          Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
                          java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, null);
     }
 
-    /** Compatibilité : sans quota. */
+    /** Compatibility: no quota. */
     public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
                          Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
                          java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, null);
     }
 
-    /** Compatibilité : sans secret de téléchargement. */
+    /** Compatibility: no download secret. */
     public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
                          Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
                          java.util.List<Integer> ports, java.util.List<String> distributed) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, null);
     }
 
-    /** Compatibilité : sans espace de travail ni NAS explicites. */
+    /** Compatibility: no explicit workspace or NAS. */
     public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, null, null, null, null, null, null, null, null, null, null);
     }
 
-    /** Spécification de l'application ; {@code organization} vaut {@link Organizations#UNASSIGNED} : aucune (le control-plane distingue « absente » de « retirée » par {@link #organization()}). */
+    /** Specification of the application; {@code organization} is {@link Organizations#UNASSIGNED}: none (the control-plane tells "absent" from "removed" through {@link #organization()}). */
     public AppSpec toSpec(String name) {
         return toSpec(name, null);
     }
 
-    /** uuid : identifiant de l'application (conservé d'un déploiement à l'autre) ; avec top=true, le namespace est « <uuid>.app ». */
+    /** uuid: identifier of the application (kept from one deployment to the next); with top=true, the namespace is "<uuid>.app". */
     public AppSpec toSpec(String name, String uuid) {
         String ns = Boolean.TRUE.equals(top) && uuid != null ? uuid + ".app" : topNamespace;
         java.util.Map<String, String> e = env;
         java.util.List<String> g = generated, u = uses;
-        if (Boolean.TRUE.equals(gdownDatabase) && uuid != null) { // base dédiée : tout ce qu'il faut à l'application se déduit de la spécification (le control-plane n'a qu'à créer la base)
+        if (Boolean.TRUE.equals(gdownDatabase) && uuid != null) { // dedicated database: everything the application needs is derived from the specification (the control-plane only has to create the database)
             String db = gdownDatabaseName(uuid);
             e = new java.util.TreeMap<>(env == null ? java.util.Map.of() : env);
             e.put("GLUONIFY_GDOWN_DATABASE", db);
             e.put("GLUONIFY_GDOWN_USER", db);
             g = new java.util.ArrayList<>(generated == null ? java.util.List.of() : generated);
-            String secret = gdownPasswordSecret(uuid); // un secret par application (le même nom pour deux applications d'un nœud s'écraserait) ; l'application le lit sous GLUONIFY_GDOWN_PASSWORD
+            String secret = gdownPasswordSecret(uuid); // one secret per application (the same name for two applications on a node would overwrite itself); the application reads it as GLUONIFY_GDOWN_PASSWORD
             if (!g.contains(secret)) g.add(secret);
             e.put("GLUONIFY_GDOWN_PASSWORD", "${" + secret + "}");
             u = new java.util.ArrayList<>(uses == null ? java.util.List.of() : uses);
@@ -118,12 +118,12 @@ public record DeployRequest(@Schema(description = "Image OCI de l'application Qu
         return new AppSpec(name, image, replicas, port, memoryMb, ns, artifacts, uuid, scratchMb, nas, e, g, u, pin, internal, ports, null, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, Organizations.UNASSIGNED.equals(organization) ? null : organization, provenance, artifactLevel, pythonVersion);
     }
 
-    /** Nom du secret de démarrage qui porte le mot de passe de la base dédiée : propre à l'application, valeur générée et gardée par le control-plane. */
+    /** Name of the startup secret that carries the password of the dedicated database: specific to the application, value generated and kept by the control-plane. */
     public static String gdownPasswordSecret(String uuid) {
         return "GLUONIFY_GDOWN_PASSWORD_" + gdownDatabaseName(uuid).substring(3).toUpperCase(java.util.Locale.ROOT);
     }
 
-    /** Nom de la base dédiée d'une application : stable (dérivé de l'uuid), valide pour gDown. */
+    /** Name of the dedicated database of an application: stable (derived from the uuid), valid for gDown. */
     public static String gdownDatabaseName(String uuid) {
         return "app" + uuid.replace("-", "").substring(0, 16);
     }

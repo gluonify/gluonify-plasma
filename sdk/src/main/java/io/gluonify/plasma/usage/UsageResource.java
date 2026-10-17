@@ -22,22 +22,22 @@ import java.util.logging.Logger;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
- * {@code GET /q/usage} : le contrat d'usage {@code gluonify-usage/1} du composant ({@code usage-mcp.md} § 3), prêt à l'emploi.
- * <p>Jamais anonyme : 401 sans identité, 403 sans le rôle {@code gluonify:usage:read} (commun) ni {@code gluonify:<produit>:usage:read}. Pas de secret,
- * pas de donnée de client autre que l'identité des applications attribuées ; {@code Cache-Control: no-store}. Le point d'accès ne doit pas coûter plus que
- * {@code /q/health} : quelques fichiers {@code /proc}, et les valeurs que fournit l'éventuel {@link UsageContributor}.
- * <p>Activation explicite (décision du 2026-10-17) : le SDK n'est pas indexé par défaut, le point d'accès n'apparaît donc dans aucune application qui ne l'a
- * pas demandé ; un composant l'active avec {@code quarkus.index-dependency.plasma-sdk.group-id=io.gluonify.plasma} et
- * {@code quarkus.index-dependency.plasma-sdk.artifact-id=gluonify-plasma-sdk}, et écrit un bean {@link UsageContributor} s'il sait attribuer.
- * Propriétés : {@code quarkus.application.name} (le composant, sans le préfixe {@code gluonify-}) et {@code quarkus.application.version}, surchargeables
- * par {@code gluonify.usage.component} ; {@code gluonify.usage.instance} et {@code gluonify.usage.node} (facultatifs).
+ * {@code GET /q/usage}: the component's usage contract {@code gluonify-usage/1} ({@code usage-mcp.md} § 3), ready to use.
+ * <p>Never anonymous: 401 without an identity, 403 without the role {@code gluonify:usage:read} (common) or {@code gluonify:<product>:usage:read}. No secret,
+ * no customer data other than the identity of the attributed applications; {@code Cache-Control: no-store}. The endpoint must not cost more than
+ * {@code /q/health}: a few {@code /proc} files, and the values supplied by the optional {@link UsageContributor}.
+ * <p>Explicit activation (decision of 2026-10-17): the SDK is not indexed by default, so the endpoint appears in no application that did not
+ * ask for it; a component enables it with {@code quarkus.index-dependency.plasma-sdk.group-id=io.gluonify.plasma} and
+ * {@code quarkus.index-dependency.plasma-sdk.artifact-id=gluonify-plasma-sdk}, and writes a {@link UsageContributor} bean if it can attribute.
+ * Properties: {@code quarkus.application.name} (the component, without the {@code gluonify-} prefix) and {@code quarkus.application.version}, overridable
+ * by {@code gluonify.usage.component}; {@code gluonify.usage.instance} and {@code gluonify.usage.node} (optional).
  */
 @ApplicationScoped
 @Path(UsageResource.PATH)
 @PermitAll // the resource decides 401/403 itself; without this a component with quarkus.security.jaxrs.deny-unannotated-endpoints=true answers 403 even with the right role
 public class UsageResource {
     public static final String PATH = "/q/usage";
-    /** Rôle commun à tous les composants. */
+    /** Role common to all components. */
     public static final String ROLE = "gluonify:usage:read";
 
     private static final Logger LOG = Logger.getLogger(UsageResource.class.getName());
@@ -112,8 +112,8 @@ public class UsageResource {
                 }
             }
         } catch (RuntimeException e) {
-            // Un contributeur en panne ne fait pas échouer le contrat : processus seul, sans détail dans la réponse.
-            LOG.log(Level.WARNING, "contributeur d''usage en échec : {0}", e.getClass().getSimpleName());
+            // A failing contributor does not make the contract fail: process only, with no detail in the response.
+            LOG.log(Level.WARNING, "usage contributor failed: {0}", e.getClass().getSimpleName());
             shares.clear();
             attribution = UsageReport.NONE;
             storage = null;
@@ -121,7 +121,7 @@ public class UsageResource {
         return UsageReport.of(component, version, instance, node, clock.getAsLong(), process, usage.cgroup(), attribution, shares, storage);
     }
 
-    /** La confiance la plus faible gagne : {@code measured} > {@code prorata} > {@code estimated} ; {@code none} cède devant toute attribution. */
+    /** The weakest confidence wins: {@code measured} > {@code prorata} > {@code estimated}; {@code none} yields to any attribution. */
     private static String weakest(final String current, final String next) {
         if (next == null) {
             return current.equals(UsageReport.NONE) ? UsageReport.ESTIMATED : current;

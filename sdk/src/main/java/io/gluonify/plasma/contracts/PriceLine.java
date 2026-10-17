@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Ligne d'une liste de prix ({@code contracts.md} § 2.4) : unité du catalogue, dimensions (sous-ensemble des dimensions énumérées, 3 au plus ; la ligne la plus
- * précise gagne), grandeur de facturation ({@code per}) et prix décimal (9 décimales au plus).
+ * Line of a price list ({@code contracts.md} § 2.4): catalog unit, dimensions (subset of the enumerated dimensions, at most 3; the most
+ * specific line wins), billing unit ({@code per}) and decimal price (at most 9 decimal places).
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)

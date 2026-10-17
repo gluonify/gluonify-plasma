@@ -29,7 +29,7 @@ class GzipTest {
         return o.toByteArray();
     }
 
-    @Test void regleDesNoms() {
+    @Test void nameRule() {
         assertTrue(Gzip.isSingleFile("gluonify-strange-linux-arm64.gz"));
         assertFalse(Gzip.isSingleFile("gluonify-node-image.tar.gz"));
         assertFalse(Gzip.isSingleFile("gluonify-strange-linux-arm64"));
@@ -37,38 +37,38 @@ class GzipTest {
         assertEquals("gluonify-node-image.tar.gz", Gzip.plainName("gluonify-node-image.tar.gz"));
     }
 
-    @Test void aller_retour() throws Exception {
-        byte[] data = "contenu du binaire".repeat(1000).getBytes(StandardCharsets.UTF_8);
+    @Test void round_trip() throws Exception {
+        byte[] data = "binary content".repeat(1000).getBytes(StandardCharsets.UTF_8);
         assertArrayEquals(data, un(gz(data), Gzip.DEFAULT_MAX_BYTES));
     }
 
-    @Test void refus() throws Exception {
+    @Test void refusals() throws Exception {
         byte[] data = new byte[200000];
         new java.util.Random(1).nextBytes(data);
         byte[] g = gz(data);
-        assertThrows(ReleaseManifest.Invalid.class, () -> un(Arrays.copyOf(g, g.length - 20), Long.MAX_VALUE), "tronqué");
-        assertThrows(ReleaseManifest.Invalid.class, () -> un(Arrays.copyOf(g, g.length - 3), Long.MAX_VALUE), "pied de page tronqué");
+        assertThrows(ReleaseManifest.Invalid.class, () -> un(Arrays.copyOf(g, g.length - 20), Long.MAX_VALUE), "truncated");
+        assertThrows(ReleaseManifest.Invalid.class, () -> un(Arrays.copyOf(g, g.length - 3), Long.MAX_VALUE), "truncated footer");
         byte[] crc = g.clone(); crc[crc.length - 8] ^= 1;
         assertThrows(ReleaseManifest.Invalid.class, () -> un(crc, Long.MAX_VALUE), "CRC");
         byte[] len = g.clone(); len[len.length - 1] ^= 1;
-        assertThrows(ReleaseManifest.Invalid.class, () -> un(len, Long.MAX_VALUE), "taille du pied de page");
+        assertThrows(ReleaseManifest.Invalid.class, () -> un(len, Long.MAX_VALUE), "footer size");
         byte[] body = g.clone(); body[body.length / 2] ^= 0x55;
         assertThrows(ReleaseManifest.Invalid.class, () -> un(body, Long.MAX_VALUE), "flux corrompu");
-        assertThrows(ReleaseManifest.Invalid.class, () -> un("pas du gzip du tout".getBytes(), Long.MAX_VALUE), "octets magiques");
+        assertThrows(ReleaseManifest.Invalid.class, () -> un("not gzip at all".getBytes(), Long.MAX_VALUE), "magic bytes");
         byte[] trail = Arrays.copyOf(g, g.length + 1);
-        assertThrows(ReleaseManifest.Invalid.class, () -> un(trail, Long.MAX_VALUE), "octet après le pied de page");
+        assertThrows(ReleaseManifest.Invalid.class, () -> un(trail, Long.MAX_VALUE), "byte after the footer");
         assertThrows(ReleaseManifest.Invalid.class, () -> un(g, 1000), "plafond de taille");
     }
 
-    @Test void bombeRefusee() throws Exception {
-        byte[] g = gz(new byte[50 * 1024 * 1024]); // 50 Mio de zéros : quelques dizaines de Kio, rapport ~1000
+    @Test void bombRefused() throws Exception {
+        byte[] g = gz(new byte[50 * 1024 * 1024]); // 50 MiB of zeros: a few tens of KiB, ratio ~1000
         assertTrue(g.length < 100_000);
         assertThrows(ReleaseManifest.Invalid.class, () -> un(g, Gzip.DEFAULT_MAX_BYTES));
-        // un petit fichier très compressible reste accepté (plancher)
+        // a small, highly compressible file is still accepted (floor)
         assertEquals(500_000, un(gz(new byte[500_000]), Gzip.DEFAULT_MAX_BYTES).length);
     }
 
-    @Test void manifesteAvecGzEtPlain() throws Exception {
+    @Test void manifestWithGzAndPlain() throws Exception {
         Files.write(dir.resolve("gluonify-strange-linux-amd64.gz"), gz("a".getBytes()));
         Files.writeString(dir.resolve("gluonify-strange-linux-arm64"), "binaire brut");
         Files.writeString(dir.resolve("gluonify-node-image.tar.gz"), "image");
@@ -83,7 +83,7 @@ class GzipTest {
         byte[] bytes = m.toJson().getBytes(StandardCharsets.UTF_8);
         byte[] sig = ReleaseSigner.sign(bytes, k.getPrivate());
         assertEquals(m, ReleaseVerifier.verify(bytes, sig, k.getPublic(), ReleaseManifest::parse, 7, Instant.parse("2026-10-02T00:00:00Z")));
-        // un nom avec séparateur ou « .. » reste refusé, .gz ou non
+        // a name with a separator or ".." is still refused, .gz or not
         var bad = new ReleaseManifest(1, "1.2.3", 7, m.createdAt(), m.expires(), java.util.List.of(new ReleaseManifest.Artifact("gluonify-strange", "amd64", "../x.gz", amd.sha256(), 5)));
         assertThrows(ReleaseManifest.Invalid.class, bad::validate);
     }

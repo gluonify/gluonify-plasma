@@ -3,11 +3,11 @@ package io.gluonify.plasma.crystallon.client;
 import io.gluonify.plasma.crystallon.Check;
 
 /**
- * Un modèle de Crystallon, désigné par son identifiant ({@link CrystallonClient#byId}) ou par son nom ({@link CrystallonClient#byName}).
- * Immuable et sans état : on peut le garder et l'utiliser depuis plusieurs fils.
+ * A Crystallon template, designated by its identifier ({@link CrystallonClient#byId}) or by its name ({@link CrystallonClient#byName}).
+ * Immutable and stateless: it can be kept and used from several threads.
  *
- * <p>Sans {@link #version(int)}, Crystallon rend la version courante du modèle (un changement du modèle dans l'éditeur est donc pris en compte
- * tout de suite). Avec, il rend cette version précise, prise dans l'historique du modèle.
+ * <p>Without {@link #version(int)}, Crystallon renders the current version of the template (a change to the template in the editor is therefore picked up
+ * immediately). With it, it renders that specific version, taken from the template's history.
  */
 public final class TemplateRef {
     private final CrystallonClient client;
@@ -20,7 +20,7 @@ public final class TemplateRef {
         this.version = version;
     }
 
-    /** @return une référence qui rend cette version précise du modèle ({@code ?version=n}) @throws IllegalArgumentException si {@code version} est inférieure à 1 */
+    /** @return a reference that renders this specific version of the template ({@code ?version=n}) @throws IllegalArgumentException if {@code version} is less than 1 */
     public TemplateRef version(final int version) {
         if (version < 1) {
             throw new IllegalArgumentException("the template version must be at least 1");
@@ -28,22 +28,22 @@ public final class TemplateRef {
         return new TemplateRef(client, path, version);
     }
 
-    /** Rend le document en PDF/A avec les paramètres du modèle, puis ceux du serveur. @param data le payload (record, bean ou {@code Map}) ; {@code null} donne {@code {}} */
+    /** Renders the document as PDF/A with the template's parameters, then the server's. @param data the payload (record, bean or {@code Map}); {@code null} gives {@code {}} */
     public RenderedPdf render(final Object data) {
         return render(data, RenderOptions.DEFAULT);
     }
 
-    /** Rend le document. @param data le payload ; {@code null} donne {@code {}} @param options {@code null} donne {@link RenderOptions#DEFAULT} @throws CrystallonException si Crystallon refuse ou ne répond pas */
+    /** Renders the document. @param data the payload; {@code null} gives {@code {}} @param options {@code null} gives {@link RenderOptions#DEFAULT} @throws CrystallonException if Crystallon refuses or does not answer */
     public RenderedPdf render(final Object data, final RenderOptions options) {
         return client.render(path, version, data, options == null ? RenderOptions.DEFAULT : options);
     }
 
-    /** Valide le modèle avec ce payload sans produire de PDF : le détail des erreurs et des avertissements. */
+    /** Validates the template with this payload without producing a PDF: the details of errors and warnings. */
     public Check validate(final Object data) {
         return validate(data, RenderOptions.DEFAULT);
     }
 
-    /** Valide le modèle avec ce payload. @param options {@code null} donne {@link RenderOptions#DEFAULT} (seuls ses paramètres comptent) */
+    /** Validates the template with this payload. @param options {@code null} gives {@link RenderOptions#DEFAULT} (only its parameters count) */
     public Check validate(final Object data, final RenderOptions options) {
         return client.validate(path, version, data, options == null ? RenderOptions.DEFAULT : options);
     }

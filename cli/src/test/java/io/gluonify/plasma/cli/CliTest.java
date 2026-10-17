@@ -27,7 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** La CLI contre un faux Charm : connexion PKCE de bout en bout (le « navigateur » suit la redirection), status, token, logout. */
+/** The CLI against a fake Charm: end-to-end PKCE sign-in (the "browser" follows the redirect), status, token, logout. */
 class CliTest {
     @TempDir
     Path home;
@@ -49,7 +49,7 @@ class CliTest {
         cluster.close();
     }
 
-    /** Le faux navigateur : ouvre l'adresse de /authorize, suit la redirection vers le serveur local de la CLI. */
+    /** The fake browser: opens the /authorize address, follows the redirect to the CLI's local server. */
     final Consumer<URI> browser = uri -> CompletableFuture.runAsync(() -> {
         try {
             browserPage = browserHttp.send(HttpRequest.newBuilder(uri).GET().build(), HttpResponse.BodyHandlers.ofString()).body();
@@ -85,7 +85,7 @@ class CliTest {
         assertTrue(out().contains("Logged in to test.lan as ada"), out());
         assertTrue(out().contains("crystallon"), out());
         assertTrue(browserPage.contains("Logged in to test.lan"), browserPage);
-        // ce que Charm a reçu : PKCE S256, client public, retour sur la boucle locale
+        // what Charm received: PKCE S256, public client, redirect to the local loopback
         final Map<String, String> a = cluster.lastAuthorize;
         assertEquals("gluonify-cli", a.get("client_id"));
         assertEquals("S256", a.get("code_challenge_method"));
@@ -97,7 +97,7 @@ class CliTest {
         assertEquals("ada", s.subject());
         assertEquals(List.of("gluonify-crystallon", "gluonify-fermion"), s.audiences());
         assertNotNull(s.refreshToken());
-        assertFalse(out().contains(s.accessToken()), "le jeton n'est jamais affiché");
+        assertFalse(out().contains(s.accessToken()), "the token is never printed");
         final Path file = DeveloperTokens.file(home, "test.lan");
         if (file.getFileSystem().supportedFileAttributeViews().contains("posix")) {
             assertEquals(PosixFilePermissions.fromString("rw-------"), Files.getPosixFilePermissions(file));
@@ -107,13 +107,13 @@ class CliTest {
         assertEquals("SBX", config.current().orElseThrow().environment());
         assertEquals(cluster.discoveryUrl(), config.current().orElseThrow().discovery());
 
-        // status : jamais de jeton
+        // status: never a token
         assertEquals(0, run(browser, "status"));
         assertTrue(out().contains("* test.lan (SBX), ada, token valid until"), out());
         assertFalse(out().contains(s.accessToken()));
         assertFalse(out().contains(s.refreshToken()));
 
-        // token : vérifie sans afficher, puis --print
+        // token: checks without printing, then --print
         assertEquals(0, run(browser, "token", "crystallon"));
         assertTrue(out().startsWith("ok, crystallon at " + cluster.base() + "/crystallon (DEVELOPER), expires at "), out());
         assertFalse(out().contains(s.accessToken()));
@@ -135,20 +135,20 @@ class CliTest {
 
     @Test
     void reponseDUnAutreLogin() {
-        // un « navigateur » qui renvoie un code avec un autre state : refusé
+        // a "browser" that returns a code with another state: refused
         final Consumer<URI> forged = uri -> CompletableFuture.runAsync(() -> {
             try {
                 final String redirect = io.gluonify.plasma.services.FakeCluster.form(uri.getRawQuery()).get("redirect_uri");
                 browserHttp.send(HttpRequest.newBuilder(URI.create(redirect + "?code=x&state=other")).GET().build(), HttpResponse.BodyHandlers.ofString());
             }
             catch (final Exception e) {
-                // sans importance
+                // does not matter
             }
         });
         assertEquals(1, run(forged, "login", "test.lan", "--discovery", cluster.discoveryUrl().toString(), "--timeout", "20"));
         assertTrue(err().contains("does not match this login"), err());
         assertEquals(0, cluster.codeExchanges.get());
-        assertTrue(DeveloperConfig.read(home).isEmpty(), "rien d'écrit");
+        assertTrue(DeveloperConfig.read(home).isEmpty(), "nothing written");
     }
 
     @Test
@@ -160,7 +160,7 @@ class CliTest {
                         HttpResponse.BodyHandlers.ofString());
             }
             catch (final Exception e) {
-                // sans importance
+                // does not matter
             }
         });
         assertEquals(1, run(denied, "login", "test.lan", "--discovery", cluster.discoveryUrl().toString(), "--timeout", "20"));
@@ -171,7 +171,7 @@ class CliTest {
     void sansReponseDuNavigateur() {
         assertEquals(1, run(uri -> { }, "login", "test.lan", "--discovery", cluster.discoveryUrl().toString(), "--timeout", "1"));
         assertTrue(err().contains("no answer from the browser within 1 s"), err());
-        assertTrue(out().contains(cluster.issuer() + "/authorize?"), "l'adresse est affichée pour l'ouvrir à la main");
+        assertTrue(out().contains(cluster.issuer() + "/authorize?"), "the address is printed so it can be opened by hand");
     }
 
     @Test

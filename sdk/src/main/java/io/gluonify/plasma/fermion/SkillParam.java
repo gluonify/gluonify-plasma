@@ -5,14 +5,14 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
 /**
- * Un paramètre typé du contrat d'une compétence.
+ * A typed parameter of a skill's contract.
  *
- * @param name       clé dans la charge utile (un nom pointé, par exemple {@code infos.status}, contraint un champ imbriqué)
+ * @param name       key in the payload (a dotted name, for example {@code infos.status}, constrains a nested field)
  * @param type       {@code STRING}, {@code BOOLEAN}, {@code INTEGER}, {@code LONG}, {@code OBJECT}…
- * @param required   obligatoire ou non
- * @param store      une sortie est conservée dans le contexte du workflow
- * @param docUrl     URL facultative qui documente le type
- * @param enumValues pour une sortie texte à valeurs fixes : l'ensemble exhaustif (la validation d'un workflow refuse alors une comparaison à un littéral inconnu) ; vide = non déclaré
+ * @param required   mandatory or not
+ * @param store      an output is kept in the workflow context
+ * @param docUrl     optional URL that documents the type
+ * @param enumValues for a text output with fixed values: the exhaustive set (workflow validation then rejects a comparison with an unknown literal); empty = not declared
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)

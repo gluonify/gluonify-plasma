@@ -13,30 +13,30 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
- * Un constat d'analyse (format {@value #VERSION} de {@code analysis.md} § 3.6). <strong>Aucune phrase</strong> : {@code rule} est un code stable
- * et {@code args} ses arguments (des chaînes, interpolées par la traduction de l'interface). {@code location} est relatif au dépôt.
+ * An analysis finding (format {@value #VERSION} of {@code analysis.md} § 3.6). <strong>No sentence</strong>: {@code rule} is a stable code
+ * and {@code args} its arguments (strings, interpolated by the interface translation). {@code location} is relative to the repository.
  *
- * @param v        version du format ({@value #VERSION}) ; absente à la lecture : {@value #VERSION}
- * @param id       {@code sha256(kind|target|rule|location)} en hexadécimal : stable d'un passage à l'autre (voir {@link #idOf})
- * @param kind     volet
- * @param rule     code de règle : {@code N-ELF}, {@code R-SECRET}, {@code GN04}, {@code SEO-H1-IN-TEXT}…
- * @param severity sévérité
- * @param blocking vrai si le constat fait échouer le build (ou bloque la promotion) ; absent : faux, jamais {@code null}
- * @param location endroit, ou {@code null}
- * @param args     arguments, jamais {@code null} (au minimum vide), ordre conservé, non modifiable
- * @param ref      référence externe facultative (identifiant d'avis {@code GHSA-…}, clé Sonar)
- * @param status   {@code open} par défaut
+ * @param v        format version ({@value #VERSION}); absent when read: {@value #VERSION}
+ * @param id       {@code sha256(kind|target|rule|location)} in hexadecimal: stable from one run to the next (see {@link #idOf})
+ * @param kind     track
+ * @param rule     rule code: {@code N-ELF}, {@code R-SECRET}, {@code GN04}, {@code SEO-H1-IN-TEXT}…
+ * @param severity severity
+ * @param blocking true if the finding fails the build (or blocks the promotion); absent: false, never {@code null}
+ * @param location place, or {@code null}
+ * @param args     arguments, never {@code null} (at least empty), order kept, unmodifiable
+ * @param ref      optional external reference (advisory identifier {@code GHSA-…}, Sonar key)
+ * @param status   {@code open} by default
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Finding(Integer v, String id, FindingKind kind, String rule, Severity severity, Boolean blocking, Location location,
                       Map<String, String> args, String ref, FindingStatus status) {
     public static final int VERSION = 1;
-    /** Code de règle : majuscules, chiffres et tirets, avec un préfixe facultatif {@code depot:} (règles Sonar). */
+    /** Rule code: uppercase letters, digits and hyphens, with an optional {@code repository:} prefix (Sonar rules). */
     public static final Pattern RULE = Pattern.compile("(?:[a-z][a-z0-9-]{0,39}:)?[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*");
-    /** Nom d'argument : identifiant simple, utilisable tel quel dans une chaîne traduite ({@code {type}}). */
+    /** Argument name: simple identifier, usable as is in a translated string ({@code {type}}). */
     public static final Pattern ARG = Pattern.compile("[a-zA-Z][a-zA-Z0-9_]{0,63}");
-    /** Longueur maximale d'une valeur d'argument. */
+    /** Maximum length of an argument value. */
     public static final int MAX_ARG_LENGTH = 1024;
     public static final int MAX_ARGS = 32;
 
@@ -45,12 +45,12 @@ public record Finding(Integer v, String id, FindingKind kind, String rule, Sever
         if (blocking == null) blocking = Boolean.FALSE;
         Objects.requireNonNull(kind, "kind");
         Objects.requireNonNull(severity, "severity");
-        if (rule == null || !RULE.matcher(rule).matches()) throw new IllegalArgumentException("code de règle invalide : " + rule);
+        if (rule == null || !RULE.matcher(rule).matches()) throw new IllegalArgumentException("invalid rule code: " + rule);
         args = copyArgs(args);
         if (status == null) status = FindingStatus.OPEN;
     }
 
-    /** Constat ouvert, identifiant calculé à partir de la cible ({@code target} : build, application, site… ; jamais écrit dans le constat). */
+    /** Open finding, identifier computed from the target ({@code target}: build, application, site…; never written in the finding). */
     public static Finding open(FindingKind kind, String target, String rule, Severity severity, boolean blocking, Location location, Map<String, String> args) {
         return new Finding(VERSION, idOf(kind, target, rule, location), kind, rule, severity, blocking, location, args, null, FindingStatus.OPEN);
     }
@@ -63,7 +63,7 @@ public record Finding(Integer v, String id, FindingKind kind, String rule, Sever
         return new Finding(v, id, kind, rule, severity, blocking, location, args, ref, newStatus);
     }
 
-    /** {@code sha256(kind|target|rule|location)} en hexadécimal minuscule ; {@code target} et {@code location} absents valent la chaîne vide. */
+    /** {@code sha256(kind|target|rule|location)} in lowercase hexadecimal; absent {@code target} and {@code location} count as the empty string. */
     public static String idOf(FindingKind kind, String target, String rule, Location location) {
         String s = kind.wire() + "|" + (target == null ? "" : target) + "|" + rule + "|" + (location == null ? "" : location.key());
         try {
@@ -73,7 +73,7 @@ public record Finding(Integer v, String id, FindingKind kind, String rule, Sever
         }
     }
 
-    /** Une valeur d'argument tronquée à {@link #MAX_ARG_LENGTH} caractères, {@code null} donnant la chaîne vide. */
+    /** An argument value truncated to {@link #MAX_ARG_LENGTH} characters, {@code null} giving the empty string. */
     public static String arg(Object value) {
         String s = value == null ? "" : String.valueOf(value);
         return s.length() > MAX_ARG_LENGTH ? s.substring(0, MAX_ARG_LENGTH) : s;
@@ -81,10 +81,10 @@ public record Finding(Integer v, String id, FindingKind kind, String rule, Sever
 
     private static Map<String, String> copyArgs(Map<String, String> in) {
         if (in == null || in.isEmpty()) return Map.of();
-        if (in.size() > MAX_ARGS) throw new IllegalArgumentException("plus de " + MAX_ARGS + " arguments");
+        if (in.size() > MAX_ARGS) throw new IllegalArgumentException("more than " + MAX_ARGS + " arguments");
         Map<String, String> out = new LinkedHashMap<>();
         in.forEach((k, val) -> {
-            if (k == null || !ARG.matcher(k).matches()) throw new IllegalArgumentException("nom d'argument invalide : " + k);
+            if (k == null || !ARG.matcher(k).matches()) throw new IllegalArgumentException("invalid argument name: " + k);
             out.put(k, arg(val));
         });
         return Collections.unmodifiableMap(out);

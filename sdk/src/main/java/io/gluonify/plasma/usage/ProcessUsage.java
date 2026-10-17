@@ -9,15 +9,15 @@ import java.nio.file.Path;
 import java.util.function.LongSupplier;
 
 /**
- * Mesure du processus courant ({@code usage-mcp.md} § 3.2) : CPU cumulé ({@code utime + stime} de {@code /proc/self/stat}), mémoire résidente
- * ({@code VmRSS}), fils, durée de vie, et cgroup v2 quand il existe. Classe pure, sans dépendance : les chemins sont injectables pour les tests.
- * Ne lève jamais : une valeur illisible ou absente (système sans {@code /proc}, cgroup v1) donne un champ absent, jamais une valeur inventée.
+ * Measurement of the current process ({@code usage-mcp.md} § 3.2): cumulative CPU ({@code utime + stime} of {@code /proc/self/stat}), resident memory
+ * ({@code VmRSS}), threads, lifetime, and cgroup v2 when it exists. Pure class, no dependency: paths can be injected for tests.
+ * Never throws: an unreadable or missing value (system without {@code /proc}, cgroup v1) gives an absent field, never an invented value.
  */
 public final class ProcessUsage {
     private static final String MEMORY_CURRENT = "memory.current";
     private static final String CPU_STAT = "cpu.stat";
     private static final String USAGE_USEC = "usage_usec ";
-    /** Dans {@code /proc/self/stat}, après la parenthèse fermante du nom : utime = champ 14, stime = champ 15, num_threads = champ 20. */
+    /** In {@code /proc/self/stat}, after the closing parenthesis of the name: utime = field 14, stime = field 15, num_threads = field 20. */
     private static final int UTIME = 11;
     private static final int STIME = 12;
     private static final int NUM_THREADS = 17;
@@ -29,7 +29,7 @@ public final class ProcessUsage {
     private final long startMs;
     private final LongSupplier heapBytes;
 
-    /** Le processus courant : {@code /proc/self}, {@code /sys/fs/cgroup}, 100 ticks par seconde (valeur de tous les noyaux Linux courants). */
+    /** The current process: {@code /proc/self}, {@code /sys/fs/cgroup}, 100 ticks per second (value of all common Linux kernels). */
     public ProcessUsage() {
         this(Path.of("/proc/self"), Path.of("/sys/fs/cgroup"), 100, System::currentTimeMillis,
                 ProcessHandle.current().info().startInstant().map(java.time.Instant::toEpochMilli).orElse(0L),
@@ -39,7 +39,7 @@ public final class ProcessUsage {
                 });
     }
 
-    /** @param proc dossier du processus ({@code /proc/self}) ; @param cgroupRoot racine du cgroup v2 ({@code /sys/fs/cgroup}) ; @param startMs début du processus (0 : durée inconnue). */
+    /** @param proc process directory ({@code /proc/self}); @param cgroupRoot cgroup v2 root ({@code /sys/fs/cgroup}); @param startMs process start (0: unknown lifetime). */
     public ProcessUsage(final Path proc, final Path cgroupRoot, final long clockTicksPerSecond, final LongSupplier nowMs, final long startMs,
             final LongSupplier heapBytes) {
         this.proc = proc;
@@ -50,7 +50,7 @@ public final class ProcessUsage {
         this.heapBytes = heapBytes;
     }
 
-    /** Le processus : toujours un objet, ses champs illisibles sont {@code null}. */
+    /** The process: always an object, its unreadable fields are {@code null}. */
     public Process process() {
         final String[] stat = statFields(read(proc.resolve("stat")));
         final Long utime = number(stat, UTIME);
@@ -62,13 +62,13 @@ public final class ProcessUsage {
         return new Process(cpu, rss(read(proc.resolve("status"))), "rss", heap(), threads, uptime);
     }
 
-    /** Les champs de {@code stat} après « pid (comm) » : comm peut contenir espaces et parenthèses, on repart de la DERNIÈRE parenthèse fermante. */
+    /** The fields of {@code stat} after "pid (comm)": comm may contain spaces and parentheses, so we restart from the LAST closing parenthesis. */
     private static String[] statFields(final String stat) {
         final int close = stat == null ? -1 : stat.lastIndexOf(')');
         return close < 0 ? new String[0] : stat.substring(close + 1).trim().split("\\s+");
     }
 
-    /** {@code VmRSS} de {@code status}, en octets. */
+    /** {@code VmRSS} of {@code status}, in bytes. */
     private static Long rss(final String status) {
         if (status == null) {
             return null;
@@ -81,7 +81,7 @@ public final class ProcessUsage {
         return null;
     }
 
-    /** Le tas si le runtime le sait, sinon absent (jamais une exception). */
+    /** The heap if the runtime knows it, otherwise absent (never an exception). */
     private Long heap() {
         try {
             final long h = heapBytes == null ? -1 : heapBytes.getAsLong();
@@ -91,7 +91,7 @@ public final class ProcessUsage {
         }
     }
 
-    /** Le cgroup v2 du processus ({@code memory.current}, {@code cpu.stat usage_usec}, {@code memory.max}), ou {@code null} s'il n'existe pas (v1, absent). */
+    /** The process's cgroup v2 ({@code memory.current}, {@code cpu.stat usage_usec}, {@code memory.max}), or {@code null} if it does not exist (v1, absent). */
     public Cgroup cgroup() {
         final Path dir = cgroupDir();
         if (dir == null) {
@@ -105,7 +105,7 @@ public final class ProcessUsage {
         return new Cgroup(cpu, memory, longOf(read(dir.resolve("memory.max"))));
     }
 
-    /** {@code usage_usec} de {@code cpu.stat}, en secondes. */
+    /** {@code usage_usec} of {@code cpu.stat}, in seconds. */
     private static Double usageSeconds(final String cpuStat) {
         if (cpuStat == null) {
             return null;
@@ -119,10 +119,10 @@ public final class ProcessUsage {
         return null;
     }
 
-    /** Le dossier cgroup v2 du processus : {@code 0::/chemin} de {@code <proc>/cgroup} sous la racine, sinon la racine elle-même (conteneur). */
+    /** The process's cgroup v2 directory: {@code 0::/path} of {@code <proc>/cgroup} under the root, otherwise the root itself (container). */
     private Path cgroupDir() {
         if (!Files.isRegularFile(cgroupRoot.resolve("cgroup.controllers"))) {
-            return null; // pas de v2 unifié
+            return null; // no unified v2
         }
         final Path own = ownCgroup(read(proc.resolve("cgroup")));
         if (own != null) {
@@ -131,7 +131,7 @@ public final class ProcessUsage {
         return hasCgroupFiles(cgroupRoot) ? cgroupRoot : null;
     }
 
-    /** Le dossier désigné par la ligne {@code 0::/chemin} (jamais la racine, jamais {@code ..}), s'il porte les fichiers attendus. */
+    /** The directory designated by the {@code 0::/path} line (never the root, never {@code ..}), if it has the expected files. */
     private Path ownCgroup(final String cgroupFile) {
         if (cgroupFile == null) {
             return null;
@@ -176,11 +176,11 @@ public final class ProcessUsage {
             final long v = Long.parseLong(s.trim());
             return v < 0 ? null : v;
         } catch (NumberFormatException e) {
-            return null; // « max » compris
+            return null; // "max" included
         }
     }
 
-    /** {@code VmRSS:   1234 kB} → octets. */
+    /** {@code VmRSS:   1234 kB} to bytes. */
     private static Long kib(final String line) {
         final String[] p = line.substring(line.indexOf(':') + 1).trim().split("\\s+");
         final Long v = p.length > 0 ? longOf(p[0]) : null;

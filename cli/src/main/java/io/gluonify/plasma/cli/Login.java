@@ -32,16 +32,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * {@code gluonify login <zone>} : OAuth 2.0 pour applications natives (RFC 8252) avec PKCE S256 (RFC 7636). Le navigateur s'ouvre sur
- * {@code /authorize} de Charm ; Charm renvoie le code sur un serveur HTTP local à usage unique, lié à {@code 127.0.0.1} sur un port libre
- * ({@code http://127.0.0.1:<port>/callback}) ; le code est échangé contre les jetons avec le vérificateur PKCE. Le paramètre {@code state} et, s'il
- * est présent, {@code iss} (RFC 9207) sont vérifiés. La CLI ne voit jamais de mot de passe.
+ * {@code gluonify login <zone>}: OAuth 2.0 for native applications (RFC 8252) with PKCE S256 (RFC 7636). The browser opens on
+ * Charm's {@code /authorize}; Charm sends the code back to a single-use local HTTP server, bound to {@code 127.0.0.1} on a free port
+ * ({@code http://127.0.0.1:<port>/callback}); the code is exchanged for the tokens with the PKCE verifier. The {@code state} parameter and, if
+ * present, {@code iss} (RFC 9207) are checked. The CLI never sees a password.
  */
 final class Login {
     static final String DEFAULT_SCOPE = "openid";
     static final String CALLBACK = "/callback";
 
-    /** Options de la connexion. {@code port} 0 : un port libre. */
+    /** Login options. {@code port} 0: a free port. */
     record Options(String zone, URI discovery, Path ca, int port, String scope, Duration timeout, boolean noBrowser) {
     }
 
@@ -157,7 +157,7 @@ final class Login {
         }
     }
 
-    /** Le retour du navigateur : un seul appel valable termine la connexion ; les autres chemins (favicon...) reçoivent 404. */
+    /** The browser's return: a single valid call ends the login; other paths (favicon...) get 404. */
     private static void callback(final HttpExchange ex, final String state, final String issuer, final String zone, final CompletableFuture<String> code)
             throws IOException {
         try {

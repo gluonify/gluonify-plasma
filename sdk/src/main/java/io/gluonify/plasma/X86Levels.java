@@ -1,14 +1,14 @@
 package io.gluonify.plasma;
 
 /**
- * Niveaux du jeu d'instructions x86-64 (micro-architectures v1 à v4 de l'ABI System V) : un exécutable construit pour un niveau ne démarre pas sur un processeur
- * de niveau inférieur (instruction illégale). Les nœuds annoncent le leur ({@link io.gluonify.plasma.ws.Msg.Host#x86Level}), les livrables le leur
+ * x86-64 instruction-set levels (microarchitectures v1 to v4 of the System V ABI): an executable built for one level does not start on a processor
+ * of a lower level (illegal instruction). Nodes advertise theirs ({@link io.gluonify.plasma.ws.Msg.Host#x86Level}), deliverables theirs
  * ({@link AppSpec#artifactLevel}).
  */
 public final class X86Levels {
     private X86Levels() {}
 
-    /** « v1 » à « v4 » (casse indifférente, préfixe {@code x86-64-} accepté) -> 1 à 4 ; null, vide ou inconnu : 1. */
+    /** "v1" to "v4" (case-insensitive, {@code x86-64-} prefix accepted) -> 1 to 4; null, empty or unknown: 1. */
     public static int parse(String v) {
         if (v == null) return 1;
         String s = v.trim().toLowerCase(java.util.Locale.ROOT);
@@ -21,7 +21,7 @@ public final class X86Levels {
         };
     }
 
-    /** Vrai si un nœud de niveau {@code nodeLevel} (null : inconnu, ancien agent) peut exécuter un livrable qui exige {@code required}. Niveau inconnu : accepté (compatibilité). */
+    /** True if a node of level {@code nodeLevel} (null: unknown, old agent) can run a deliverable that requires {@code required}. Unknown level: accepted (compatibility). */
     public static boolean runs(String nodeLevel, int required) {
         return required <= 1 || nodeLevel == null || parse(nodeLevel) >= required;
     }

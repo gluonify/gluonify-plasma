@@ -9,16 +9,16 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * Jeton de capacité du stockage : le control-plane le signe (HMAC-SHA256, clé = le jeton du service) pour UNE opération sur UN objet, avec une taille maximale et une échéance ;
- * le nœud de stockage le vérifie sans rien demander à personne. Un client n'a jamais le jeton du service : il reçoit ceci après que le control-plane a vérifié son identité et son
- * quota. Format : {@code cap.<base64url(op|sha|max|exp|ns)>.<base64url(hmac)>}.
+ * Storage capability token: the control-plane signs it (HMAC-SHA256, key = the service token) for ONE operation on ONE object, with a maximum size and an expiry;
+ * the storage node verifies it without asking anyone. A client never has the service token: it receives this after the control-plane has verified its identity and its
+ * quota. Format: {@code cap.<base64url(op|sha|max|exp|ns)>.<base64url(hmac)>}.
  */
 public final class StoreCapability {
     private StoreCapability() {}
 
     public static final String PREFIX = "cap.";
 
-    /** op : "put" ou "get" ; max : octets autorisés en écriture (0 en lecture) ; exp : secondes depuis l'epoch. */
+    /** op: "put" or "get"; max: bytes allowed for writing (0 for reading); exp: seconds since the epoch. */
     public record Cap(String op, String sha, long max, long exp, String ns) {}
 
     public static String sign(String key, Cap c) {
@@ -28,7 +28,7 @@ public final class StoreCapability {
         return PREFIX + p + "." + b.encodeToString(mac(key, p));
     }
 
-    /** La capacité si le jeton est bien signé par {@code key} et n'est pas échu, sinon null. */
+    /** The capability if the token is properly signed by {@code key} and has not expired, otherwise null. */
     public static Cap verify(String key, String token, long nowSeconds) {
         try {
             if (token == null || !token.startsWith(PREFIX)) return null;

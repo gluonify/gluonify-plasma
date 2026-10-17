@@ -4,8 +4,8 @@ import io.gluonify.plasma.fermion.WorkflowDescriptor;
 import java.util.List;
 
 /**
- * SPI facultative : les workflows que le nœud déclare utiliser (annoncés dans {@code Hello}). fermion refuse de supprimer un workflow tant qu'un nœud
- * connecté le déclare. Plusieurs beans sont possibles : leurs listes sont réunies.
+ * Optional SPI: the workflows the node declares it uses (announced in {@code Hello}). fermion refuses to delete a workflow as long as a
+ * connected node declares it. Several beans are possible: their lists are merged.
  */
 public interface WorkflowUsage {
     List<WorkflowDescriptor> getUsedWorkflows();

@@ -1,8 +1,8 @@
 {
-  "about": "Jeu d'essai commun de la valorisation (gluonify-codex/contracts.md § 6.2) : Higgs, le calorimètre et Prism doivent rendre ces montants au centime. Quantités dans la grandeur de base du catalogue (Mo × s, s, unités, octets, Go × h). Clés des lignes : unité, dimensions triées {k=v}, @environnement.",
+  "about": "Common pricing test set (gluonify-codex/contracts.md § 6.2): Higgs, the calorimeter and Prism must return these amounts to the cent. Quantities in the catalogue's base unit (MB × s, s, units, bytes, GB × h). Line keys: unit, sorted dimensions {k=v}, @environment.",
   "vectors": [
     {
-      "name": "liste seule : mémoire par état, CPU, requêtes",
+      "name": "price list only: memory per state, CPU, requests",
       "currency": "CHF",
       "daysInMonth": 30,
       "sections": [ {
@@ -32,7 +32,7 @@
       }
     },
     {
-      "name": "surcharges : prix, quantité incluse et paliers, remise de ligne et du contrat, abonnement",
+      "name": "overrides: price, included quantity and tiers, line and contract discount, subscription",
       "currency": "CHF",
       "daysInMonth": 30,
       "sections": [ {
@@ -70,7 +70,7 @@
       }
     },
     {
-      "name": "minimum mensuel",
+      "name": "monthly minimum",
       "currency": "EUR",
       "daysInMonth": 31,
       "sections": [ {
@@ -81,7 +81,7 @@
       "expect": { "total": "100.00", "usage": "0.02", "fixed": "0.00", "minimum": "100.00" }
     },
     {
-      "name": "deux versions dans le mois : quantité incluse et paliers au prorata",
+      "name": "two versions within the month: included quantity and tiers prorated",
       "currency": "CHF",
       "daysInMonth": 30,
       "sections": [
@@ -109,7 +109,7 @@
       }
     },
     {
-      "name": "unité indicative ignorée, unité sans prix montrée non tarifée",
+      "name": "indicative unit ignored, unit without a price shown as unpriced",
       "currency": "CHF",
       "daysInMonth": 30,
       "sections": [ {
@@ -126,7 +126,7 @@
       }
     },
     {
-      "name": "arrondi au demi supérieur, devise sans décimale (JPY) et devise à deux décimales",
+      "name": "round half up, currency without decimals (JPY) and currency with two decimals",
       "currency": "JPY",
       "daysInMonth": 30,
       "sections": [ {
@@ -136,7 +136,7 @@
       "expect": { "total": "2", "sections": [ { "usage": "2", "lines": { "higgs.ingress.requests{class=2xx}": "2" } } ] }
     },
     {
-      "name": "demi-centime arrondi au centime supérieur",
+      "name": "half-cent rounded up to the next cent",
       "currency": "CHF",
       "daysInMonth": 30,
       "sections": [ {
@@ -146,7 +146,7 @@
       "expect": { "total": "0.01" }
     },
     {
-      "name": "surcharge propre à un environnement (analyses gratuites en SBX)",
+      "name": "environment-specific override (free analyses in SBX)",
       "currency": "CHF",
       "daysInMonth": 30,
       "sections": [ {
@@ -160,7 +160,7 @@
       "expect": { "total": "0.50", "sections": [ { "lines": { "bup.analysis.runs{kind=sonar}@SBX": "0.00", "bup.analysis.runs{kind=sonar}@PRD": "0.50" } } ] }
     },
     {
-      "name": "part fixe par application et par application répartie, au prorata des jours",
+      "name": "fixed share per application and per distributed application, prorated by days",
       "currency": "CHF",
       "daysInMonth": 30,
       "sections": [ {
@@ -170,7 +170,7 @@
       "expect": { "total": "25.00", "fixed": "25.00", "usage": "0.00" }
     },
     {
-      "name": "octets en GB (2^30) et stockage en Go × h",
+      "name": "bytes in GB (2^30) and storage in GB × h",
       "currency": "CHF",
       "daysInMonth": 30,
       "sections": [ {

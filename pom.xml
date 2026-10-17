@@ -7,7 +7,7 @@
   <version>0.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Gluonify Plasma (parent)</name>
-  <description>POM parent des composants Gluonify : plateforme Quarkus, versions, et le SDK partagé (gluonify-plasma-sdk).</description>
+  <description>Parent POM of the Gluonify components: Quarkus platform, versions, and the shared SDK (gluonify-plasma-sdk).</description>
 
   <licenses>
     <license>
@@ -87,8 +87,8 @@
     </dependencies>
   </dependencyManagement>
 
-  <!-- Versions de surefire et failsafe fixées pour tous les modules et tous les dépôts enfants : sans elles, la version vient de la distribution
-       de Maven (le paquet Debian de Maven 3.9.9 lie surefire 2.17, qui ne voit pas les tests JUnit 5 et en exécute zéro, constaté sur quark le 2026-10-11). -->
+  <!-- Surefire and failsafe versions pinned for all modules and all child repositories: without them, the version comes from the Maven distribution
+       (the Debian package of Maven 3.9.9 binds surefire 2.17, which does not see JUnit 5 tests and runs none, observed on quark on 2026-10-11). -->
   <build>
     <pluginManagement>
       <plugins>

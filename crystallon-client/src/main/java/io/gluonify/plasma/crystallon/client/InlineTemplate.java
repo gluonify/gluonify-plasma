@@ -4,24 +4,24 @@ import io.gluonify.plasma.crystallon.Check;
 import java.util.Map;
 
 /**
- * Un modèle que l'application envoie avec chaque demande de rendu (voir {@link CrystallonClient#inline(Object)}), au lieu de désigner un modèle
- * stocké dans Crystallon : le nom d'un modèle prédéfini ({@code invoice}, {@code letter}, {@code quote}) ou le modèle lui-même, un objet JSON.
- * Les routes sont {@code POST /v1/render?pdfa=…} et {@code POST /v1/render/validate} ; le corps est {@code {template, data, params}}.
- * Mêmes options, mêmes erreurs, mêmes bornes que pour un modèle stocké ({@link TemplateRef}).
+ * A template that the application sends with every render request (see {@link CrystallonClient#inline(Object)}), instead of designating a template
+ * stored in Crystallon: the name of a preset ({@code invoice}, {@code letter}, {@code quote}) or the template itself, a JSON object.
+ * The routes are {@code POST /v1/render?pdfa=…} and {@code POST /v1/render/validate}; the body is {@code {template, data, params}}.
+ * Same options, same errors, same limits as for a stored template ({@link TemplateRef}).
  *
- * <p>Immuable et sans état : on peut le garder et l'utiliser depuis plusieurs fils. Le modèle y est figé à la création (copie privée : modifier
- * l'objet passé ensuite ne change rien) et renvoyé à chaque appel ; il n'y a pas de notion de version, rien n'est stocké. Le modèle peut porter des
- * {@code params} par défaut ; ceux de la demande l'emportent, puis ceux du modèle, puis ceux du serveur.
+ * <p>Immutable and stateless: it can be kept and used from several threads. The template is frozen at creation (private copy: modifying
+ * the passed object afterwards changes nothing) and sent on every call; there is no notion of version, nothing is stored. The template may carry default
+ * {@code params}; those of the request win, then those of the template, then those of the server.
  *
  * <pre>{@code
- * InlineTemplate quote = crystallon.inline("quote");                                          // modèle prédéfini
- * InlineTemplate own = crystallon.inline(Map.of("extends", "invoice", "theme", Map.of("primary", "#0b5cad")));  // l'application le possède
+ * InlineTemplate quote = crystallon.inline("quote");                                          // a preset
+ * InlineTemplate own = crystallon.inline(Map.of("extends", "invoice", "theme", Map.of("primary", "#0b5cad")));  // the application owns it
  * RenderedPdf pdf = own.render(payload);
  * }</pre>
  */
 public final class InlineTemplate {
     private final CrystallonClient client;
-    /** Le nom d'un modèle prédéfini ({@code String}) ou une copie privée du modèle ({@code Map}). */
+    /** The name of a preset ({@code String}) or a private copy of the template ({@code Map}). */
     private final Object template;
 
     InlineTemplate(final CrystallonClient client, final Object template) {
@@ -29,22 +29,22 @@ public final class InlineTemplate {
         this.template = template;
     }
 
-    /** Rend le document en PDF/A avec les paramètres du modèle, puis ceux du serveur. @param data le payload (record, bean ou {@code Map}) ; {@code null} donne {@code {}} */
+    /** Renders the document as PDF/A with the template's parameters, then the server's. @param data the payload (record, bean or {@code Map}); {@code null} gives {@code {}} */
     public RenderedPdf render(final Object data) {
         return render(data, RenderOptions.DEFAULT);
     }
 
-    /** Rend le document. @param data le payload ; {@code null} donne {@code {}} @param options {@code null} donne {@link RenderOptions#DEFAULT} @throws CrystallonException si Crystallon refuse ou ne répond pas */
+    /** Renders the document. @param data the payload; {@code null} gives {@code {}} @param options {@code null} gives {@link RenderOptions#DEFAULT} @throws CrystallonException if Crystallon refuses or does not answer */
     public RenderedPdf render(final Object data, final RenderOptions options) {
         return client.renderInline(template, data, options == null ? RenderOptions.DEFAULT : options);
     }
 
-    /** Valide le modèle avec ce payload sans produire de PDF : le détail des erreurs et des avertissements. */
+    /** Validates the template with this payload without producing a PDF: the details of errors and warnings. */
     public Check validate(final Object data) {
         return validate(data, RenderOptions.DEFAULT);
     }
 
-    /** Valide le modèle avec ce payload. @param options {@code null} donne {@link RenderOptions#DEFAULT} (seuls ses paramètres comptent) */
+    /** Validates the template with this payload. @param options {@code null} gives {@link RenderOptions#DEFAULT} (only its parameters count) */
     public Check validate(final Object data, final RenderOptions options) {
         return client.validateInline(template, data, options == null ? RenderOptions.DEFAULT : options);
     }

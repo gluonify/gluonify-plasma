@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Format commun des constats (analysis.md § 3.6) : JSON relu à l'identique, identifiants stables, validation, réflexion native. */
+/** Common format of the findings (analysis.md § 3.6): JSON read back identically, stable identifiers, validation, native reflection. */
 class AnalysisFormatTest {
     private final JsonMapper json = JsonMapper.builder().build();
 

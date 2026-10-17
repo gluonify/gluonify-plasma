@@ -1,8 +1,8 @@
 package io.gluonify.plasma.crystallon.client;
 
-/** Quel Jackson le chemin de classes du test contient (réglé par l'exécution surefire : {@code crystallon.test.jackson}). */
+/** Which Jackson the test classpath contains (set by the surefire execution: {@code crystallon.test.jackson}). */
 final class JacksonClasspath {
-    /** {@code both}, {@code 3}, {@code 2}, {@code 2-without-jsr310} ou {@code none}. */
+    /** {@code both}, {@code 3}, {@code 2}, {@code 2-without-jsr310} or {@code none}. */
     static final String EXPECTED = System.getProperty("crystallon.test.jackson", "both");
 
     private JacksonClasspath() {

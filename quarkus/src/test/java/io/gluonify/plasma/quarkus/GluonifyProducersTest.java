@@ -19,7 +19,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** L'application n'écrit rien : le {@code CrystallonClient} injecté vient du producteur par défaut et s'adresse aux faux services. */
+/** The application writes nothing: the injected {@code CrystallonClient} comes from the default producer and talks to the fake services. */
 @QuarkusTest
 class GluonifyProducersTest {
     static GluonifyTestServices services;
@@ -41,10 +41,10 @@ class GluonifyProducersTest {
     void clientInjecteSansConfiguration() {
         assertTrue(crystallon.isResolvable());
         final CrystallonClient client = crystallon.get();
-        assertSame(client, crystallon.get(), "un seul client pour l'application");
+        assertSame(client, crystallon.get(), "a single client for the application");
         final RenderedPdf pdf = client.byName("Gluonify invoice").render(Map.of("date", LocalDate.of(2026, 10, 11)));
         assertArrayEquals(FakeCrystallon.pdf(), pdf.bytes());
-        // le mapper de l'application (Quarkus : dates ISO 8601) écrit le payload
+        // the application's mapper (Quarkus: ISO 8601 dates) writes the payload
         assertTrue(services.crystallon().lastRender().body().contains("\"2026-10-11\""), services.crystallon().lastRender().body());
     }
 

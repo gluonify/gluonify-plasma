@@ -28,9 +28,9 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
-/** Appels HTTP du module (découverte, Charm) : JSON borné, délais, autorité de certification supplémentaire. Pas une API publique. */
+/** The module's HTTP calls (discovery, Charm): bounded JSON, timeouts, extra certificate authority. Not a public API. */
 public final class Http {
-    /** Taille maximale d'une réponse lue (découverte, jetons). */
+    /** Maximum size of a response read (discovery, tokens). */
     public static final int MAX_BODY = 1024 * 1024;
     public static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
     public static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
@@ -38,7 +38,7 @@ public final class Http {
     private Http() {
     }
 
-    /** Une réponse : statut et corps JSON (objet), ou {@code null} si le corps n'est pas un objet JSON. */
+    /** A response: status and JSON body (object), or {@code null} if the body is not a JSON object. */
     public record Response(int status, Map<String, Object> json) {
         public boolean ok() {
             return status / 100 == 2 && json != null;
@@ -46,8 +46,8 @@ public final class Http {
     }
 
     /**
-     * Un client HTTP neuf (jamais dans un champ statique : image native). {@code caFile} : un fichier PEM d'autorités acceptées EN PLUS de celles du
-     * JDK (cluster de développement signé par une autorité locale), ou {@code null}.
+     * A new HTTP client (never in a static field: native image). {@code caFile}: a PEM file of authorities accepted IN ADDITION to those of the
+     * JDK (development cluster signed by a local authority), or {@code null}.
      */
     public static HttpClient client(final Path caFile) {
         final HttpClient.Builder b = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(CONNECT_TIMEOUT)
@@ -122,7 +122,7 @@ public final class Http {
         throw new GeneralSecurityException("no X509TrustManager");
     }
 
-    /** Vrai pour une adresse {@code https}, ou {@code http} vers la boucle locale ({@code localhost}, {@code 127.x}, {@code ::1}) seulement. */
+    /** True for an {@code https} address, or {@code http} to the loopback interface ({@code localhost}, {@code 127.x}, {@code ::1}) only. */
     public static boolean secure(final URI uri) {
         if (uri == null || uri.getScheme() == null || uri.getHost() == null) {
             return false;
@@ -139,13 +139,13 @@ public final class Http {
         return h.equals("localhost") || h.endsWith(".localhost") || h.equals("::1") || h.matches("127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}");
     }
 
-    /** {@code GET} d'un document JSON. @throws IOException réseau, délai, corps trop grand */
+    /** {@code GET} of a JSON document. @throws IOException network, timeout, body too large */
     public static Response getJson(final HttpClient http, final URI uri) throws IOException, InterruptedException {
         final HttpRequest req = HttpRequest.newBuilder(uri).timeout(REQUEST_TIMEOUT).header("Accept", "application/json").GET().build();
         return send(http, req);
     }
 
-    /** {@code POST} d'un formulaire ({@code application/x-www-form-urlencoded}), réponse JSON. */
+    /** {@code POST} of a form ({@code application/x-www-form-urlencoded}), JSON response. */
     public static Response postForm(final HttpClient http, final URI uri, final Map<String, String> form) throws IOException, InterruptedException {
         final HttpRequest req = HttpRequest.newBuilder(uri).timeout(REQUEST_TIMEOUT).header("Accept", "application/json")
                 .header("Content-Type", "application/x-www-form-urlencoded").POST(HttpRequest.BodyPublishers.ofString(form(form))).build();
@@ -173,7 +173,7 @@ public final class Http {
             json = Json.object(new String(body, StandardCharsets.UTF_8));
         }
         catch (final IllegalArgumentException e) {
-            // pas du JSON (page d'un proxy...) : le statut seul
+            // not JSON (proxy page...): the status alone
         }
         return new Response(r.statusCode(), json);
     }

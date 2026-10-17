@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-/** Rotation de la clé de publication : règles de {@link TrustedKeys}, format de {@link KeyRollover}, compatibilité avec un manifeste de style 0.1.0. */
+/** Publication key rotation: rules of {@link TrustedKeys}, format of {@link KeyRollover}, compatibility with a 0.1.0-style manifest. */
 class KeyRotationTest {
     static final Instant NOW = Instant.parse("2026-10-01T00:00:00Z");
     static final Instant RETIRE = NOW.plusSeconds(86400L * 90);
@@ -33,7 +33,7 @@ class KeyRotationTest {
         return m.toJson().getBytes(StandardCharsets.UTF_8);
     }
 
-    /** Publication de transition : manifeste signé par l'ancienne clé, annonce signée par l'ancienne et contresignée par la nouvelle. */
+    /** Transition publication: manifest signed by the old key, announcement signed by the old key and countersigned by the new one. */
     record Transition(byte[] manifest, byte[] sig, byte[] sig2, byte[] rollover, byte[] rsig, byte[] rsig2) {}
 
     static Transition transition(KeyPair oldK, KeyPair newK, long seq, Instant created, Instant retire, Instant expires) {
@@ -51,7 +51,7 @@ class KeyRotationTest {
         return tk.applyRollover(t.manifest, t.sig, t.sig2, t.rollover, t.rsig, t.rsig2, seen, now);
     }
 
-    @Test void rotationCompleteAvecRecouvrementEtFin() throws Exception {
+    @Test void fullRotationWithOverlapAndEnd() throws Exception {
         KeyPair o = gen(), n = gen();
         TrustedKeys tk = TrustedKeys.single(key(o));
         var a = apply(tk, transition(o, n, 5), 4, NOW);
@@ -60,27 +60,27 @@ class KeyRotationTest {
         assertEquals(key(o), a.keys().current());
         assertEquals(RETIRE, a.keys().retireCurrentAfter());
         assertEquals(5, a.keys().sequence());
-        // recouvrement : les deux clés acceptées ; après la bascule : seulement la nouvelle
+        // overlap: both keys accepted; after the switch: only the new one
         assertEquals(2, a.keys().accepted(NOW.plusSeconds(3600)).size());
         assertEquals(List.of(key(n)), a.keys().accepted(RETIRE.plusSeconds(1)));
-        // un manifeste ultérieur signé SEULEMENT par la nouvelle clé est accepté pendant le recouvrement, avec ou sans l'ancienne
+        // a later manifest signed ONLY by the new key is accepted during the overlap, with or without the old one
         byte[] later = bytes(manifest("1.2.0", 6, NOW.plusSeconds(86400L * 200)));
         var v = a.keys().verify(later, ReleaseSigner.sign(later, n.getPrivate()), null, ReleaseManifest::parse, 5, NOW.plusSeconds(86400));
         assertEquals(key(n), v.signer());
-        // fin de la rotation : la nouvelle clé est seule ; elle exige un manifeste signé par elle
+        // end of the rotation: the new key is alone; it requires a manifest signed by itself
         var fin = a.keys().finish(later, ReleaseSigner.sign(later, n.getPrivate()), null, 5, NOW.plusSeconds(86400));
         assertTrue(fin.changed());
         assertNull(fin.keys().next());
         assertEquals(key(n), fin.keys().current());
         assertEquals(List.of(key(n)), fin.keys().accepted(NOW));
-        // l'ancienne clé ne signe plus rien d'accepté
+        // the old key no longer signs anything accepted
         byte[] old = bytes(manifest("1.3.0", 9, NOW.plusSeconds(86400L * 200)));
         assertThrows(ReleaseManifest.Invalid.class, () -> fin.keys().verify(old, ReleaseSigner.sign(old, o.getPrivate()), null, ReleaseManifest::parse, 5, NOW));
-        // terminer deux fois : rien à faire
+        // finishing twice: nothing to do
         assertFalse(fin.keys().finish(later, ReleaseSigner.sign(later, n.getPrivate()), null, 5, NOW).changed());
     }
 
-    @Test void finishRefuseUnManifesteSigneParLAncienneCle() throws Exception {
+    @Test void finishRefusesAManifestSignedByTheOldKey() throws Exception {
         KeyPair o = gen(), n = gen();
         var a = apply(TrustedKeys.single(key(o)), transition(o, n, 5), 0, NOW);
         byte[] m = bytes(manifest("1.2.0", 6, NOW.plusSeconds(86400L * 200)));
@@ -88,75 +88,75 @@ class KeyRotationTest {
         assertThrows(ReleaseManifest.Invalid.class, () -> a.keys().finish(m, ReleaseSigner.sign(m, gen().getPrivate()), null, 0, NOW));
     }
 
-    @Test void downgradeApresLaBasculeRefuse() throws Exception {
+    @Test void downgradeAfterTheSwitchRefused() throws Exception {
         KeyPair o = gen(), n = gen();
         var a = apply(TrustedKeys.single(key(o)), transition(o, n, 5), 0, NOW);
         byte[] m = bytes(manifest("1.2.0", 6, NOW.plusSeconds(86400L * 300)));
         byte[] sigOld = ReleaseSigner.sign(m, o.getPrivate());
-        // avant la bascule : accepté ; après : refusé avec un message explicite
+        // before the switch: accepted; after: refused with an explicit message
         assertNotNull(a.keys().verify(m, sigOld, null, ReleaseManifest::parse, 0, RETIRE.minusSeconds(10)));
         var e = assertThrows(ReleaseManifest.Invalid.class, () -> a.keys().verify(m, sigOld, null, ReleaseManifest::parse, 0, RETIRE.plusSeconds(10)));
-        assertTrue(e.getMessage().contains("retirée"), e.getMessage());
-        // même la version de transition, rejouée après la bascule avec sa seule signature ancienne
+        assertTrue(e.getMessage().contains("retired"), e.getMessage());
+        // even the transition version, replayed after the switch with only its old signature
         Transition t = transition(o, n, 5);
         assertThrows(ReleaseManifest.Invalid.class, () -> a.keys().verify(t.manifest, t.sig, null, ReleaseManifest::parse, 0, RETIRE.plusSeconds(10)));
-        // … mais acceptée par sa contresignature de la nouvelle clé
+        // ... but accepted through its countersignature by the new key
         assertNotNull(a.keys().verify(t.manifest, t.sig, t.sig2, ReleaseManifest::parse, 0, RETIRE.plusSeconds(10)));
     }
 
-    @Test void attaquesContreLAnnonce() throws Exception {
+    @Test void attacksAgainstTheAnnouncement() throws Exception {
         KeyPair o = gen(), n = gen(), x = gen();
         TrustedKeys tk = TrustedKeys.single(key(o));
         Transition t = transition(o, n, 5);
-        // annonce signée par une AUTRE clé que celle de confiance (ou manifeste signé par une inconnue)
+        // announcement signed by ANOTHER key than the trusted one (or manifest signed by an unknown one)
         Transition badManifest = new Transition(t.manifest, ReleaseSigner.sign(t.manifest, x.getPrivate()), t.sig2, t.rollover, t.rsig, t.rsig2);
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, badManifest, 0, NOW));
         Transition badRollSig = new Transition(t.manifest, t.sig, t.sig2, t.rollover, ReleaseSigner.sign(t.rollover, x.getPrivate()), t.rsig2);
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, badRollSig, 0, NOW));
-        // pas de contresignature de la nouvelle clé / contresignature d'une autre clé (faute de frappe : verrouillage)
+        // no countersignature by the new key / countersignature by another key (typo: lock-out)
         assertThrows(ReleaseManifest.Invalid.class, () -> tk.applyRollover(t.manifest, t.sig, t.sig2, t.rollover, t.rsig, null, 0, NOW));
         Transition badCross = new Transition(t.manifest, t.sig, t.sig2, t.rollover, t.rsig, ReleaseSigner.sign(t.rollover, x.getPrivate()));
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, badCross, 0, NOW));
-        // contresignature du manifeste par une autre clé
+        // countersignature of the manifest by another key
         Transition badSig2 = new Transition(t.manifest, t.sig, ReleaseSigner.sign(t.manifest, x.getPrivate()), t.rollover, t.rsig, t.rsig2);
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, badSig2, 0, NOW));
-        // annonce d'un AUTRE manifeste (rejeu d'une annonce ancienne sur un nouveau manifeste)
+        // announcement of ANOTHER manifest (replay of an old announcement on a new manifest)
         Transition other = transition(o, n, 6);
         Transition mixed = new Transition(other.manifest, other.sig, other.sig2, t.rollover, t.rsig, t.rsig2);
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, mixed, 0, NOW));
-        // annonce altérée (clé remplacée) : la signature ne tient plus
+        // tampered announcement (key replaced): the signature no longer holds
         byte[] swapped = new String(t.rollover, StandardCharsets.UTF_8).replace(key(n).der(), key(x).der()).getBytes(StandardCharsets.UTF_8);
         assertThrows(ReleaseManifest.Invalid.class, () -> tk.applyRollover(t.manifest, t.sig, t.sig2, swapped, t.rsig, t.rsig2, 0, NOW));
-        // manifeste expiré, séquence en retard, séquence déjà utilisée par un changement de clé
+        // expired manifest, sequence behind, sequence already used by a key change
         Transition expired = transition(o, n, 5, NOW, RETIRE, NOW.plusSeconds(10));
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, expired, 0, NOW.plusSeconds(60)));
-        assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, t, 9, NOW)); // séquence 5 < 9 : rejeu d'un vieux manifeste
+        assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, t, 9, NOW)); // sequence 5 < 9: replay of an old manifest
         TrustedKeys had = new TrustedKeys(key(o), null, null, 5);
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(had, t, 0, NOW));
-        // date de bascule déjà passée
+        // switch date already past
         Transition late = transition(o, n, 5);
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, late, 0, RETIRE.plusSeconds(1)));
-        // annonce sans contresignature ni signature
+        // announcement without countersignature or signature
         assertThrows(ReleaseManifest.Invalid.class, () -> tk.applyRollover(t.manifest, t.sig, null, t.rollover, null, null, 0, NOW));
-        // annonce de la clé qui signe déjà
+        // announcement of the key that already signs
         Transition self = transition(o, o, 5);
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, self, 0, NOW));
-        // la contresignature seule ne suffit pas à porter l'annonce (le manifeste doit être signé par la clé de confiance)
+        // the countersignature alone is not enough to carry the announcement (the manifest must be signed by the trusted key)
         Transition onlyNew = new Transition(t.manifest, ReleaseSigner.sign(t.manifest, n.getPrivate()), null, t.rollover, t.rsig, t.rsig2);
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, onlyNew, 0, NOW));
     }
 
-    @Test void idempotenceEtRotationConcurrente() throws Exception {
+    @Test void idempotenceAndConcurrentRotation() throws Exception {
         KeyPair o = gen(), n = gen(), m = gen();
         var a = apply(TrustedKeys.single(key(o)), transition(o, n, 5), 0, NOW);
         var again = apply(a.keys(), transition(o, n, 5), 5, NOW);
         assertFalse(again.changed());
         assertEquals(a.keys(), again.keys());
-        // une autre annonce pendant une rotation en cours est refusée
+        // another announcement during an ongoing rotation is refused
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(a.keys(), transition(o, m, 6), 5, NOW));
     }
 
-    @Test void fichierDeClesAllerRetourEtLectureStricte() throws Exception {
+    @Test void keyFileRoundTripAndStrictReading() throws Exception {
         KeyPair o = gen(), n = gen();
         var a = apply(TrustedKeys.single(key(o)), transition(o, n, 5), 0, NOW);
         assertEquals(a.keys(), TrustedKeys.parse(a.keys().toText()));
@@ -170,7 +170,7 @@ class KeyRotationTest {
         assertEquals(key(o), TrustedKeys.Key.ofPem(key(o).pem()));
     }
 
-    @Test void formatDeLAnnonceStrict() throws Exception {
+    @Test void announcementFormatStrict() throws Exception {
         KeyPair o = gen(), n = gen();
         Transition t = transition(o, n, 5);
         KeyRollover r = KeyRollover.parse(t.rollover);
@@ -180,26 +180,26 @@ class KeyRotationTest {
                 good.replace("\"retireOldAfter\":\"" + RETIRE, "\"retireOldAfter\":\"" + NOW.minusSeconds(5)), good.replace("\"nextKey\":\"", "\"nextKey\":\"AAAA"), good.replace("\"version\":\"1.1.0\"", "\"version\":\"../x\"")}) {
             assertThrows(ReleaseManifest.Invalid.class, () -> KeyRollover.parse(bad.getBytes(StandardCharsets.UTF_8)), bad);
         }
-        // recouvrement démesuré (clé volée qui annoncerait un recouvrement de 10 ans)
+        // excessive overlap (stolen key announcing a 10-year overlap)
         assertThrows(ReleaseManifest.Invalid.class, () -> transition(o, n, 5, NOW, NOW.plusSeconds(86400L * 3650), NOW.plusSeconds(86400L * 90)));
     }
 
-    /** Un manifeste signé « à la 0.1.0 » (format inchangé) reste vérifié par l'ancien chemin (une seule clé, ReleaseVerifier.verify) ; les fichiers de rotation sont ignorés. */
-    @Test void manifesteDeStyle010ToujoursVerifieParUnVerificateurAncien() throws Exception {
+    /** A manifest signed "the 0.1.0 way" (unchanged format) is still verified by the old path (a single key, ReleaseVerifier.verify); the rotation files are ignored. */
+    @Test void manifestOfStyle010StillVerifiedByAnOldVerifier() throws Exception {
         KeyPair o = gen(), n = gen();
         Transition t = transition(o, n, 5);
-        // chemin de la 0.1.0 : clé unique, parse strict, aucune lecture des fichiers rollover.json ni .sig2
+        // 0.1.0 path: single key, strict parse, no reading of the rollover.json or .sig2 files
         ReleaseManifest m = ReleaseVerifier.verify(t.manifest, Base64.getEncoder().encode(t.sig), o.getPublic(), ReleaseManifest::parse, 0, NOW);
         assertEquals("1.1.0", m.version());
-        // le manifeste de transition est octet pour octet celui que produisait la 0.1.0 (aucun champ ajouté)
+        // the transition manifest is byte for byte what 0.1.0 produced (no field added)
         assertEquals(m.toJson(), new String(t.manifest, StandardCharsets.UTF_8));
-        // et un manifeste qui porterait un champ de clés serait refusé par ce même vérificateur ancien : c'est POURQUOI l'annonce est dans un fichier séparé
+        // and a manifest carrying a keys field would be refused by that same old verifier: that is WHY the announcement is in a separate file
         String withKeys = new String(t.manifest, StandardCharsets.UTF_8).replace("\"artifacts\":[", "\"nextKey\":\"x\",\n\"artifacts\":[");
         byte[] wk = withKeys.getBytes(StandardCharsets.UTF_8);
         assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(wk, ReleaseSigner.sign(wk, o.getPrivate()), o.getPublic(), ReleaseManifest::parse, 0, NOW));
-        // un nœud 0.1.0 n'a qu'une clé : la même vérification par le nouvel ensemble de clés d'origine donne le même résultat
+        // a 0.1.0 node has only one key: the same verification through the new set of original keys gives the same result
         assertEquals(m, TrustedKeys.single(key(o)).verify(t.manifest, t.sig, null, ReleaseManifest::parse, 0, NOW).manifest());
-        // et la nouvelle clé ne vaut rien pour lui
+        // and the new key is worth nothing to it
         assertThrows(ReleaseManifest.Invalid.class, () -> TrustedKeys.single(key(o)).verify(t.manifest, ReleaseSigner.sign(t.manifest, n.getPrivate()), null, ReleaseManifest::parse, 0, NOW));
     }
 

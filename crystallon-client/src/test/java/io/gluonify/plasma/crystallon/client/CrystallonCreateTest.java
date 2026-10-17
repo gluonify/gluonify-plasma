@@ -14,7 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** {@link CrystallonClient#create()} : l'adresse et le jeton viennent de la résolution de gluonify-plasma-services. */
+/** {@link CrystallonClient#create()}: the address and the token come from the gluonify-plasma-services resolution. */
 class CrystallonCreateTest {
     @TempDir
     Path home;
@@ -78,6 +78,6 @@ class CrystallonCreateTest {
         final CrystallonException ex = assertThrows(CrystallonException.class, () -> client.byId("t").render(Map.of()));
         assertEquals(0, ex.status());
         assertTrue(ex.getMessage().contains("gluonify login x.lan"), ex.getMessage());
-        assertTrue(fake.calls().isEmpty(), "aucun appel sans jeton valable");
+        assertTrue(fake.calls().isEmpty(), "no call without a valid token");
     }
 }

@@ -10,19 +10,19 @@
   </parent>
   <artifactId>gluonify-plasma-crystallon-client</artifactId>
   <name>Gluonify Plasma Crystallon client</name>
-  <description>Client HTTP de gluonify-crystallon (PDF depuis un modèle stocké) : Java 17, sans CDI, Jackson 2 ou 3 détecté à l'exécution.</description>
+  <description>HTTP client for gluonify-crystallon (PDF from a stored template): Java 17, no CDI, Jackson 2 or 3 detected at run time.</description>
 
   <properties>
-    <!-- Module publié pour les applications des clients : Java 17 pur (le parent compile en 25). -->
+    <!-- Module published for customer applications: plain Java 17 (the parent compiles at 25). -->
     <maven.compiler.release>17</maven.compiler.release>
   </properties>
 
   <dependencies>
     <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-sdk</artifactId></dependency>
-    <!-- Résolution sans configuration (adresse et jeton) : jar sans dépendance, Java 17. -->
+    <!-- Resolution without configuration (address and token): dependency-free jar, Java 17. -->
     <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-services</artifactId></dependency>
 
-    <!-- Jackson 2 et Jackson 3 : jamais transitifs, l'application apporte celui qu'elle utilise (détection à l'exécution). -->
+    <!-- Jackson 2 and Jackson 3: never transitive, the application brings the one it uses (run-time detection). -->
     <dependency><groupId>tools.jackson.core</groupId><artifactId>jackson-databind</artifactId><scope>provided</scope></dependency>
     <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId><scope>provided</scope></dependency>
     <dependency><groupId>com.fasterxml.jackson.datatype</groupId><artifactId>jackson-datatype-jsr310</artifactId><scope>provided</scope></dependency>
@@ -36,9 +36,9 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${surefire.version}</version>
         <!--
-          Les mêmes tests tournent avec trois chemins de classes (l'exclusion réelle est vérifiée par les tests) : Jackson 2 et 3 présents
-          (le 3 est préféré), Jackson 3 seul, Jackson 2 seul (avec jsr310). Deux exécutions de plus ne lancent que leur classe : Jackson 2 sans
-          jsr310 (Jackson2NoJavaTime*) et aucun Jackson (NoJackson* : erreur claire).
+          The same tests run with three classpaths (the actual exclusion is verified by the tests): Jackson 2 and 3 present
+          (3 is preferred), Jackson 3 only, Jackson 2 only (with jsr310). Two more executions run only their own class: Jackson 2 without
+          jsr310 (Jackson2NoJavaTime*) and no Jackson at all (NoJackson*: clear error).
         -->
         <executions>
           <execution>

@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-/** {@link Jackson3Codec#of} garde le mapper de l'application tel quel. Ne tourne que si Jackson 3 est présent. */
+/** {@link Jackson3Codec#of} keeps the application's mapper as is. Runs only if Jackson 3 is present. */
 class Jackson3CodecOfTest {
     @Test
     void usesTheMapperOfTheApplication() {
@@ -15,7 +15,7 @@ class Jackson3CodecOfTest {
         Holder.check();
     }
 
-    /** Isolé : le test ne référence Jackson 3 que dans cette classe. */
+    /** Isolated: the test references Jackson 3 only in this class. */
     private static final class Holder {
         static void check() {
             final tools.jackson.databind.ObjectMapper mapper = tools.jackson.databind.json.JsonMapper.builder()

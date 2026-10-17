@@ -14,7 +14,7 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 
 /**
- * Le fichier {@code ~/.gluonify/config.json} (0600), écrit par {@code gluonify login <zone>} : les zones connues du poste et la zone courante.
+ * The file {@code ~/.gluonify/config.json} (0600), written by {@code gluonify login <zone>}: the zones known to the workstation and the current zone.
  *
  * <pre>{@code
  * {
@@ -25,23 +25,23 @@ import java.util.regex.Pattern;
  * }
  * }</pre>
  *
- * Aucun jeton dans ce fichier : ils sont dans {@code ~/.gluonify/tokens/<zone>.json} ({@link DeveloperTokens}).
+ * No token in this file: they are in {@code ~/.gluonify/tokens/<zone>.json} ({@link DeveloperTokens}).
  */
 public final class DeveloperConfig {
-    /** Nom du fichier dans le dossier de Gluonify. */
+    /** File name in the Gluonify folder. */
     public static final String FILE = "config.json";
-    /** Variable d'environnement : un autre dossier que {@code ~/.gluonify}. */
+    /** Environment variable: a folder other than {@code ~/.gluonify}. */
     public static final String ENV_HOME = "GLUONIFY_HOME";
 
     private static final Pattern ZONE = Pattern.compile("[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?");
 
     /**
-     * Une zone connue.
+     * A known zone.
      *
-     * @param name        nom de la zone ({@code gluonify.lan})
-     * @param discovery   adresse du document de découverte
-     * @param environment environnement annoncé à la connexion ({@code SBX}), ou {@code null}
-     * @param caFile      autorité de certification acceptée en plus de celles du JDK (cluster de développement), ou {@code null}
+     * @param name        name of the zone ({@code gluonify.lan})
+     * @param discovery   address of the discovery document
+     * @param environment environment announced at login ({@code SBX}), or {@code null}
+     * @param caFile      certificate authority accepted in addition to those of the JDK (development cluster), or {@code null}
      */
     public record Zone(String name, URI discovery, String environment, Path caFile) {
     }
@@ -58,7 +58,7 @@ public final class DeveloperConfig {
         return new DeveloperConfig(null, Map.of());
     }
 
-    /** Le dossier de Gluonify : {@code GLUONIFY_HOME}, sinon {@code <user.home>/.gluonify}. */
+    /** The Gluonify folder: {@code GLUONIFY_HOME}, otherwise {@code <user.home>/.gluonify}. */
     public static Path home(final Function<String, String> environment, final Function<String, String> properties) {
         final String h = environment.apply(ENV_HOME);
         if (h != null && !h.isBlank()) {
@@ -67,12 +67,12 @@ public final class DeveloperConfig {
         return Path.of(properties.apply("user.home"), ".gluonify");
     }
 
-    /** @return vrai si {@code zone} est un nom de zone admis (minuscules, chiffres, points et tirets ; pas de schéma, de port ni de chemin) */
+    /** @return true if {@code zone} is an accepted zone name (lower case, digits, dots and hyphens; no scheme, port or path) */
     public static boolean validZone(final String zone) {
         return zone != null && ZONE.matcher(zone).matches() && !zone.contains("..");
     }
 
-    /** Lit le fichier ; absent : une configuration vide. @throws GluonifyServicesException si le fichier est illisible */
+    /** Reads the file; absent: an empty configuration. @throws GluonifyServicesException if the file is unreadable */
     public static DeveloperConfig read(final Path home) {
         final Path file = home.resolve(FILE);
         final String text;
@@ -114,7 +114,7 @@ public final class DeveloperConfig {
         return new DeveloperConfig(cur != null && zones.containsKey(cur) ? cur : null, zones);
     }
 
-    /** Écrit le fichier (0600, dossier 0700). */
+    /** Writes the file (0600, folder 0700). */
     public void write(final Path home) {
         final Map<String, Object> zs = new LinkedHashMap<>();
         for (final Zone z : zones.values()) {
@@ -141,7 +141,7 @@ public final class DeveloperConfig {
         }
     }
 
-    /** La zone courante (celle de la dernière connexion). */
+    /** The current zone (that of the last login). */
     public Optional<Zone> current() {
         return current == null ? Optional.empty() : zone(current);
     }
@@ -158,14 +158,14 @@ public final class DeveloperConfig {
         return zones.isEmpty();
     }
 
-    /** Une copie avec cette zone ajoutée ou remplacée, devenue la zone courante. */
+    /** A copy with this zone added or replaced, which becomes the current zone. */
     public DeveloperConfig with(final Zone zone) {
         final Map<String, Zone> z = new LinkedHashMap<>(zones);
         z.put(zone.name(), zone);
         return new DeveloperConfig(zone.name(), z);
     }
 
-    /** Une copie sans cette zone ; si c'était la zone courante, la courante devient la première restante. */
+    /** A copy without this zone; if it was the current zone, the current one becomes the first remaining. */
     public DeveloperConfig without(final String zone) {
         final Map<String, Zone> z = new LinkedHashMap<>(zones);
         z.remove(zone);

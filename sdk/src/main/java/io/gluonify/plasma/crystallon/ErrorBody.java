@@ -3,11 +3,11 @@ package io.gluonify.plasma.crystallon;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- * Corps d'erreur de tous les points d'accès de Crystallon.
+ * Error body of all Crystallon endpoints.
  *
- * @param code    code stable, par exemple {@code CRYSTALLON-0005}
- * @param message message en anglais, sans risque à afficher
- * @param path    pour les problèmes de modèle : endroit dans le JSON du modèle ; absent sinon
+ * @param code    stable code, for example {@code CRYSTALLON-0005}
+ * @param message message in English, safe to display
+ * @param path    for template problems: location in the template JSON; absent otherwise
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ErrorBody(String code, String message, String path) {

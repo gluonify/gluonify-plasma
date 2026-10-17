@@ -3,23 +3,23 @@ package io.gluonify.plasma.analysis;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Locale;
 
-/** Volet qui a produit un constat ; écrit en minuscules dans le JSON. */
+/** Track that produced a finding; written in lowercase in the JSON. */
 public enum FindingKind {
-    /** Vérification de l'exécutable natif (règles {@code N-*}). */
+    /** Check of the native executable ({@code N-*} rules). */
     @JsonProperty("native") NATIVE,
-    /** Vulnérabilités des dépendances. */
+    /** Vulnerabilities of the dependencies. */
     @JsonProperty("deps") DEPS,
-    /** SonarQube (règles {@code gluonify:GN*} et autres). */
+    /** SonarQube ({@code gluonify:GN*} rules and others). */
     @JsonProperty("sonar") SONAR,
-    /** Contrôle de conformité avant la compilation (règles {@code R-*}). */
+    /** Conformity check before compilation ({@code R-*} rules). */
     @JsonProperty("conformity") CONFORMITY,
-    /** Tests d'API (collections Postman). */
+    /** API tests (Postman collections). */
     @JsonProperty("apitest") APITEST,
-    /** Contrôles passifs en ligne. */
+    /** Passive online checks. */
     @JsonProperty("passive") PASSIVE,
-    /** Scan actif ZAP. */
+    /** Active ZAP scan. */
     @JsonProperty("zap") ZAP,
-    /** Référencement des sites. */
+    /** Search-engine optimization of the sites. */
     @JsonProperty("seo") SEO;
 
     public String wire() {

@@ -1,8 +1,8 @@
 package io.gluonify.plasma.fermion.client;
 
 /**
- * Échec d'une compétence avec un {@code errorKind} lisible par la machine : fermion s'en sert pour aiguiller le workflow. Toute autre exception d'un
- * handler est rapportée sans {@code errorKind}.
+ * Failure of a skill with a machine-readable {@code errorKind}: fermion uses it to route the workflow. Any other exception from a
+ * handler is reported without {@code errorKind}.
  */
 public class SkillFailureException extends RuntimeException {
 

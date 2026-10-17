@@ -22,7 +22,7 @@ class UsageContractTest {
         return UsageContract.check(JSON.readTree(json));
     }
 
-    /** {@link #VALID} avec un autre tableau {@code byApp} et un autre {@code unattributedShare} (découpage par indices : aucune expression régulière). */
+    /** {@link #VALID} with another {@code byApp} array and another {@code unattributedShare} (split by indices: no regular expression). */
     private static String withByApp(final String byAppArray, final String unattributedShare) {
         final int from = VALID.indexOf("\"byApp\"");
         final int to = VALID.indexOf("\"futur\"");
@@ -31,15 +31,15 @@ class UsageContractTest {
     }
 
     @Test
-    void exempleDuPlanEstValideEtLesChampsInconnusSontToleres() {
+    void planExampleIsValidAndUnknownFieldsAreTolerated() {
         assertEquals(List.of(), check(VALID));
     }
 
     @Test
-    void champManquant() {
+    void missingField() {
         assertTrue(check(VALID.replace("\"contract\":\"gluonify-usage/1\",", "")).stream().anyMatch(e -> e.startsWith("contract")));
         assertTrue(check(VALID.replace("\"component\":\"gdown\",", "")).contains("component absent"));
-        assertTrue(check(VALID.replaceAll("\"process\":\\{[^}]*\\},", "")).contains("process obligatoire"));
+        assertTrue(check(VALID.replaceAll("\"process\":\\{[^}]*\\},", "")).contains("process required"));
         assertTrue(check(VALID.replace("\"memoryKind\":\"rss\",", "")).stream().anyMatch(e -> e.startsWith("process.memoryKind")));
         assertTrue(check(VALID.replace("\"byApp\"", "\"x\"")).stream().anyMatch(e -> e.startsWith("byApp")));
         assertTrue(check(VALID.replace("\"attribution\":\"estimated\"", "\"attribution\":\"guess\"")).stream().anyMatch(e -> e.startsWith("attribution")));
@@ -48,21 +48,21 @@ class UsageContractTest {
     }
 
     @Test
-    void cpuNegatifOuMauvaisType() {
+    void negativeCpuOrWrongType() {
         assertTrue(check(VALID.replace("1234.5", "-1")).stream().anyMatch(e -> e.startsWith("process.cpuSecondsTotal")));
         assertTrue(check(VALID.replace("812646400", "\"beaucoup\"")).stream().anyMatch(e -> e.startsWith("process.memoryBytes")));
-        assertTrue(check("[]").get(0).contains("objet"));
+        assertTrue(check("[]").get(0).contains("object"));
     }
 
     @Test
-    void noneAvecPartsRefuse() {
-        assertTrue(check(VALID.replace("\"attribution\":\"estimated\"", "\"attribution\":\"none\"")).contains("attribution = none avec des lignes byApp"));
+    void noneWithSharesRefused() {
+        assertTrue(check(VALID.replace("\"attribution\":\"estimated\"", "\"attribution\":\"none\"")).contains("attribution = none with byApp rows"));
         final String ok = withByApp("[]", null).replace("\"attribution\":\"estimated\"", "\"attribution\":\"none\"");
         assertEquals(List.of(), check(ok));
     }
 
     @Test
-    void sommeDesPartsEgaleAuTotalALArrondiPres() {
+    void sumOfSharesEqualsTheTotalUpToRounding() {
         assertTrue(check(VALID.replace("1200.0", "1199.995")).isEmpty());
         assertTrue(check(VALID.replace("1200.0", "900.0")).contains("Σ byApp.cpuSeconds + unattributedShare.cpuSeconds ≠ process.cpuSecondsTotal"));
     }
@@ -88,34 +88,34 @@ class UsageContractTest {
     }
 
     @Test
-    void plusDeCinqCentsLignesRefuseSaufOther() {
+    void moreThanFiveHundredLinesRefusedExceptOther() {
         final StringBuilder rows = new StringBuilder();
         for (int i = 0; i < 501; i++) {
             rows.append(i == 0 ? "" : ",").append("{\"app\":\"a").append(i).append("\",\"cpuSeconds\":0,\"memoryBytes\":1,\"basis\":\"estimated\"}");
         }
         final String many = withByApp("[" + rows + "]", "{\"cpuSeconds\":1234.5,\"memoryBytes\":760000000}");
-        assertTrue(check(many).stream().anyMatch(e -> e.contains("501 lignes")));
+        assertTrue(check(many).stream().anyMatch(e -> e.contains("501 rows")));
         final String other = many.replace("\"a500\"", "\"_other\"");
         assertEquals(List.of(), check(other));
-        assertTrue(check(other.replace("\"a499\"", "\"_other\"")).contains("byApp : une seule ligne _other"));
+        assertTrue(check(other.replace("\"a499\"", "\"_other\"")).contains("byApp : a single _other row"));
     }
 
     @Test
-    void ligneSansIdentiteOuSansBasis() {
+    void lineWithoutIdentityOrWithoutBasis() {
         assertTrue(check(VALID.replace("\"app\":\"shop\",", "")).contains("byApp : app absent"));
         assertTrue(check(VALID.replace("\"basis\":\"estimated\"", "\"basis\":\"?\"")).stream().anyMatch(e -> e.contains(".basis")));
-        // « none » est une attribution du composant, jamais le basis d'une ligne : une ligne est toujours attribuée d'une façon
-        assertTrue(check(VALID.replace("\"basis\":\"estimated\"", "\"basis\":\"none\"")).contains("byApp[shop].basis : measured, estimated ou prorata attendu"));
+        // "none" is an attribution of the component, never the basis of a row: a row is always attributed in some way
+        assertTrue(check(VALID.replace("\"basis\":\"estimated\"", "\"basis\":\"none\"")).contains("byApp[shop].basis : measured, estimated or prorata expected"));
         for (final String basis : List.of("measured", "prorata")) {
             assertEquals(List.of(), check(VALID.replace("\"basis\":\"estimated\"", "\"basis\":\"" + basis + "\"")));
         }
     }
 
     @Test
-    void tailleBorneeEtJsonIllisible() {
+    void boundedSizeAndUnreadableJson() {
         assertEquals(List.of(), UsageContract.check(VALID.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-        assertTrue(UsageContract.check(new byte[UsageContract.MAX_BYTES + 1]).get(0).contains("octets"));
-        assertEquals(List.of("JSON illisible"), UsageContract.check("{pas du json".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-        assertEquals(List.of("réponse absente"), UsageContract.check((byte[]) null));
+        assertTrue(UsageContract.check(new byte[UsageContract.MAX_BYTES + 1]).get(0).contains("bytes"));
+        assertEquals(List.of("unreadable JSON"), UsageContract.check("{not json".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        assertEquals(List.of("response absent"), UsageContract.check((byte[]) null));
     }
 }

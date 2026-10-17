@@ -22,7 +22,7 @@ class DiscoveryTest {
         assertEquals("gluonify.lan", d.zone());
         assertEquals("SBX", d.environment());
         assertEquals("gluonify-cli", d.clientId());
-        assertEquals(List.of("crystallon", "local"), List.copyOf(d.services().keySet()), "adresse en clair hors boucle locale ignorée");
+        assertEquals(List.of("crystallon", "local"), List.copyOf(d.services().keySet()), "clear-text address outside the loopback interface ignored");
         assertEquals(URI.create("https://gluonify.lan/realms/gluonify/.well-known/openid-configuration"), d.openidConfigurationUrl().orElseThrow());
         assertEquals("gluonify-crystallon", d.service("crystallon").orElseThrow().audience());
         assertNull(d.service("local").orElseThrow().audience());
@@ -38,7 +38,7 @@ class DiscoveryTest {
         assertThrows(IllegalArgumentException.class, () -> Json.object("[1]"));
         assertThrows(IllegalArgumentException.class, () -> Json.object("{\"a\":1} x"));
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> Json.object("{\"secret-token\":"));
-        assertFalse(e.getMessage().contains("secret"), "le texte lu n'apparaît jamais dans le message");
+        assertFalse(e.getMessage().contains("secret"), "the text read never appears in the message");
         assertThrows(IllegalArgumentException.class, () -> Json.parse("[".repeat(100)));
     }
 

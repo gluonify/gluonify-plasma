@@ -1,6 +1,6 @@
 # gluonify-plasma-fermion-client
 
-Client WebSocket de **gluonify-fermion** (moteur de workflows BPMN et de règles DMN) pour les applications Quarkus de la plateforme. Un nœud peut soumettre des workflows (`startWorkflow`), exécuter des tâches (beans `SkillHandler`), ou les deux. Protocole : `io.gluonify.plasma.fermion.FermionMsg` (SDK).
+WebSocket client for **gluonify-fermion** (BPMN workflow and DMN rule engine) for the platform's Quarkus applications. A node can submit workflows (`startWorkflow`), run tasks (`SkillHandler` beans), or both. Protocol: `io.gluonify.plasma.fermion.FermionMsg` (SDK).
 
 ```xml
 <dependency>
@@ -11,28 +11,28 @@ Client WebSocket de **gluonify-fermion** (moteur de workflows BPMN et de règles
 
 ## Configuration
 
-| Propriété | Défaut | Rôle |
+| Property | Default | Role |
 |---|---|---|
-| `gluonify.fermion.client.url` | `${GLUONIFY_SERVICE_FERMION_URL:}` | URL de fermion ; vide = résolue par `GluonifyServices` (si `discover`), sinon client inactif |
-| `gluonify.fermion.client.discover` | `true` | sans `url`, chercher fermion par `GluonifyServices.optional("fermion")` (surcharge, plateforme, poste du développeur après `gluonify login`), une fois ; `false` : inactif sans `url` |
-| `gluonify.fermion.client.enabled` | `true` | `false` désactive le client |
-| `gluonify.fermion.client.app-id` | `quarkus.application.name` | identifiant de l'application |
-| `gluonify.fermion.client.node-id` | `${GLUONIFY_REPLICA:0}` | identifiant de la réplique ; le chemin est `/ws/fermion/<app-id>-<node-id>` |
-| `gluonify.fermion.client.self-url` | `${GLUONIFY_SELF_URL:}` | annoncé avec `/q/openapi` dans `Hello` |
-| `gluonify.fermion.client.queue-size` | `100` | `Start` gardés pendant une coupure |
-| `gluonify.fermion.client.reconnect-interval` | `10s` | période du ping et de la reconnexion |
-| `gluonify.fermion.client.heartbeat-interval` | `60s` | période du battement (`progress`) envoyé tant qu'un handler s'exécute (le premier part après une période : une tâche courte n'en envoie aucun) ; `0s` le désactive |
+| `gluonify.fermion.client.url` | `${GLUONIFY_SERVICE_FERMION_URL:}` | fermion URL; empty = resolved by `GluonifyServices` (if `discover`), otherwise the client is inactive |
+| `gluonify.fermion.client.discover` | `true` | without `url`, look for fermion through `GluonifyServices.optional("fermion")` (override, platform, developer workstation after `gluonify login`), once; `false`: inactive without `url` |
+| `gluonify.fermion.client.enabled` | `true` | `false` disables the client |
+| `gluonify.fermion.client.app-id` | `quarkus.application.name` | application identifier |
+| `gluonify.fermion.client.node-id` | `${GLUONIFY_REPLICA:0}` | replica identifier; the path is `/ws/fermion/<app-id>-<node-id>` |
+| `gluonify.fermion.client.self-url` | `${GLUONIFY_SELF_URL:}` | announced with `/q/openapi` in `Hello` |
+| `gluonify.fermion.client.queue-size` | `100` | `Start` messages kept during a disconnection |
+| `gluonify.fermion.client.reconnect-interval` | `10s` | ping and reconnection period |
+| `gluonify.fermion.client.heartbeat-interval` | `60s` | period of the heartbeat (`progress`) sent while a handler is running (the first one is sent after one period: a short task sends none); `0s` disables it |
 
-À ajouter dans l'application (gros messages fragmentés) :
+Add to the application (large messages are fragmented):
 
 ```properties
 quarkus.websockets-next.client.max-frame-size=4194304
 quarkus.websockets-next.client.max-message-size=83886080
 ```
 
-**Aucun bean à écrire pour le jeton** : sans `FermionTokenProvider` de l'application, le module produit `FermionTokenProvider.gluonify()` (`@DefaultBean`, classe `GluonifyTokenProducer`) : le jeton résolu par `GluonifyServices` à chaque connexion, c'est-à-dire le jeton d'application sur la plateforme (`"uses": ["fermion"]`) et le jeton du développeur (`gluonify login`, renouvelé) sur le poste. Un bean `FermionTokenProvider` de l'application (jeton Charm d'audience `gluonify-fermion`) le remplace : le jeton part dans la première trame `Auth`, jamais dans l'URL, puis vient le `Hello` (compétences, workflows utilisés, OpenAPI). Avec `"uses": ["fermion"]` dans l'appspec, la plateforme fournit ce jeton (sujet `app:<nom>`, rôle `gluonify:fermion:user`, renouvelé par l'agent du nœud) (fichier de `GLUONIFY_FERMION_TOKEN_FILE`, relu à chaque connexion), que le fournisseur par défaut lit déjà ; `FermionTokenProvider.platform()` en est la version stricte (variable absente : `IllegalStateException`).
+**No bean to write for the token**: without an application `FermionTokenProvider`, the module produces `FermionTokenProvider.gluonify()` (`@DefaultBean`, class `GluonifyTokenProducer`): the token resolved by `GluonifyServices` on each connection, that is the application token on the platform (`"uses": ["fermion"]`) and the developer token (`gluonify login`, renewed) on the workstation. An application `FermionTokenProvider` bean (Charm token with audience `gluonify-fermion`) replaces it: the token goes in the first `Auth` frame, never in the URL, then comes the `Hello` (skills, workflows used, OpenAPI). With `"uses": ["fermion"]` in the appspec, the platform provides this token (subject `app:<name>`, role `gluonify:fermion:user`, renewed by the node agent) (file from `GLUONIFY_FERMION_TOKEN_FILE`, re-read on each connection), which the default provider already reads; `FermionTokenProvider.platform()` is its strict version (variable absent: `IllegalStateException`).
 
-## Exemple de handler
+## Handler example
 
 ```java
 @ApplicationScoped
@@ -40,27 +40,27 @@ public class StoreDocument implements SkillHandler {
     public String action() { return "DOC_STORE"; }
     public List<SkillParam> inputs() { return List.of(SkillParam.of("uuid", "STRING")); }
     public List<SkillParam> outputs() { return List.of(SkillParam.of("size", "LONG")); }
-    public List<Translation> descriptions() {   // les cinq langues, ou aucune
+    public List<Translation> descriptions() {   // all five languages, or none
         return SkillHandler.translations("Store a document", "Archive un document", "Archiva un documento", "Archivia un documento", "Archiviert ein Dokument");
     }
     public Map<String, Object> handle(TaskContext ctx) {
-        String uuid = ctx.getString("uuid");     // SkillFailureException MISSING_PARAMETER si absent
+        String uuid = ctx.getString("uuid");     // SkillFailureException MISSING_PARAMETER if absent
         if (!storage.up()) throw new SkillFailureException("STORAGE_UNAVAILABLE", "storage is down");
         return Map.of("size", storage.put(uuid));
     }
 }
 ```
 
-`TaskContext` : `getString`, `getLong`, `getBoolean`, `getMap`, `getList(clé, type)`, `get(clé, type)`, `optional(clé, type)`, `has`. Les handlers tournent hors du thread d'événements, **en parallèle** (`InboundProcessingMode.CONCURRENT`) : une tâche longue (build natif, attente d'une décision humaine) ne retarde pas les autres commandes du nœud, et chaque `Result` part dès la fin de sa tâche (fermion les apparie par `correlationId`). Un handler doit donc être sûr en accès concurrent.
-Il porte aussi `stepId()` (l’étape BPMN, la même compétence pouvant servir deux fois dans un workflow ; le `Result` la renvoie tout seul) et `organization()` (l’organisation de l’exécution, posée par fermion). Avec `correlationId`, `stepId` est une bonne clé d’idempotence : fermion renvoie la tâche en cours à un nœud qui se reconnecte. `startWorkflow(workflow, correlationId, globalTransactionId, payload, organization)` fixe l’organisation de l’exécution (nœuds de la plateforme).
+`TaskContext`: `getString`, `getLong`, `getBoolean`, `getMap`, `getList(key, type)`, `get(key, type)`, `optional(key, type)`, `has`. Handlers run off the event thread, **in parallel** (`InboundProcessingMode.CONCURRENT`): a long task (native build, waiting for a human decision) does not delay the node's other commands, and each `Result` is sent as soon as its task ends (fermion matches them by `correlationId`). A handler must therefore be safe under concurrent access.
+It also carries `stepId()` (the BPMN step, since the same skill can be used twice in a workflow; the `Result` returns it by itself) and `organization()` (the organization of the execution, set by fermion). Together with `correlationId`, `stepId` is a good idempotency key: fermion resends the task in progress to a node that reconnects. `startWorkflow(workflow, correlationId, globalTransactionId, payload, organization)` sets the organization of the execution (platform nodes).
 
-## Comportement
+## Behavior
 
-- Battement : tant qu'un handler tourne, un `Progress` (`correlationId`, `action`, `stepId`) part toutes les `heartbeat-interval` ; fermion ne renvoie pas une tâche dont le nœud bat. `SkillHandler.expectedDuration()` (facultative, annoncée dans `Hello` en ISO-8601) couvre ce que le battement ne voit pas, par exemple une validation humaine de plusieurs jours que le nœud garde hors du handler.
+- Heartbeat: while a handler runs, a `Progress` (`correlationId`, `action`, `stepId`) is sent every `heartbeat-interval`; fermion does not resend a task whose node is beating. `SkillHandler.expectedDuration()` (optional, announced in `Hello` in ISO-8601) covers what the heartbeat cannot see, for example a multi-day human validation that the node keeps outside the handler.
 
-- Reconnexion : tâche planifiée qui ping (5 s) et reconnecte ; un connecteur NEUF par tentative (un connecteur réutilisé accumule des en-têtes jusqu'au HTTP 431).
-- `startWorkflow(workflow, correlationId, [globalTransactionId], payload)` : pendant une coupure, le `Start` va dans une file bornée, rejouée dans l'ordre après `Auth` et `Hello`. File pleine : `FermionQueueFullException`. Client inactif : `FermionClientException`.
-- `announceUsage()` ré-annonce compétences et workflows (`WorkflowUsage`) ; `onWorkflowError((correlationId, message) -> …)` reçoit les refus ; `isConnected()`.
-- Natif : les types du SDK sont dans `Reflection.java` ; ni `HttpClient` ni `Random` statiques.
+- Reconnection: a scheduled task that pings (5 s) and reconnects; a NEW connector per attempt (a reused connector accumulates headers until HTTP 431).
+- `startWorkflow(workflow, correlationId, [globalTransactionId], payload)`: during a disconnection, the `Start` goes into a bounded queue, replayed in order after `Auth` and `Hello`. Queue full: `FermionQueueFullException`. Inactive client: `FermionClientException`.
+- `announceUsage()` re-announces skills and workflows (`WorkflowUsage`); `onWorkflowError((correlationId, message) -> …)` receives refusals; `isConnected()`.
+- Native: the SDK types are in `Reflection.java`; no static `HttpClient` or `Random`.
 
-Tests : `mvn clean verify` (faux serveur WebSocket dans les tests, aucun service externe).
+Tests: `mvn clean verify` (fake WebSocket server in the tests, no external service).

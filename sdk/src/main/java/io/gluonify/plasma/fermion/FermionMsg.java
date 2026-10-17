@@ -8,15 +8,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Protocole entre un nœud applicatif et gluonify-fermion (moteur de workflows BPMN et de règles DMN), sur WebSocket (texte, JSON, champ « t »).
- * Le nœud ouvre la connexion puis s'authentifie dans son premier message — jamais dans l'URL :
+ * Protocol between an application node and gluonify-fermion (BPMN workflow and DMN rules engine), over WebSocket (text, JSON, field "t").
+ * The node opens the connection then authenticates in its first message — never in the URL:
  * <ul>
- *   <li>nœud -> fermion : {@link Auth} (jeton Charm), puis {@link Hello} (compétences et workflows utilisés), {@link Start} (soumettre un workflow),
- *       {@link Result} (une tâche est terminée), {@link Progress} (une tâche longue est toujours en cours) ;</li>
- *   <li>fermion -> nœud : {@link Command} (exécuter une tâche), {@link Error} (workflow refusé ou connexion refusée).</li>
+ *   <li>node -> fermion: {@link Auth} (Charm token), then {@link Hello} (skills and workflows used), {@link Start} (submit a workflow),
+ *       {@link Result} (a task is finished), {@link Progress} (a long task is still running);</li>
+ *   <li>fermion -> node: {@link Command} (run a task), {@link Error} (workflow refused or connection refused).</li>
  * </ul>
- * {@code globalTransactionId} ancre une transaction métier entière à travers un éclatement (un dépôt qui devient N documents, chacun avec son
- * {@code correlationId}) : fixé au {@link Start} (par défaut le premier {@code correlationId}) et hérité tel quel par toutes les branches.
+ * {@code globalTransactionId} anchors an entire business transaction across a fan-out (a submission that becomes N documents, each with its own
+ * {@code correlationId}): set at {@link Start} (by default the first {@code correlationId}) and inherited as is by all the branches.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "t")
 @JsonSubTypes({
@@ -29,10 +29,10 @@ import java.util.Map;
         @JsonSubTypes.Type(value = FermionMsg.Error.class, name = "error")
 })
 public sealed interface FermionMsg {
-    /** Version du protocole, annoncée dans {@link Auth}. */
+    /** Protocol version, announced in {@link Auth}. */
     int PROTOCOL = 1;
 
-    /** Premier message du nœud : jeton Charm (audience {@code gluonify-fermion}) et version du protocole. */
+    /** First message from the node: Charm token (audience {@code gluonify-fermion}) and protocol version. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Auth(String token, int protocol) implements FermionMsg {
@@ -41,7 +41,7 @@ public sealed interface FermionMsg {
         }
     }
 
-    /** Annonce du nœud, à la connexion puis à chaque changement : compétences, workflows utilisés, adresse de son OpenAPI. */
+    /** Announcement from the node, on connection then on every change: skills, workflows used, address of its OpenAPI. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Hello(String appId, String nodeId, List<SkillDescriptor> skills, List<WorkflowDescriptor> usedWorkflows, String openApiUrl) implements FermionMsg {
@@ -52,8 +52,8 @@ public sealed interface FermionMsg {
     }
 
     /**
-     * Soumet un workflow. {@code organization} (facultative) est l'organisation de l'exécution, posée par le nœud de confiance qui soumet
-     * (Prism, Bup) : fermion la transmet à chaque tâche à la place de toute valeur {@code organization} de la charge utile.
+     * Submits a workflow. {@code organization} (optional) is the organization of the execution, set by the trusted node that submits
+     * (Prism, Bup): fermion passes it to every task in place of any {@code organization} value of the payload.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -72,10 +72,10 @@ public sealed interface FermionMsg {
     }
 
     /**
-     * Ordre d'exécuter une tâche : {@code action} est le nom de la compétence, {@code stepId} l'identifiant de l'étape dans le workflow (id du
-     * nœud BPMN ; facultatif). Une même compétence peut figurer plusieurs fois dans un workflow ({@code BUP_DEPLOY} en SBX puis en QUA) : le nœud
-     * renvoie {@code stepId} tel quel dans son {@link Result}, et peut s'en servir avec {@code correlationId} comme clé d'idempotence (fermion
-     * renvoie la tâche en cours à un nœud qui se reconnecte).
+     * Order to run a task: {@code action} is the skill name, {@code stepId} the identifier of the step in the workflow (id of the
+     * BPMN node; optional). The same skill may appear several times in a workflow ({@code BUP_DEPLOY} in SBX then in QUA): the node
+     * returns {@code stepId} as is in its {@link Result}, and may use it with {@code correlationId} as an idempotency key (fermion
+     * resends the task in progress to a node that reconnects).
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -90,8 +90,8 @@ public sealed interface FermionMsg {
     }
 
     /**
-     * Fin d'une tâche : succès avec une charge utile, ou échec avec un message et un genre lisible par la machine ({@code errorKind}).
-     * {@code stepId} reprend celui du {@link Command} (facultatif : sans lui, fermion retrouve l'étape qu'il a confiée au nœud).
+     * End of a task: success with a payload, or failure with a message and a machine-readable kind ({@code errorKind}).
+     * {@code stepId} repeats that of the {@link Command} (optional: without it, fermion finds the step it entrusted to the node).
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -113,33 +113,33 @@ public sealed interface FermionMsg {
             return new Result(correlationId, null, action, false, error, errorKind, null, null);
         }
 
-        /** Succès en réponse à {@code command} : reprend sa transaction, son action et son {@code stepId}. */
+        /** Success in response to {@code command}: repeats its transaction, its action and its {@code stepId}. */
         public static Result ok(Command command, Map<String, Object> payload) {
             return new Result(command.correlationId(), command.globalTransactionId(), command.action(), true, null, null, payload, command.stepId());
         }
 
-        /** Échec en réponse à {@code command} : reprend sa transaction, son action et son {@code stepId}. */
+        /** Failure in response to {@code command}: repeats its transaction, its action and its {@code stepId}. */
         public static Result failure(Command command, String error, String errorKind) {
             return new Result(command.correlationId(), command.globalTransactionId(), command.action(), false, error, errorKind, null, command.stepId());
         }
     }
 
     /**
-     * Battement d'une tâche en cours (nœud -> fermion) : le nœud travaille toujours sur la {@link Command} {@code correlationId} + {@code stepId}.
-     * Fermion repousse alors l'échéance au-delà de laquelle il juge le nœud muet et renvoie la tâche ; un nœud qui n'en envoie jamais reste
-     * compatible (l'échéance vient de la durée annoncée par la compétence, {@link SkillDescriptor#expectedDuration()}, ou du réglage de fermion).
-     * {@code message} est un texte libre facultatif (avancement lisible). Un fermion antérieur ignore la trame (erreur de lecture journalisée).
+     * Heartbeat of a task in progress (node -> fermion): the node is still working on the {@link Command} {@code correlationId} + {@code stepId}.
+     * Fermion then pushes back the deadline beyond which it deems the node silent and resends the task; a node that never sends one remains
+     * compatible (the deadline comes from the duration announced by the skill, {@link SkillDescriptor#expectedDuration()}, or from fermion's setting).
+     * {@code message} is an optional free text (readable progress). An earlier fermion ignores the frame (read error logged).
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Progress(String correlationId, String globalTransactionId, String action, String stepId, String message) implements FermionMsg {
-        /** Battement en réponse à {@code command} : reprend sa transaction, son action et son {@code stepId}. */
+        /** Heartbeat in response to {@code command}: repeats its transaction, its action and its {@code stepId}. */
         public static Progress of(Command command, String message) {
             return new Progress(command.correlationId(), command.globalTransactionId(), command.action(), command.stepId(), message);
         }
     }
 
-    /** Refus : connexion (jeton invalide, protocole inconnu) ou workflow (absent, inactif). {@code correlationId} est vide pour un refus de connexion. */
+    /** Refusal: connection (invalid token, unknown protocol) or workflow (missing, inactive). {@code correlationId} is empty for a connection refusal. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Error(String correlationId, String message) implements FermionMsg {}

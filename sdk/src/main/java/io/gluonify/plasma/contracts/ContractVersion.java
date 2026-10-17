@@ -4,22 +4,22 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * Une version du contrat d'une organisation ({@code contracts.md} § 2.2), immuable une fois écrite (seuls l'annulation d'une version à venir et
- * l'approbation d'une version en attente la complètent). L'état ({@code scheduled}, {@code active}, {@code superseded}, {@code cancelled}, {@code pending}) est
- * calculé ({@link Contracts#state}), jamais enregistré.
+ * A version of an organization's contract ({@code contracts.md} § 2.2), immutable once written (only the cancellation of an upcoming version and
+ * the approval of a pending version complete it). The state ({@code scheduled}, {@code active}, {@code superseded}, {@code cancelled}, {@code pending}) is
+ * computed ({@link Contracts#state}), never stored.
  *
- * @param version       entier croissant par organisation, attribué par Higgs
- * @param effectiveFrom instant (ms UTC) d'effet
- * @param createdAt     instant de création
- * @param createdBy     sujet du jeton de l'auteur
- * @param note          raison (1 à 500 caractères)
- * @param fingerprint   {@code sha256:<hex>} du JSON canonique des termes ({@link Contracts#fingerprint})
- * @param terms         les termes
- * @param cancelledAt   annulée (avant son effet) à cet instant ; null sinon
- * @param cancelledBy   auteur de l'annulation
- * @param pending       vrai : en attente d'une approbation (quatre yeux) ; jamais null
- * @param approvedAt    instant de l'approbation
- * @param approvedBy    sujet qui l'a approuvée (jamais l'auteur)
+ * @param version       integer increasing per organization, assigned by Higgs
+ * @param effectiveFrom effective instant (ms UTC)
+ * @param createdAt     creation instant
+ * @param createdBy     subject of the author's token
+ * @param note          reason (1 to 500 characters)
+ * @param fingerprint   {@code sha256:<hex>} of the canonical JSON of the terms ({@link Contracts#fingerprint})
+ * @param terms         the terms
+ * @param cancelledAt   cancelled (before taking effect) at this instant; null otherwise
+ * @param cancelledBy   author of the cancellation
+ * @param pending       true: awaiting an approval (four eyes); never null
+ * @param approvedAt    approval instant
+ * @param approvedBy    subject who approved it (never the author)
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -31,10 +31,10 @@ public record ContractVersion(Integer version, Long effectiveFrom, Long createdA
         if (pending == null) pending = Boolean.FALSE;
     }
 
-    /** Version annulée. */
+    /** Cancelled version. */
     public boolean cancelled() { return cancelledAt != null; }
 
-    /** En attente d'approbation (jamais effective tant qu'elle n'est pas approuvée). */
+    /** Awaiting approval (never effective until approved). */
     public boolean awaitingApproval() { return Boolean.TRUE.equals(pending) && approvedAt == null; }
 
     public ContractVersion cancel(long at, String by) {

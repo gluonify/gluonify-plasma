@@ -12,7 +12,7 @@ import org.junit.jupiter.api.TestFactory;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Jeu d'essai commun de la valorisation (contracts.md § 6.2), rejoué par le calorimètre et Prism : chaque montant au centime. */
+/** Shared pricing test vectors (contracts.md § 6.2), replayed by the calorimeter and Prism: every amount to the cent. */
 class PricingVectorsTest {
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
@@ -44,7 +44,7 @@ class PricingVectorsTest {
             JsonNode es = e.get("sections").get(i);
             Pricing.SectionResult r = st.sections().get(i);
             if (es.has("usage")) assertEquals(es.get("usage").asString(), r.usage(), name + " : usage de la section " + i);
-            if (es.has("usageDiscounted")) assertEquals(es.get("usageDiscounted").asString(), r.usageDiscounted(), name + " : usage remisé " + i);
+            if (es.has("usageDiscounted")) assertEquals(es.get("usageDiscounted").asString(), r.usageDiscounted(), name + " : discounted usage " + i);
             if (es.has("fixed")) assertEquals(es.get("fixed").asString(), r.fixed(), name + " : part fixe " + i);
             if (es.has("lines")) es.get("lines").properties().forEach(l -> {
                 Pricing.Line line = r.lines().stream().filter(x -> x.key().equals(l.getKey())).findFirst().orElse(null);
@@ -53,18 +53,18 @@ class PricingVectorsTest {
             });
             if (es.has("unpriced")) for (JsonNode k : es.get("unpriced")) {
                 Pricing.Line line = r.lines().stream().filter(x -> x.key().equals(k.asString())).findFirst().orElseThrow();
-                assertFalse(line.priced(), name + " : " + k.asString() + " non tarifée");
+                assertFalse(line.priced(), name + " : " + k.asString() + " not priced");
             }
         }
     }
 
     @Test
-    void auMoinsDixVecteurs() throws Exception {
+    void atLeastTenVectors() throws Exception {
         assertTrue(vectors().size() >= 10);
     }
 
     @Test
-    void lignesEtPaliersDetailles() {
+    void detailedLinesAndTiers() {
         ContractTerms.PricingTerms pr = new ContractTerms.PricingTerms("CHF", null, null, null, null, List.of(new ContractTerms.PriceOverride("crystallon.render.pages", null, null, "unit", null, 10L,
                 List.of(new ContractTerms.Tier(100L, "0.01"), new ContractTerms.Tier(null, "0.001")), null)));
         Pricing.Statement st = Pricing.value("CHF", 30, List.of(new Pricing.Section(1, null, pr, null, List.of(new Pricing.Usage("crystallon.render.pages", null, null, "1010")), null, null, null)));
@@ -80,7 +80,7 @@ class PricingVectorsTest {
     }
 
     @Test
-    void entreesInvalidesRefusees() {
+    void invalidEntriesRefused() {
         assertThrows(IllegalArgumentException.class, () -> Pricing.value("CHF", 27, List.of()));
         assertThrows(IllegalArgumentException.class, () -> Pricing.value("chf", 30, List.of()));
         assertThrows(IllegalArgumentException.class, () -> Pricing.value("CHF", 30, List.of(new Pricing.Section(null, null, null, null,

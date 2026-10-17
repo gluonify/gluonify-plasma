@@ -1,23 +1,23 @@
-# gluonify-plasma-cli : la commande `gluonify`
+# gluonify-plasma-cli: the `gluonify` command
 
-Jar exécutable autonome (Java 17) pour le poste du développeur : il connecte le poste à un cluster, pour que le SDK (`gluonify-plasma-services`) trouve les services sans configuration.
+Standalone executable jar (Java 17) for the developer's workstation: it connects the workstation to a cluster, so that the SDK (`gluonify-plasma-services`) finds the services without any configuration.
 
 ```
-java -jar gluonify-plasma-cli-<version>.jar login gluonify.lan     # alias conseillé : alias gluonify='java -jar …/gluonify-plasma-cli.jar'
+java -jar gluonify-plasma-cli-<version>.jar login gluonify.lan     # recommended alias: alias gluonify='java -jar …/gluonify-plasma-cli.jar'
 gluonify status
-gluonify token crystallon                                          # « ok, crystallon at https://adm.gluonify.lan/crystallon (DEVELOPER), expires at … »
+gluonify token crystallon                                          # "ok, crystallon at https://adm.gluonify.lan/crystallon (DEVELOPER), expires at …"
 gluonify logout
-```
+| Command | Effect |
 
 | Commande | Effet |
 |---|---|
-| `login <zone>` | lit la découverte `https://<zone>/.well-known/gluonify` puis la configuration OpenID de Charm, ouvre le navigateur sur `/authorize` (client public `gluonify-cli`, **PKCE S256**, `state`), reçoit le code sur un serveur local à usage unique `http://127.0.0.1:<port libre>/callback` (RFC 8252), vérifie `state` et `iss`, échange le code, écrit `~/.gluonify/tokens/<zone>.json` et `~/.gluonify/config.json` (0600). Options : `--no-browser` (adresse affichée seulement), `--port <n>` (port fixe), `--ca <pem>` (autorité locale, gardée pour la zone), `--discovery <url>`, `--scope <portées>` (défaut `openid`), `--timeout <s>` (défaut 300) |
-| `logout [<zone>]` | révoque au mieux le jeton de rafraîchissement chez Charm, efface les jetons et la zone |
-| `status` | zones, zone courante (`*`), personne, expirations, audiences ; jamais un jeton |
-| `token <service> [--print]` | résout le service exactement comme le SDK et obtient un jeton (renouvelé au besoin) ; n'affiche le jeton qu'avec `--print` |
+| `login <zone>` | reads the discovery document `https://<zone>/.well-known/gluonify`, then the OpenID configuration of Charm, opens the browser on `/authorize` (public client `gluonify-cli`, **PKCE S256**, `state`), receives the code on a single-use local server `http://127.0.0.1:<free port>/callback` (RFC 8252), checks `state` and `iss`, exchanges the code, writes `~/.gluonify/tokens/<zone>.json` and `~/.gluonify/config.json` (0600). Options: `--no-browser` (only prints the address), `--port <n>` (fixed port), `--ca <pem>` (local authority, kept for the zone), `--discovery <url>`, `--scope <scopes>` (default `openid`), `--timeout <s>` (default 300) |
+| `logout [<zone>]` | revokes the refresh token at Charm on a best-effort basis, deletes the tokens and the zone |
+| `status` | zones, current zone (`*`), person, expiry times, audiences; never a token |
+| `token <service> [--print]` | resolves the service exactly like the SDK and obtains a token (renewed if needed); prints the token only with `--print` |
 
-Aucun mot de passe ne passe par la ligne de commande : la connexion se fait dans le navigateur, chez Charm. Codes de sortie : 0, 1 (échec, message en anglais qui dit quoi faire), 2 (usage).
+No password goes through the command line: sign-in happens in the browser, at Charm. Exit codes: 0, 1 (failure, message in English that says what to do), 2 (usage).
 
-Côté cluster (hors de ce dépôt) : Higgs publie `/.well-known/gluonify`, Charm enregistre le client public `gluonify-cli` (PKCE, jetons de rafraîchissement, audiences des services, portée `openid`) et accepte le port variable du bouclage local (RFC 8252 § 7.3 ; aujourd'hui Charm compare `redirect_uri` caractère pour caractère : en attendant, `--port` fixe un port enregistré).
+Cluster side (outside this repository): Higgs publishes `/.well-known/gluonify`, Charm registers the public client `gluonify-cli` (PKCE, refresh tokens, service audiences, scope `openid`) and accepts the variable loopback port (RFC 8252 § 7.3; today Charm compares `redirect_uri` character for character: until then, `--port` fixes a registered port).
 
-`mvn clean verify` : 6 tests contre le faux Charm de `FakeCluster` (connexion PKCE de bout en bout avec un faux navigateur qui suit la redirection, `state` falsifié, `error=access_denied`, délai, découverte indisponible ou en clair, usage).
+`mvn clean verify`: 6 tests against the fake Charm of `FakeCluster` (end-to-end PKCE sign-in with a fake browser that follows the redirect, forged `state`, `error=access_denied`, timeout, discovery unavailable or in clear text, usage).

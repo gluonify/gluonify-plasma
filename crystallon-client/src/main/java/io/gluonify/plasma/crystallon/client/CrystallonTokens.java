@@ -13,26 +13,26 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * D'où vient le jeton Charm présenté à Crystallon ({@code Authorization: Bearer ...}, audience {@code gluonify-crystallon}, rôle
- * {@code gluonify:crystallon:render} pour le rendu). {@link #token()} est appelé à chaque requête : une source peut donc changer en cours de
- * vie (renouvellement d'un fichier, jeton de la personne connectée). Le jeton n'est jamais journalisé par ce module.
+ * Where the Charm token presented to Crystallon comes from ({@code Authorization: Bearer ...}, audience {@code gluonify-crystallon}, role
+ * {@code gluonify:crystallon:render} for rendering). {@link #token()} is called on every request: a source may therefore change during its
+ * lifetime (file renewal, signed-in person's token). The token is never logged by this module.
  */
 public interface CrystallonTokens {
 
-    /** Variable d'environnement : le jeton lui-même. */
+    /** Environment variable: the token itself. */
     String ENV_TOKEN = "GLUONIFY_CRYSTALLON_TOKEN";
-    /** Variable d'environnement : le chemin d'un fichier qui contient le jeton (relu à chaque appel). */
+    /** Environment variable: the path of a file containing the token (re-read on every call). */
     String ENV_TOKEN_FILE = "GLUONIFY_CRYSTALLON_TOKEN_FILE";
 
-    /** @return le jeton à présenter, ou vide pour appeler sans en-tête {@code Authorization} */
+    /** @return the token to present, or empty to call without an {@code Authorization} header */
     Optional<String> token();
 
-    /** Aucun jeton : pas d'en-tête {@code Authorization} (Crystallon répondra 401 s'il en exige un). */
+    /** No token: no {@code Authorization} header (Crystallon will answer 401 if it requires one). */
     static CrystallonTokens none() {
         return Optional::empty;
     }
 
-    /** Un jeton fixe (espaces de début et de fin retirés). @throws IllegalArgumentException si le jeton est vide */
+    /** A fixed token (leading and trailing whitespace stripped). @throws IllegalArgumentException if the token is empty */
     static CrystallonTokens fixed(final String token) {
         Objects.requireNonNull(token, "token");
         final String value = token.strip();
@@ -43,8 +43,8 @@ public interface CrystallonTokens {
     }
 
     /**
-     * Le jeton est lu dans ce fichier <b>à chaque appel</b> (un renouvellement externe est pris en compte), espaces de début et de fin retirés.
-     * Fichier absent ou vide : pas de jeton. Fichier illisible pour une autre raison : {@link CrystallonException} (statut 0).
+     * The token is read from this file <b>on every call</b> (an external renewal is picked up), leading and trailing whitespace stripped.
+     * File missing or empty: no token. File unreadable for another reason: {@link CrystallonException} (status 0).
      */
     static CrystallonTokens file(final Path path) {
         Objects.requireNonNull(path, "path");
@@ -63,8 +63,8 @@ public interface CrystallonTokens {
     }
 
     /**
-     * Le jeton de la personne connectée, fourni à chaque appel par l'application (par exemple le jeton de la requête en cours), pour que
-     * Crystallon voie la personne et non l'application. Une valeur {@code null} ou vide donne pas de jeton.
+     * The signed-in person's token, supplied on every call by the application (for example the token of the current request), so that
+     * Crystallon sees the person and not the application. A {@code null} or empty value means no token.
      */
     static CrystallonTokens forwarding(final Supplier<String> supplier) {
         Objects.requireNonNull(supplier, "supplier");
@@ -75,17 +75,17 @@ public interface CrystallonTokens {
     }
 
     /**
-     * Le jeton d'application que la plateforme fournit à une application qui déclare {@code "uses": ["crystallon"]} : le fichier de
-     * {@code GLUONIFY_CRYSTALLON_TOKEN_FILE}, déposé par l'agent du nœud, relu à chaque appel et renouvelé avant son expiration
-     * (jeton Charm, audience {@code gluonify-crystallon}, rôle {@code gluonify:crystallon:render}, sujet {@code app:<nom>}).
+     * The application token that the platform provides to an application declaring {@code "uses": ["crystallon"]}: the file from
+     * {@code GLUONIFY_CRYSTALLON_TOKEN_FILE}, dropped by the node agent, re-read on every call and renewed before it expires
+     * (Charm token, audience {@code gluonify-crystallon}, role {@code gluonify:crystallon:render}, subject {@code app:<name>}).
      *
-     * @throws IllegalStateException si la variable est absente (pas de {@code crystallon} dans {@code uses}, ou plateforme sans jetons de service)
+     * @throws IllegalStateException if the variable is absent (no {@code crystallon} in {@code uses}, or a platform without service tokens)
      */
     static CrystallonTokens platform() {
         return platform(System::getenv);
     }
 
-    /** Comme {@link #platform()} avec un environnement fourni (tests). */
+    /** Like {@link #platform()} with a supplied environment (tests). */
     static CrystallonTokens platform(final Function<String, String> environment) {
         final String file = environment.apply(ENV_TOKEN_FILE);
         if (file == null || file.isBlank()) {
@@ -96,9 +96,9 @@ public interface CrystallonTokens {
     }
 
     /**
-     * Les jetons d'un service résolu par {@code GluonifyServices} : jeton d'application sur la plateforme, jeton du développeur (renouvelé) sur le
-     * poste, surcharge en test. Un échec de la source (session du développeur expirée, fichier illisible) devient une {@link CrystallonException}
-     * (statut 0) qui garde le message : il dit quoi faire.
+     * The tokens of a service resolved by {@code GluonifyServices}: application token on the platform, developer token (renewed) on the
+     * workstation, override in tests. A failure of the source (developer session expired, unreadable file) becomes a {@link CrystallonException}
+     * (status 0) that keeps the message: it says what to do.
      */
     static CrystallonTokens of(final Endpoint endpoint) {
         Objects.requireNonNull(endpoint, "endpoint");
@@ -112,12 +112,12 @@ public interface CrystallonTokens {
         };
     }
 
-    /** {@code GLUONIFY_CRYSTALLON_TOKEN} s'il est défini, sinon le fichier de {@code GLUONIFY_CRYSTALLON_TOKEN_FILE}, sinon {@link #none()}. */
+    /** {@code GLUONIFY_CRYSTALLON_TOKEN} if defined, otherwise the file from {@code GLUONIFY_CRYSTALLON_TOKEN_FILE}, otherwise {@link #none()}. */
     static CrystallonTokens fromEnvironment() {
         return fromEnvironment(System::getenv);
     }
 
-    /** Comme {@link #fromEnvironment()} avec un environnement fourni (tests). */
+    /** Like {@link #fromEnvironment()} with a supplied environment (tests). */
     static CrystallonTokens fromEnvironment(final Function<String, String> environment) {
         final String token = environment.apply(ENV_TOKEN);
         if (token != null && !token.isBlank()) {

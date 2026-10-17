@@ -3,31 +3,31 @@ package io.gluonify.plasma;
 import java.util.Set;
 
 /**
- * Bolt de gDown ouvert aux applications qui déclarent {@code uses: gdown} (décision du 2026-10-13 ; conception : gluonify-gdown/paas.md, « Bolt pour les applications »).
- * Contrat entre le control-plane (qui émet le certificat et annonce l'adresse) et l'agent (qui pose les variables, le fichier de l'autorité et la règle réseau).
+ * gDown Bolt opened to applications that declare {@code uses: gdown} (decision of 2026-10-13; design: gluonify-gdown/paas.md, "Bolt for applications").
+ * Contract between the control-plane (which issues the certificate and announces the address) and the agent (which sets the variables, the authority file and the network rule).
  */
 public final class GdownBolt {
     private GdownBolt() {}
 
-    /** Port Bolt de gDown : port supplémentaire déclaré, au même numéro sur le nœud ; TLS obligatoire. */
+    /** gDown Bolt port: declared additional port, with the same number on the node; TLS mandatory. */
     public static final int PORT = 7687;
-    /** Clé de la table {@code services} de l'état désiré : {@code bolt+s://<adresse du nœud>:7687} d'une instance prête de gdown (le « : » n'est pas permis dans un nom d'application). */
+    /** Key of the {@code services} table of the desired state: {@code bolt+s://<node address>:7687} of a ready gdown instance (the ":" is not allowed in an application name). */
     public static final String SERVICE_KEY = "gdown:bolt";
-    /** Variable posée dans les applications qui utilisent gdown : adresse Bolt chiffrée ({@code bolt+s://hôte:7687}). */
+    /** Variable set in the applications that use gdown: encrypted Bolt address ({@code bolt+s://host:7687}). */
     public static final String URL_ENV = "GLUONIFY_GDOWN_BOLT_URL";
-    /** Variable posée dans les applications qui utilisent gdown : chemin du fichier PEM de l'autorité interne de la plateforme (Bolt et HTTPS de gDown ; lue par le SDK Python). */
+    /** Variable set in the applications that use gdown: path of the PEM file of the platform's internal authority (gDown Bolt and HTTPS; read by the Python SDK). */
     public static final String CA_FILE_ENV = "GLUONIFY_GDOWN_CA_FILE";
-    /** Secret de l'état désiré (public, envoyé avec les secrets parce qu'il ne passe que par le tunnel) : certificat PEM de l'autorité interne, en base64 sur une ligne. */
+    /** Secret of the desired state (public, sent with the secrets because it only travels through the tunnel): PEM certificate of the internal authority, in base64 on one line. */
     public static final String CA_SECRET = "GLUONIFY_INTERNAL_CA_CERT";
-    /** Dossier de l'hôte (tmpfs) où l'agent écrit l'autorité ; lié en lecture seule au même chemin dans le bac à sable des instances. */
+    /** Host directory (tmpfs) where the agent writes the authority; bound read-only at the same path in the instances' sandbox. */
     public static final String CA_DIR = "/run/gluonify-ca";
-    /** Fichier de l'autorité vu par l'instance. */
+    /** Authority file as seen by the instance. */
     public static final String CA_FILE = CA_DIR + "/gluonify-internal-ca.pem";
 
-    /** Variables posées par la plateforme : jamais fixées par une application. */
+    /** Variables set by the platform: never set by an application. */
     public static final Set<String> RESERVED_ENV = Set.of(URL_ENV, CA_FILE_ENV);
 
-    /** Vrai si l'application utilise gdown (obligatoire ou facultatif). */
+    /** True if the application uses gdown (mandatory or optional). */
     public static boolean usesGdown(java.util.List<String> uses) {
         return uses != null && (uses.contains("gdown") || uses.contains("?gdown"));
     }

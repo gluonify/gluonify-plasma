@@ -1,14 +1,14 @@
 package io.gluonify.plasma.crystallon.client;
 
 /**
- * Échec d'un appel à Crystallon. Les erreurs de Crystallon (corps {@code ErrorBody}) donnent {@link #status()}, {@link #code()} (par exemple
- * {@code CRYSTALLON-0014}), {@link #getMessage()} (le message du serveur, en anglais) et {@link #path()} (l'endroit du problème dans le JSON du
- * modèle, quand il y en a un).
+ * Failure of a call to Crystallon. Crystallon errors ({@code ErrorBody} body) provide {@link #status()}, {@link #code()} (for example
+ * {@code CRYSTALLON-0014}), {@link #getMessage()} (the server message, in English) and {@link #path()} (the location of the problem in the template
+ * JSON, when there is one).
  *
  * <ul>
- *   <li>un 401 ou un 403 sans corps (jeton absent, expiré, ou sans le rôle {@code gluonify:crystallon:render}) : {@code code()} est {@code null} ;</li>
- *   <li>une réponse qui n'est pas un PDF, ou un PDF plus grand que la limite : {@code status()} est le statut reçu, {@code code()} est {@code null} ;</li>
- *   <li>aucune réponse (service injoignable, délai dépassé, appel interrompu) : {@code status()} vaut 0.</li>
+ *   <li>a 401 or 403 without a body (token missing, expired, or without the role {@code gluonify:crystallon:render}): {@code code()} is {@code null};</li>
+ *   <li>a response that is not a PDF, or a PDF larger than the limit: {@code status()} is the status received, {@code code()} is {@code null};</li>
+ *   <li>no response (service unreachable, timeout, interrupted call): {@code status()} is 0.</li>
  * </ul>
  */
 public class CrystallonException extends RuntimeException {
@@ -29,17 +29,17 @@ public class CrystallonException extends RuntimeException {
         this.path = path;
     }
 
-    /** @return le statut HTTP de la réponse, 0 quand il n'y a pas eu de réponse */
+    /** @return the HTTP status of the response, 0 when there was no response */
     public int status() {
         return status;
     }
 
-    /** @return le code d'erreur de Crystallon, ou {@code null} (401/403 sans corps, réponse inattendue, pas de réponse) */
+    /** @return the Crystallon error code, or {@code null} (401/403 without a body, unexpected response, no response) */
     public String code() {
         return code;
     }
 
-    /** @return l'endroit du problème dans le JSON du modèle, ou {@code null} */
+    /** @return the location of the problem in the template JSON, or {@code null} */
     public String path() {
         return path;
     }

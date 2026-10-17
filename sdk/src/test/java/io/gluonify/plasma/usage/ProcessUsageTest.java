@@ -27,14 +27,14 @@ class ProcessUsageTest {
         return new ProcessUsage(proc(), cg(), 100, () -> 100_000, start, () -> 4096);
     }
 
-    /** Un {@code /proc/<pid>/stat} réaliste : comm avec espace et parenthèse, utime 1000, stime 234, 7 fils. */
+    /** A realistic {@code /proc/<pid>/stat}: comm with a space and a parenthesis, utime 1000, stime 234, 7 threads. */
     private void stat(final int utime, final int stime) throws IOException {
         Files.writeString(proc().resolve("stat"),
                 "42 (my (app) x) S 1 42 42 0 -1 4194560 100 0 0 0 " + utime + " " + stime + " 0 0 20 0 7 0 123456 1000000 500 18446744073709551615 0 0\n");
     }
 
     @Test
-    void processusDepuisProc() throws IOException {
+    void processFromProc() throws IOException {
         stat(1000, 234);
         Files.writeString(proc().resolve("status"), "Name:\tapp\nVmPeak:\t  9000 kB\nVmRSS:\t   1234 kB\nThreads:\t7\n");
         final Process p = usage(40_000).process();
@@ -47,18 +47,18 @@ class ProcessUsageTest {
     }
 
     @Test
-    void cpuCumuleEtRemiseAZero() throws IOException {
+    void cumulativeCpuAndReset() throws IOException {
         stat(100, 0);
         final ProcessUsage u = usage(0);
         assertEquals(1.0, u.process().cpuSecondsTotal());
         stat(250, 50);
         assertEquals(3.0, u.process().cpuSecondsTotal());
-        stat(5, 0); // processus relancé : le compteur diminue, l'appelant y voit une remise à zéro
+        stat(5, 0); // restarted process: the counter decreases, the caller sees a reset
         assertEquals(0.05, u.process().cpuSecondsTotal(), 1e-9);
     }
 
     @Test
-    void procAbsentOuIllisibleNeLevePasEtNInventeRien() throws IOException {
+    void procAbsentOrUnreadableDoesNotThrowAndInventsNothing() throws IOException {
         final Process p = new ProcessUsage(tmp.resolve("nope"), tmp.resolve("nope2"), 100, () -> 0, 0, () -> {
             throw new IllegalStateException();
         }).process();
@@ -76,7 +76,7 @@ class ProcessUsageTest {
     }
 
     @Test
-    void cgroupV2DuProcessus() throws IOException {
+    void processCgroupV2() throws IOException {
         Files.writeString(cg().resolve("cgroup.controllers"), "cpu memory\n");
         Files.writeString(proc().resolve("cgroup"), "0::/system.slice/gluonify-app-x-1.service\n");
         final Path dir = Files.createDirectories(cg().resolve("system.slice/gluonify-app-x-1.service"));
@@ -90,7 +90,7 @@ class ProcessUsageTest {
     }
 
     @Test
-    void cgroupDeLaRacineDUnConteneurEtLimiteMax() throws IOException {
+    void containerRootCgroupAndMaxLimit() throws IOException {
         Files.writeString(cg().resolve("cgroup.controllers"), "cpu memory\n");
         Files.writeString(proc().resolve("cgroup"), "0::/\n");
         Files.writeString(cg().resolve("memory.current"), "100\n");
@@ -102,23 +102,23 @@ class ProcessUsageTest {
     }
 
     @Test
-    void cgroupV1OuAbsentDonneNull() throws IOException {
-        assertNull(usage(0).cgroup()); // pas de cgroup.controllers : pas de v2 unifié
+    void cgroupV1OrAbsentGivesNull() throws IOException {
+        assertNull(usage(0).cgroup()); // no cgroup.controllers: no unified v2
         Files.writeString(cg().resolve("cgroup.controllers"), "cpu\n");
         assertNull(usage(0).cgroup()); // v2 mais ni memory.current ni cpu.stat lisibles
     }
 
     @Test
-    void cheminRelatifHorsRacineIgnore() throws IOException {
+    void relativePathOutsideRootIgnored() throws IOException {
         Files.writeString(cg().resolve("cgroup.controllers"), "cpu memory\n");
         Files.writeString(proc().resolve("cgroup"), "0::/../../etc\n");
         assertNull(usage(0).cgroup());
     }
 
     @Test
-    void processusReel() {
+    void realProcess() {
         final Process p = new ProcessUsage().process();
-        // Sous Linux les valeurs existent ; ailleurs (macOS) les champs lisibles seuls : jamais d'exception.
+        // On Linux the values exist; elsewhere (macOS) only the readable fields: never an exception.
         if (Files.isReadable(Path.of("/proc/self/stat"))) {
             assertEquals(true, p.cpuSecondsTotal() >= 0);
             assertEquals(true, p.memoryBytes() > 0);

@@ -6,9 +6,9 @@ import java.util.Optional;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Ce que reçoit un {@link SkillHandler}. Les valeurs de la charge utile viennent du JSON : les getters typés convertissent par Jackson. Un paramètre
- * absent ou d'un autre type lève une {@link SkillFailureException} claire (errorKind {@code MISSING_PARAMETER} ou {@code INVALID_PARAMETER}) ;
- * {@link #optional} renvoie un {@link Optional}.
+ * What a {@link SkillHandler} receives. Payload values come from JSON: the typed getters convert through Jackson. A missing parameter
+ * or one of another type throws a clear {@link SkillFailureException} (errorKind {@code MISSING_PARAMETER} or {@code INVALID_PARAMETER});
+ * {@link #optional} returns an {@link Optional}.
  */
 public record TaskContext(String globalTransactionId, String correlationId, String action, Map<String, Object> payload, ObjectMapper mapper, String stepId) {
 
@@ -20,7 +20,7 @@ public record TaskContext(String globalTransactionId, String correlationId, Stri
         this(globalTransactionId, correlationId, action, payload, mapper, null);
     }
 
-    /** Organisation de l'exécution, posée par fermion (jamais prise dans la charge utile du client), ou {@code null}. */
+    /** Organization of the execution, set by fermion (never taken from the client payload), or {@code null}. */
     public String organization() {
         final Object value = payload.get("organization");
         return value == null ? null : value.toString();
@@ -30,12 +30,12 @@ public record TaskContext(String globalTransactionId, String correlationId, Stri
         return payload.get(key) != null;
     }
 
-    /** Valeur brute ou {@code null}. */
+    /** Raw value or {@code null}. */
     public Object get(final String key) {
         return payload.get(key);
     }
 
-    /** Valeur convertie en {@code type}, obligatoire. */
+    /** Value converted to {@code type}, required. */
     public <T> T get(final String key, final Class<T> type) {
         return optional(key, type).orElseThrow(() -> missing(key));
     }
@@ -107,7 +107,7 @@ public record TaskContext(String globalTransactionId, String correlationId, Stri
         throw invalid(key, "map", null);
     }
 
-    /** Liste dont chaque élément est converti en {@code type}. */
+    /** List whose every element is converted to {@code type}. */
     public <T> List<T> getList(final String key, final Class<T> type) {
         final Object value = payload.get(key);
         if (value == null) {

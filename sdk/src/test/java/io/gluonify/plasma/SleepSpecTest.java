@@ -13,7 +13,7 @@ class SleepSpecTest {
         assertEquals(60, s.freezeAfterSeconds());
         assertEquals(900, s.stopAfterSeconds());
         assertEquals(5000, s.wakeTimeoutMs());
-        assertEquals(3660, new SleepSpec(true, 3600, null, null).stopAfterSeconds(), "arrêt par défaut après le gel");
+        assertEquals(3660, new SleepSpec(true, 3600, null, null).stopAfterSeconds(), "default stop after the freeze");
     }
 
     @Test
@@ -27,10 +27,10 @@ class SleepSpecTest {
 
     @Test
     void wakePolicyIsOptionalAndValidated() {
-        assertNull(new SleepSpec(true, 3, 8, null).wake(), "absent : valeurs du cluster");
+        assertNull(new SleepSpec(true, 3, 8, null).wake(), "absent: cluster values");
         var w = new SleepSpec.Wake(2, new SleepSpec.AdditionalWhen(10, 2, 300, 50, 2, 5));
         assertEquals(2, new SleepSpec(true, 3, 8, null, w).wake().initialReplicas());
-        assertNull(new SleepSpec.AdditionalWhen(null, null, null, null, null, null).stepReplicas(), "champ absent : défaut du cluster");
+        assertNull(new SleepSpec.AdditionalWhen(null, null, null, null, null, null).stepReplicas(), "field absent: cluster default");
         assertThrows(IllegalArgumentException.class, () -> new SleepSpec.Wake(0, null));
         assertThrows(IllegalArgumentException.class, () -> new SleepSpec.AdditionalWhen(-1, null, null, null, null, null));
         assertThrows(IllegalArgumentException.class, () -> new SleepSpec.AdditionalWhen(null, null, null, null, 0, null));
@@ -46,12 +46,12 @@ class SleepSpecTest {
     @Test
     void exclusionCriteria() {
         var on = new SleepSpec(true, 3, 8, null);
-        // une application interne, à ports de pairs, à rôle ou à verrous entre nœuds ne peut pas dormir
+        // an internal application, with peer ports, a role or locks between nodes cannot sleep
         assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "i", null, null, null, null, null, null, null, null, null, null, null, null, true, null, null, null, null, null, null, on));
         assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "i", null, null, null, null, null, null, null, null, null, null, null, null, null, List.of(9100), null, null, null, null, null, on));
         assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "i", null, null, null, null, null, null, null, null, null, null, null, null, null, null, "storage", null, null, null, null, on));
         assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "i", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, List.of("std"), null, null, true, on));
-        // désactivé : les mêmes combinaisons passent
+        // disabled: the same combinations pass
         assertDoesNotThrow(() -> new AppSpec("a", "i", null, null, null, null, null, null, null, null, null, null, null, null, true, null, null, null, null, null, null, SleepSpec.off()));
         assertTrue(new AppSpec("a", "i", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, on).sleepEnabled());
     }

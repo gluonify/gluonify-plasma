@@ -1,26 +1,26 @@
 package io.gluonify.plasma.wg;
 
-/** Réseau superposé (WireGuard) : un sous-réseau privé commun à tous les nœuds et control-planes, une adresse par machine (attribuée de façon déterministe par le control-plane). */
+/** Overlay network (WireGuard): a private subnet common to all nodes and control-planes, one address per machine (assigned deterministically by the control-plane). */
 public final class Overlay {
     private Overlay() {}
 
-    /** Sous-réseau du maillage : ne doit chevaucher ni celui des applications (10.200.0.0/16) ni les réseaux des machines. */
+    /** Mesh subnet: must overlap neither the applications' (10.200.0.0/16) nor the machines' networks. */
     public static final String SUBNET = "10.77.0.0/16";
     public static final int PORT = 51820;
     public static final String INTERFACE = "wg0";
 
-    /** Adresse n°{@code n} du sous-réseau (1 = première machine) ; IllegalStateException quand il est plein. */
+    /** Address no. {@code n} of the subnet (1 = first machine); IllegalStateException when it is full. */
     public static String address(long n) {
-        if (n < 1 || n > 65_533) throw new IllegalStateException("réseau superposé plein (" + SUBNET + ")");
+        if (n < 1 || n > 65_533) throw new IllegalStateException("overlay network full (" + SUBNET + ")");
         return "10.77." + ((n >> 8) & 255) + "." + (n & 255);
     }
 
-    /** Vrai si {@code ip} est dans le sous-réseau du maillage (une connexion qui en vient est venue par le tunnel). */
+    /** True if {@code ip} is in the mesh subnet (a connection coming from it came through the tunnel). */
     public static boolean contains(String ip) {
         return ip != null && ip.startsWith("10.77.");
     }
 
-    /** Clé publique WireGuard : 32 octets en base64 (44 caractères). */
+    /** WireGuard public key: 32 bytes in base64 (44 characters). */
     public static boolean validKey(String k) {
         return k != null && k.matches("[A-Za-z0-9+/]{43}=");
     }

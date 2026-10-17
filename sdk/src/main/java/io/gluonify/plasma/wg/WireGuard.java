@@ -11,11 +11,11 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Gestion de l'interface WireGuard d'une machine (noyau Linux, outils {@code ip} et {@code wg} de wireguard-tools) : clé locale, interface, adresse, pairs. Idempotent :
- * {@link #apply} ramène l'interface à l'état voulu (pairs ajoutés, mis à jour, retirés) sans la recréer. Les commandes sont construites par des fonctions pures (testées).
+ * Management of a machine's WireGuard interface (Linux kernel, {@code ip} and {@code wg} tools of wireguard-tools): local key, interface, address, peers. Idempotent:
+ * {@link #apply} brings the interface back to the desired state (peers added, updated, removed) without recreating it. The commands are built by pure functions (tested).
  */
 public final class WireGuard {
-    /** Un pair du maillage : clé publique, point d'accès sous-jacent (hôte:port UDP) et adresse dans le maillage. */
+    /** A mesh peer: public key, underlying endpoint (host:UDP port) and address in the mesh. */
     public record Peer(String id, String publicKey, String endpoint, String overlay) {}
 
     private final Path keyFile;
@@ -24,7 +24,7 @@ public final class WireGuard {
         this.keyFile = keyFile;
     }
 
-    /** Clé publique de cette machine ; la clé privée est créée au premier appel (0600) et ne quitte jamais le fichier. */
+    /** Public key of this machine; the private key is created on the first call (0600) and never leaves the file. */
     public synchronized String publicKey() throws IOException, InterruptedException {
         if (!Files.exists(keyFile)) {
             Files.createDirectories(keyFile.toAbsolutePath().getParent());
@@ -37,11 +37,11 @@ public final class WireGuard {
         p.getOutputStream().write(Files.readString(keyFile, StandardCharsets.UTF_8).getBytes(StandardCharsets.UTF_8));
         p.getOutputStream().close();
         String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8).strip();
-        if (p.waitFor() != 0 || !Overlay.validKey(out)) throw new IOException("wg pubkey : " + out);
+        if (p.waitFor() != 0 || !Overlay.validKey(out)) throw new IOException("wg pubkey: " + out);
         return out;
     }
 
-    /** Amène l'interface à : adresse {@code self}, port d'écoute, et exactement ces pairs. */
+    /** Brings the interface to: address {@code self}, listen port, and exactly these peers. */
     public synchronized void apply(String self, int port, List<Peer> peers) throws IOException, InterruptedException {
         if (exec(List.of("ip", "link", "show", Overlay.INTERFACE)) != 0) {
             for (List<String> c : createCommands(self, keyFile.toString(), port)) run(c);
@@ -56,7 +56,7 @@ public final class WireGuard {
         for (String k : have) if (!k.isBlank() && !want.contains(k)) run(List.of("wg", "set", Overlay.INTERFACE, "peer", k, "remove"));
     }
 
-    // ---------- fonctions pures (testées)
+    // ---------- pure functions (tested)
 
     static List<List<String>> createCommands(String self, String keyFile, int port) {
         return List.of(
@@ -66,7 +66,7 @@ public final class WireGuard {
                 List.of("ip", "link", "set", Overlay.INTERFACE, "mtu", "1380", "up"));
     }
 
-    /** Un pair : seule son adresse dans le maillage est routée vers lui ({@code allowed-ips} en /32), keepalive pour traverser les NAT. */
+    /** A peer: only its mesh address is routed to it ({@code allowed-ips} as /32), keepalive to traverse NATs. */
     static List<String> peerCommand(Peer p) {
         List<String> c = new ArrayList<>(List.of("wg", "set", Overlay.INTERFACE, "peer", p.publicKey(), "allowed-ips", p.overlay() + "/32", "persistent-keepalive", "25"));
         if (p.endpoint() != null && !p.endpoint().isBlank()) {

@@ -17,7 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** Les sources de jeton, seules puis dans un appel réel (l'en-tête {@code Authorization}). */
+/** The token sources, alone and then in a real call (the {@code Authorization} header). */
 class CrystallonTokensTest {
     private FakeCrystallon fake;
 
@@ -138,11 +138,11 @@ class CrystallonTokensTest {
     void platformLitLeFichierDeposeParLaPlateformeEtSuitSonRenouvellement() throws IOException {
         final Path file = dir.resolve("crystallon.token");
         final CrystallonTokens tokens = CrystallonTokens.platform(Map.of("GLUONIFY_CRYSTALLON_TOKEN_FILE", file.toString())::get);
-        assertEquals(Optional.empty(), tokens.token(), "fichier pas encore déposé : pas de jeton");
+        assertEquals(Optional.empty(), tokens.token(), "file not dropped yet: no token");
         Files.writeString(file, "first\n");
         assertEquals(Optional.of("first"), tokens.token());
         Files.writeString(file, "renewed");
-        assertEquals(Optional.of("renewed"), tokens.token(), "relu à chaque appel");
+        assertEquals(Optional.of("renewed"), tokens.token(), "re-read on every call");
     }
 
     @Test

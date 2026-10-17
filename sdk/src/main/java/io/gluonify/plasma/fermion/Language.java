@@ -1,4 +1,4 @@
 package io.gluonify.plasma.fermion;
 
-/** Langues des textes affichés (les cinq langues des interfaces Gluonify). */
+/** Languages of the displayed texts (the five languages of the Gluonify interfaces). */
 public enum Language { EN, FR, ES, IT, DE }

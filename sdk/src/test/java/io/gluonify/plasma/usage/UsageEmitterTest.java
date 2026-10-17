@@ -17,7 +17,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 class UsageEmitterTest {
-    static final long T0 = 1_791_000_000_000L - (1_791_000_000_000L % 60_000); // une minute pleine
+    static final long T0 = 1_791_000_000_000L - (1_791_000_000_000L % 60_000); // a full minute
     static final UsageRecord.Subject SHOP = new UsageRecord.Subject("acme", "shop", "6f1c0000-0000-4000-8000-000000000001", "service");
     final ObjectMapper json = new ObjectMapper();
 
@@ -25,7 +25,7 @@ class UsageEmitterTest {
         return new UsageMeter("rup", "fs", "n1", "0.7.0", "PRD", 20_000, clock::get, seqs);
     }
 
-    /** Transport de test : rend le statut demandé et garde les corps reçus. */
+    /** Test transport: returns the requested status and keeps the received bodies. */
     static final class Fake implements UsageEmitter.Transport {
         int status = 202;
         final List<String> bodies = new ArrayList<>();
@@ -44,7 +44,7 @@ class UsageEmitterTest {
         UsageMeter m = meter(clock, UsageMeter.memorySeq(42));
         assertTrue(m.add(SHOP, "rup.vfs.stored_bytes", Map.of("kind", "std"), new BigDecimal("0.5")));
         assertTrue(m.add(SHOP, "rup.vfs.stored_bytes", Map.of("kind", "std"), new BigDecimal("0.25")));
-        assertTrue(m.drain().isEmpty(), "la fenêtre en cours n'est pas close");
+        assertTrue(m.drain().isEmpty(), "the current window is not closed");
         clock.set(T0 + 60_000);
         List<UsageRecord> out = m.drain();
         assertEquals(1, out.size());
@@ -71,7 +71,7 @@ class UsageEmitterTest {
     void idsAreStableAndSeqIncreases() {
         AtomicLong clock = new AtomicLong(T0);
         UsageMeter a = meter(clock, UsageMeter.memorySeq(1));
-        UsageMeter b = meter(clock, UsageMeter.memorySeq(2)); // autre nœud, même réplique logique : même id
+        UsageMeter b = meter(clock, UsageMeter.memorySeq(2)); // other node, same logical replica: same id
         a.add(SHOP, "rup.vfs.stored_bytes", Map.of("kind", "std"), 1);
         b.add(SHOP, "rup.vfs.stored_bytes", Map.of("kind", "std"), 1);
         a.add(SHOP, "rup.vfs.stored_bytes", Map.of("kind", "tmp"), 1);
@@ -86,7 +86,7 @@ class UsageEmitterTest {
     void foreignOrUnknownUnitsAndDimsAreRefused() {
         AtomicLong clock = new AtomicLong(T0);
         UsageMeter m = meter(clock, UsageMeter.memorySeq(1));
-        assertFalse(m.add(SHOP, "bup.build.seconds", Map.of(), 1), "unité d'un autre service");
+        assertFalse(m.add(SHOP, "bup.build.seconds", Map.of(), 1), "unit of another service");
         assertFalse(m.add(SHOP, "rup.nothing", Map.of(), 1));
         assertFalse(m.add(SHOP, "rup.vfs.stored_bytes", Map.of("kind", "nas"), 1));
         assertFalse(m.add(SHOP, "rup.vfs.stored_bytes", Map.of(), BigDecimal.valueOf(-1)));
@@ -123,14 +123,14 @@ class UsageEmitterTest {
         m.add(SHOP, "rup.vfs.stored_bytes", Map.of("kind", "std"), 1);
         clock.set(T0 + 60_000);
         e.tick();
-        assertEquals(1, spool.size(), "gardé sur disque");
+        assertEquals(1, spool.size(), "kept on disk");
         assertEquals(-1, e.lastStatus());
 
-        // redémarrage du service : le spool et la suite sont relus
+        // service restart: the spool and the sequence are read back
         UsageSpool again = new UsageSpool(dir, 10_000, 86_400_000L, clock::get);
         assertEquals(1, again.size());
         assertEquals(spool.epoch(), again.epoch());
-        assertEquals(2, again.next(), "la suite continue sans trou");
+        assertEquals(2, again.next(), "the sequence continues without a gap");
 
         Fake up = new Fake();
         UsageEmitter e2 = new UsageEmitter(meter(clock, again), again, () -> up, clock::get);
@@ -170,7 +170,7 @@ class UsageEmitterTest {
         AtomicLong clock = new AtomicLong(T0);
         UsageSpool spool = new UsageSpool(dir, 2, 86_400_000L, clock::get);
         UsageMeter m = meter(clock, spool);
-        UsageEmitter e = new UsageEmitter(m, spool, () -> null, clock::get); // aucun calorimètre configuré
+        UsageEmitter e = new UsageEmitter(m, spool, () -> null, clock::get); // no calorimeter configured
         for (int w = 0; w < 4; w++) {
             m.add(SHOP, "rup.vfs.stored_bytes", Map.of("kind", "std"), 1);
             clock.addAndGet(60_000);
@@ -178,8 +178,8 @@ class UsageEmitterTest {
         }
         assertEquals(2, spool.size());
         assertEquals(2, spool.dropped());
-        assertEquals(2, new UsageSpool(dir, 2, 86_400_000L, clock::get).dropped(), "compteur persisté");
-        // l'âge aussi
+        assertEquals(2, new UsageSpool(dir, 2, 86_400_000L, clock::get).dropped(), "persisted counter");
+        // the age too
         clock.addAndGet(2 * 86_400_000L);
         spool.trim(clock.get());
         assertEquals(0, spool.size());

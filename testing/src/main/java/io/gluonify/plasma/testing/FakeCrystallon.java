@@ -18,27 +18,27 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Un faux Crystallon en mémoire : répond aux routes du client du SDK ({@code POST /v1/templates/{id}/render}, {@code .../by-name/{nom}/render},
- * {@code POST /v1/render}, et leurs {@code /validate}) par un PDF minimal valide (une page) ou une validation réussie, et garde chaque demande
- * ({@link #renders()}). Le jeton attendu est {@link GluonifyTestServices#TOKEN} : un autre jeton reçoit 401, comme le vrai service. Le corps
- * (le JSON du payload) est gardé tel quel : l'application le relit avec sa propre bibliothèque JSON.
+ * An in-memory fake Crystallon: answers the routes of the SDK client ({@code POST /v1/templates/{id}/render}, {@code .../by-name/{name}/render},
+ * {@code POST /v1/render}, and their {@code /validate}) with a valid minimal PDF (one page) or a successful validation, and keeps each request
+ * ({@link #renders()}). The expected token is {@link GluonifyTestServices#TOKEN}: any other token gets 401, like the real service. The body
+ * (the payload JSON) is kept as is: the application reads it back with its own JSON library.
  */
 public final class FakeCrystallon implements AutoCloseable {
     private static final byte[] PDF = minimalPdf();
 
-    /** Le PDF rendu : un PDF minimal valide d'une page vierge (en-tête, catalogue, table des références croisées exacte). Une copie à chaque appel. */
+    /** The rendered PDF: a valid minimal one-page blank PDF (header, catalog, exact cross-reference table). A copy on each call. */
     public static byte[] pdf() {
         return PDF.clone();
     }
 
     /**
-     * Une demande reçue.
+     * A received request.
      *
-     * @param kind     {@code render} ou {@code validate}
-     * @param template le nom ou l'identifiant du modèle (décodé), ou {@code null} pour un modèle envoyé avec la demande ({@code inline})
-     * @param byName   vrai si le modèle est désigné par son nom
-     * @param query    la requête brute ({@code pdfa=false&version=2}), ou {@code null}
-     * @param body     le corps JSON reçu ({@code {"data": ..., "params": ...}}, avec {@code template} pour {@code inline})
+     * @param kind     {@code render} or {@code validate}
+     * @param template the name or identifier of the template (decoded), or {@code null} for a template sent with the request ({@code inline})
+     * @param byName   true if the template is designated by its name
+     * @param query    the raw query ({@code pdfa=false&version=2}), or {@code null}
+     * @param body     the JSON body received ({@code {"data": ..., "params": ...}}, with {@code template} for {@code inline})
      */
     public record Render(String kind, String template, boolean byName, String query, String body) {
     }
@@ -70,17 +70,17 @@ public final class FakeCrystallon implements AutoCloseable {
         server.start();
     }
 
-    /** Adresse de base du faux service ({@code http://127.0.0.1:<port>}). */
+    /** Base address of the fake service ({@code http://127.0.0.1:<port>}). */
     public String url() {
         return "http://127.0.0.1:" + server.getAddress().getPort();
     }
 
-    /** Les demandes reçues, dans l'ordre. */
+    /** The requests received, in order. */
     public List<Render> renders() {
         return List.copyOf(renders);
     }
 
-    /** La dernière demande reçue. @throws IllegalStateException s'il n'y en a aucune */
+    /** The last request received. @throws IllegalStateException if there is none */
     public Render lastRender() {
         final List<Render> r = renders();
         if (r.isEmpty()) {
@@ -89,13 +89,13 @@ public final class FakeCrystallon implements AutoCloseable {
         return r.get(r.size() - 1);
     }
 
-    /** Oublie les demandes reçues et les échecs programmés. */
+    /** Forgets the requests received and the scheduled failures. */
     public void reset() {
         renders.clear();
         failures.clear();
     }
 
-    /** La prochaine demande échoue avec ce statut et ce corps d'erreur ({@code {"code", "message"}}), comme le vrai service. */
+    /** The next request fails with this status and this error body ({@code {"code", "message"}}), like the real service. */
     public FakeCrystallon failNext(final int status, final String code, final String message) {
         failures.add(new Failure(status, code, message));
         return this;
@@ -103,7 +103,7 @@ public final class FakeCrystallon implements AutoCloseable {
 
     private void handle(final HttpExchange ex) throws IOException {
         try {
-            final byte[] body = ex.getRequestBody().readAllBytes(); // toujours lu jusqu'au bout
+            final byte[] body = ex.getRequestBody().readAllBytes(); // always read to the end
             final String path = ex.getRequestURI().getRawPath();
             final Render render = parse(ex.getRequestMethod(), path, ex.getRequestURI().getRawQuery(), new String(body, StandardCharsets.UTF_8));
             if (render == null) {
@@ -158,7 +158,7 @@ public final class FakeCrystallon implements AutoCloseable {
             return null;
         }
         p = p.substring(0, p.length() - "/render".length());
-        // un éventuel préfixe de chemin devant /v1 est admis
+        // an optional path prefix before /v1 is accepted
         final int v1 = p.indexOf("/v1");
         if (v1 < 0) {
             return null;

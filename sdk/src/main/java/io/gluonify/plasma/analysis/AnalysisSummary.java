@@ -8,14 +8,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Résumé d'une analyse de build ({@code BuildRecord.analysis} chez Bup, {@code analysis.md} § 3.6) : un état global et un résumé par volet,
- * {@code null} quand le volet n'existe pas encore. Les champs absents sont omis du JSON.
+ * Summary of a build analysis ({@code BuildRecord.analysis} at Bup, {@code analysis.md} § 3.6): an overall status and a summary per track,
+ * {@code null} when the track does not exist yet. Absent fields are omitted from the JSON.
  *
- * @param status      le plus grave des volets ({@link #overall})
- * @param nativeImage volet natif (écrit {@code native} dans le JSON)
- * @param deps        volet des dépendances
- * @param sonar       volet Sonar
- * @param findings    nombre de constats du rapport complet
+ * @param status      the most serious of the tracks ({@link #overall})
+ * @param nativeImage native track (written {@code native} in the JSON)
+ * @param deps        dependencies track
+ * @param sonar       Sonar track
+ * @param findings    number of findings of the full report
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -25,7 +25,7 @@ public record AnalysisSummary(AnalysisStatus status, @JsonProperty("native") Nat
         if (status == null) status = overall(nativeImage, deps, sonar);
     }
 
-    /** État global : le plus grave des volets présents ({@link AnalysisStatus#SKIPPED} s'il n'y en a aucun). */
+    /** Overall status: the most serious of the tracks present ({@link AnalysisStatus#SKIPPED} if there are none). */
     public static AnalysisStatus overall(NativeSummary n, DepsSummary d, SonarSummary s) {
         return AnalysisStatus.worst(n == null ? null : n.status(), d == null ? null : d.status(), s == null ? null : s.status());
     }
@@ -39,18 +39,18 @@ public record AnalysisSummary(AnalysisStatus status, @JsonProperty("native") Nat
     }
 
     /**
-     * Volet natif.
+     * Native track.
      *
-     * @param status          état du volet
-     * @param reason          code de la raison quand le volet est {@code skipped} ou {@code unavailable} ({@code disabled}, {@code no-output}…), sinon absent
-     * @param arch            architecture de l'exécutable ({@code arm64}, {@code amd64})
-     * @param sizeBytes       taille de l'exécutable
-     * @param sizeDelta       écart relatif avec le dernier build réussi du même dépôt ({@code 0.03} = +3 %), absent sans build précédent
-     * @param glibc           version de glibc la plus récente exigée ({@code 2.34}), absente pour un exécutable statique
-     * @param graalvm         version de GraalVM lue dans l'exécutable ou dans la sortie de native-image, si connue
-     * @param reflectionTypes types enregistrés pour la réflexion (sortie JSON de native-image)
-     * @param resources       ressources incluses (même source)
-     * @param startup         démarrage à froid des nouvelles instances, connu après le déploiement
+     * @param status          track status
+     * @param reason          reason code when the track is {@code skipped} or {@code unavailable} ({@code disabled}, {@code no-output}…), otherwise absent
+     * @param arch            architecture of the executable ({@code arm64}, {@code amd64})
+     * @param sizeBytes       size of the executable
+     * @param sizeDelta       relative difference from the last successful build of the same repository ({@code 0.03} = +3 %), absent without a previous build
+     * @param glibc           most recent glibc version required ({@code 2.34}), absent for a static executable
+     * @param graalvm         GraalVM version read from the executable or from the native-image output, if known
+     * @param reflectionTypes types registered for reflection (native-image JSON output)
+     * @param resources       included resources (same source)
+     * @param startup         cold start of the new instances, known after the deployment
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -66,18 +66,18 @@ public record AnalysisSummary(AnalysisStatus status, @JsonProperty("native") Nat
     }
 
     /**
-     * Démarrage à froid des instances déployées par le build.
+     * Cold start of the instances deployed by the build.
      *
-     * @param medianSeconds médiane du temps total ({@code total}) des instances
-     * @param worstSeconds  le plus long
-     * @param instances     nombre d'instances mesurées
+     * @param medianSeconds median of the total time ({@code total}) of the instances
+     * @param worstSeconds  the longest
+     * @param instances     number of instances measured
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Startup(Double medianSeconds, Double worstSeconds, Integer instances) {
     }
 
-    /** Volet des dépendances (phase A2). {@code counts} : nombre de vulnérabilités par sévérité ({@code critical}, {@code high}…). */
+    /** Dependencies track (phase A2). {@code counts}: number of vulnerabilities per severity ({@code critical}, {@code high}…). */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record DepsSummary(AnalysisStatus status, String reason, Integer components, Db db, Map<String, Integer> counts) {
@@ -87,13 +87,13 @@ public record AnalysisSummary(AnalysisStatus status, @JsonProperty("native") Nat
         }
     }
 
-    /** Base de vulnérabilités utilisée : sa date ({@code 2026-10-11}). */
+    /** Vulnerability database used: its date ({@code 2026-10-11}). */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Db(String date) {
     }
 
-    /** Volet Sonar (phase A3). {@code gate} : verdict de la porte ({@code OK}, {@code ERROR}) ; {@code gluonify} : constats des règles {@code gluonify:*}. */
+    /** Sonar track (phase A3). {@code gate}: verdict of the gate ({@code OK}, {@code ERROR}); {@code gluonify}: findings of the {@code gluonify:*} rules. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record SonarSummary(AnalysisStatus status, String reason, String projectKey, String gate, Map<String, Integer> counts, Integer gluonify) {

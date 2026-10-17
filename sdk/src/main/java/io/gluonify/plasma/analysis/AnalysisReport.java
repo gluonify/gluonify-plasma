@@ -7,18 +7,18 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Rapport complet d'une analyse : le contenu de {@code analysis.json} (dossier du build chez Bup) et la réponse de
- * {@code GET /v1/builds/{id}/analysis}. Les constats sont triés par sévérité (les plus graves d'abord), puis par volet et par règle.
+ * Full report of an analysis: the content of {@code analysis.json} (build directory at Bup) and the response of
+ * {@code GET /v1/builds/{id}/analysis}. Findings are sorted by severity (most serious first), then by track and by rule.
  *
- * @param v        version du format ({@value Finding#VERSION})
- * @param buildId  build analysé, absent hors de Bup
- * @param summary  résumé (le même que {@code BuildRecord.analysis})
- * @param findings constats, jamais {@code null}, non modifiable
+ * @param v        format version ({@value Finding#VERSION})
+ * @param buildId  analysed build, absent outside Bup
+ * @param summary  summary (the same as {@code BuildRecord.analysis})
+ * @param findings findings, never {@code null}, unmodifiable
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record AnalysisReport(Integer v, String buildId, AnalysisSummary summary, List<Finding> findings) {
-    /** Ordre d'affichage : sévérité, bloquant d'abord, volet, règle, identifiant. */
+    /** Display order: severity, blocking first, track, rule, identifier. */
     public static final Comparator<Finding> ORDER = Comparator.comparing(Finding::severity)
             .thenComparing(f -> !f.blocking())
             .thenComparing(Finding::kind)
@@ -33,7 +33,7 @@ public record AnalysisReport(Integer v, String buildId, AnalysisSummary summary,
         if (summary != null && summary.findings() != findings.size()) summary = summary.withFindings(findings.size());
     }
 
-    /** Vrai si au moins un constat ouvert est bloquant. */
+    /** True if at least one open finding is blocking. */
     public boolean blocked() {
         return findings.stream().anyMatch(f -> f.blocking() && f.status() == FindingStatus.OPEN);
     }

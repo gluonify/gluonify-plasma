@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-/** Collecte les beans {@link SkillHandler}, les indexe par action et fournit les compétences du {@code Hello}. */
+/** Collects the {@link SkillHandler} beans, indexes them by action and provides the skills of the {@code Hello}. */
 @ApplicationScoped
 public class SkillHandlerRegistry {
 
@@ -41,7 +41,7 @@ public class SkillHandlerRegistry {
         Log.infov("fermion-client=handlers skills={0}", byAction.keySet());
     }
 
-    /** Des descriptions partielles sont une erreur : toutes les langues ou aucune. */
+    /** Partial descriptions are an error: all languages or none. */
     private static void checkDescriptions(final SkillHandler handler) {
         final List<Translation> descriptions = handler.descriptions();
         if (descriptions == null || descriptions.isEmpty()) {

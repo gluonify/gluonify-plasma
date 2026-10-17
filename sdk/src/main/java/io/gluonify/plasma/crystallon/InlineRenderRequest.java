@@ -5,20 +5,20 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Corps d'une demande de rendu ou de validation d'un modèle envoyé avec la demande ({@code POST /v1/render}, {@code POST /v1/render/validate}).
- * Comme {@link RenderRequest}, mais le modèle fait partie du corps au lieu d'être stocké dans Crystallon. {@code data} n'est jamais
- * {@code null} : sans données, c'est l'objet vide {@code {}} (un corps sans {@code data} ferait rendre l'exemple du modèle par le serveur).
- * {@code params} {@code null} est omis.
+ * Body of a request to render or validate a template sent with the request ({@code POST /v1/render}, {@code POST /v1/render/validate}).
+ * Like {@link RenderRequest}, but the template is part of the body instead of being stored in Crystallon. {@code data} is never
+ * {@code null}: without data, it is the empty object {@code {}} (a body without {@code data} would make the server render the template's example).
+ * A {@code null} {@code params} is omitted.
  *
- * @param template le nom d'un modèle prédéfini (une chaîne : {@code invoice}, {@code letter}, {@code quote}), ou le modèle lui-même (un objet JSON
- *                 une fois sérialisé : {@link Map}, record, bean), éventuellement avec {@code extends} ; jamais {@code null}
- * @param data     le payload du document (un objet JSON une fois sérialisé : record, {@link Map}, bean)
- * @param params   les paramètres de génération, ou {@code null} pour ceux du modèle puis du serveur
+ * @param template the name of a predefined template (a string: {@code invoice}, {@code letter}, {@code quote}), or the template itself (a JSON object
+ *                 once serialized: {@link Map}, record, bean), possibly with {@code extends}; never {@code null}
+ * @param data     the document payload (a JSON object once serialized: record, {@link Map}, bean)
+ * @param params   the generation parameters, or {@code null} for those of the template then of the server
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record InlineRenderRequest(Object template, Object data, RenderParams params) {
 
-    /** @throws NullPointerException si {@code template} est {@code null} */
+    /** @throws NullPointerException if {@code template} is {@code null} */
     public InlineRenderRequest {
         Objects.requireNonNull(template, "template");
         if (data == null) {

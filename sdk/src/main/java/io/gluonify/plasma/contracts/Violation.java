@@ -6,17 +6,17 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
 /**
- * Une règle de contrat non respectée ({@code contracts.md} § 3.2, § 3.4) : forme structurée de {@code details}, traduite par les consoles à partir de {@code code}.
- * {@code message} est la phrase en français de {@code violations} (compatibilité avec les appelants actuels), jamais montrée telle quelle par une console.
+ * A contract rule that is not respected ({@code contracts.md} § 3.2, § 3.4): structured form of {@code details}, translated by the consoles from {@code code}.
+ * {@code message} is the English sentence of {@code violations} (compatibility with current callers), never shown as is by a console.
  *
- * @param code      code stable ({@link #CODES})
- * @param field     champ de la spécification en cause ({@code memoryMb}, {@code uses[2]}…), ou null
- * @param limit     plafond du contrat
- * @param used      usage en place (règles d'organisation)
- * @param requested valeur demandée
- * @param value     valeur refusée (nom d'un service, genre de stockage…)
- * @param source    {@code organization} (le contrat de Higgs) ou {@code top} (limite de l'espace {@code <uuid>.gluonify}, plus stricte)
- * @param message   phrase en français
+ * @param code      stable code ({@link #CODES})
+ * @param field     field of the specification concerned ({@code memoryMb}, {@code uses[2]}...), or null
+ * @param limit     contract cap
+ * @param used      current usage (organization rules)
+ * @param requested requested value
+ * @param value     refused value (name of a service, storage kind...)
+ * @param source    {@code organization} (Higgs's contract) or {@code top} (limit of the {@code <uuid>.gluonify} space, stricter)
+ * @param message   English sentence
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -42,28 +42,28 @@ public record Violation(String code, String field, Long limit, Long used, Long r
     public static final String RESERVED_MEMORY = "reserved-memory";
     public static final String STORAGE = "storage";
     public static final String DOMAINS = "domains";
-    /** Refus à l'application de la commande Raft : un déploiement simultané a pris la place ({@code contracts.md} § 3.5). */
+    /** Refusal when the Raft command is applied: a simultaneous deployment took the room ({@code contracts.md} § 3.5). */
     public static final String CONCURRENT_QUOTA = "concurrent-quota";
     public static final List<String> CODES = List.of(ORGANIZATION_UNKNOWN, ORGANIZATION_SUSPENDED, ORGANIZATION_REQUIRED, ENVIRONMENT_NOT_ALLOWED, SERVICE_NOT_ALLOWED,
             GDOWN_DATABASE_NOT_ALLOWED, DISTRIBUTED_NOT_ALLOWED, LOCKS_NOT_ALLOWED, SLEEP_NOT_ALLOWED, PORTS_NOT_ALLOWED, NAS_NOT_ALLOWED, ROUTE_KIND_NOT_ALLOWED,
             ROUTE_APP_FOREIGN, REPLICAS, MEMORY_PER_REPLICA, SCRATCH_PER_REPLICA, DISTRIBUTED_QUOTA, APPS, RESERVED_MEMORY, STORAGE, DOMAINS, CONCURRENT_QUOTA);
-    /** Règles d'organisation, refaites à l'application de la commande Raft. */
+    /** Organization rules, re-checked when the Raft command is applied. */
     public static final List<String> ORGANIZATION_RULES = List.of(APPS, RESERVED_MEMORY, STORAGE, DOMAINS);
 
     public static final String SOURCE_ORGANIZATION = "organization";
     public static final String SOURCE_TOP = "top";
 
-    /** Dépassement d'un plafond. */
+    /** A cap is exceeded. */
     public static Violation over(String code, String field, long limit, Long used, long requested, String source, String message) {
         return new Violation(code, field, limit, used, requested, null, source, message);
     }
 
-    /** Valeur non permise. */
+    /** Value not allowed. */
     public static Violation refused(String code, String field, String value, String message) {
         return new Violation(code, field, null, null, null, value, SOURCE_ORGANIZATION, message);
     }
 
-    /** Règle d'organisation (somme sur les applications), refaite à l'application de la commande. */
+    /** Organization rule (sum over applications), re-checked when the command is applied. */
     @JsonIgnore
     public boolean organizationRule() { return ORGANIZATION_RULES.contains(code); }
 }

@@ -9,10 +9,10 @@ import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 /**
- * Dépendances système d'un artefact d'application, par distribution : {@code {"debian13": ["libfreetype6", ...]}}.
- * La clé est l'identifiant de distribution de {@code /etc/os-release} ({@code ID} puis {@code VERSION_ID}, sans espace : {@code debian13},
- * {@code ubuntu24.04}) ; ce modèle n'est pas lié à Debian. Les noms de paquets sont validés strictement : ils sont passés tels quels à l'outil de paquets
- * du nœud, qui ne doit jamais les lire comme des options.
+ * System dependencies of an application artifact, per distribution: {@code {"debian13": ["libfreetype6", ...]}}.
+ * The key is the distribution identifier from {@code /etc/os-release} ({@code ID} then {@code VERSION_ID}, without spaces: {@code debian13},
+ * {@code ubuntu24.04}); this model is not tied to Debian. Package names are strictly validated: they are passed as is to the node's package
+ * tool, which must never read them as options.
  */
 public record Requires(Map<String, List<String>> packages) {
     public static final int MAX_PACKAGES = 64;
@@ -37,7 +37,7 @@ public record Requires(Map<String, List<String>> packages) {
         packages = Collections.unmodifiableMap(sorted);
     }
 
-    /** Paquets à installer pour cette distribution (vide si rien n'est déclaré pour elle). */
+    /** Packages to install for this distribution (empty if nothing is declared for it). */
     public List<String> forDistro(String distro) {
         return packages.getOrDefault(distro, List.of());
     }
@@ -46,7 +46,7 @@ public record Requires(Map<String, List<String>> packages) {
         return packages.isEmpty();
     }
 
-    /** Identifiant de distribution à partir des clés {@code ID} et {@code VERSION_ID} de {@code /etc/os-release} : {@code debian} + {@code 13} = {@code debian13}. */
+    /** Distribution identifier from the {@code ID} and {@code VERSION_ID} keys of {@code /etc/os-release}: {@code debian} + {@code 13} = {@code debian13}. */
     public static String distroId(String id, String versionId) {
         String i = id == null ? "" : id.toLowerCase().replaceAll("[^a-z0-9]", "");
         String v = versionId == null ? "" : versionId.toLowerCase().replaceAll("[^a-z0-9.]", "");

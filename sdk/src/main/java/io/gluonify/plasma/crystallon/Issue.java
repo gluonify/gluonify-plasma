@@ -3,12 +3,12 @@ package io.gluonify.plasma.crystallon;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- * Une erreur ou un avertissement de la validation d'un modèle.
+ * An error or a warning from the validation of a template.
  *
- * @param code    {@code CRYSTALLON-00NN} pour une erreur, {@code null} pour un avertissement
- * @param message message en anglais
- * @param path    endroit du problème dans le JSON du modèle (noms de clés et {@code [index]}, par exemple {@code body[3].blocks[0].text}),
- *                {@code null} quand le problème concerne tout le modèle
+ * @param code    {@code CRYSTALLON-00NN} for an error, {@code null} for a warning
+ * @param message message in English
+ * @param path    location of the problem in the template JSON (key names and {@code [index]}, for example {@code body[3].blocks[0].text}),
+ *                {@code null} when the problem concerns the whole template
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Issue(String code, String message, String path) {

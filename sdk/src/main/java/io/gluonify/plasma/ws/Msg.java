@@ -9,11 +9,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Protocole entre un nœud (agent) et un control-plane, sur WebSocket (texte, JSON, champ « t » = type).
- * Le nœud ouvre la connexion (sortante) puis s'authentifie dans son premier message — jamais dans l'URL :
+ * Protocol between a node (agent) and a control-plane, over WebSocket (text, JSON, field "t" = type).
+ * The node opens the (outgoing) connection then authenticates in its first message — never in the URL:
  * <ul>
- *   <li>nœud -> CP : {@link Hello} (identité connue) ou {@link Enroll} (premier démarrage, jeton à usage unique), puis {@link Ready} (une instance devient prête, ou ne l'est plus : tout de suite) et {@link State}
- *       toutes les 5 s, {@link TokensRequest}, {@link ServiceTokensRequest} et {@link Redeploy} (le top a redéployé un namespace) à la demande ;</li>
+ *   <li>node -> CP: {@link Hello} (known identity) or {@link Enroll} (first start, single-use token), then {@link Ready} (an instance becomes ready, or no longer is: immediately) and {@link State}
+ *       every 5 s, {@link TokensRequest}, {@link ServiceTokensRequest} and {@link Redeploy} (the top redeployed a namespace) on demand;</li>
  *   <li>CP -> node: {@link Welcome} or {@link Enrolled}, then {@link Desired} (desired state) whenever it changes, {@link Tokens} and {@link ServiceTokens} as replies,
  *       {@link InstanceReportRequest} and {@link UsageRequest} on demand (report and usage, never waking an application), and {@link Error} (followed by the close) on refusal.</li>
  * </ul>
@@ -57,11 +57,11 @@ import java.util.Map;
         @JsonSubTypes.Type(value = Msg.Error.class, name = "error")
 })
 public sealed interface Msg {
-    // ---- nœud -> control-plane
-    /** Premier message d'un nœud déjà enrôlé. */
+    // ---- node -> control-plane
+    /** First message from an already enrolled node. */
     record Hello(String node, String secret) implements Msg {}
 
-    /** Premier message d'un nœud neuf : consomme un jeton à usage unique ; address vide = adresse source de la connexion. */
+    /** First message from a new node: consumes a single-use token; empty address = source address of the connection. */
     record Enroll(String token, String address, int memoryMb, String arch, String role) implements Msg {
         public Enroll(String token, String address, int memoryMb, String arch) {
             this(token, address, memoryMb, arch, null);
@@ -69,21 +69,21 @@ public sealed interface Msg {
     }
 
     /**
-     * Premier message d'un agent d'INSTALLATION (mode installer de Strange, avant tout enrôlement) : le jeton est celui de la demande d'amorçage (POST /nodes/bootstrap) ; il
-     * n'est pas consommé ici (l'enrôlement du nœud, plus tard, le consomme). Voir gluonify-codex/docs/BOOTSTRAP.md.
+     * First message from an INSTALLATION agent (Strange installer mode, before any enrollment): the token is that of the bootstrap request (POST /nodes/bootstrap); it
+     * is not consumed here (the node's later enrollment consumes it). See gluonify-codex/docs/BOOTSTRAP.md.
      */
     record BootstrapHello(String token, String arch, String os, String version) implements Msg {}
 
-    /** Résultat d'une tâche : status = ok, unchanged (déjà fait : idempotence), failed ou cancelled ; message court, sans secret. */
+    /** Result of a task: status = ok, unchanged (already done: idempotence), failed or cancelled; short message, no secret. */
     record TaskResult(String id, String status, String message) implements Msg {}
 
-    /** Avancement d'une tâche (ligne de sortie de l'installateur, sans secret). */
+    /** Progress of a task (output line of the installer, no secret). */
     record TaskProgress(String id, String message) implements Msg {}
 
-    /** Instances en cours, prêtes (health check Quarkus UP) et génération avec laquelle chacune a démarré ; sert aussi de battement de cœur. */
+    /** Running instances, ready ones (Quarkus health check UP) and the generation with which each started; also serves as a heartbeat. */
     /**
-     * {@code pins} : empreintes des images désignées par une étiquette que CE nœud a résolues (application -> {@link ImagePin}) ; le control-plane enregistre la première
-     * pour tout le cluster (gluonify-codex/provenance.md § 8). Absent d'un ancien agent : vide.
+     * {@code pins}: digests of the images designated by a tag that THIS node resolved (application -> {@link ImagePin}); the control-plane records the first one
+     * for the whole cluster (gluonify-codex/provenance.md § 8). Absent from an old agent: empty.
      */
     record State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures, Host host, Map<String, Startup> startups,
                  Map<String, ImagePin> pins) implements Msg {
@@ -94,37 +94,37 @@ public sealed interface Msg {
             pins = pins == null ? Map.of() : pins;
         }
 
-        /** Compatibilité : état sans empreintes d'images. */
+        /** Compatibility: state without image digests. */
         public State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures, Host host, Map<String, Startup> startups) {
             this(running, ready, generations, metrics, failures, host, startups, Map.of());
         }
 
-        /** Compatibilité : état sans temps de démarrage. */
+        /** Compatibility: state without startup times. */
         public State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures, Host host) {
             this(running, ready, generations, metrics, failures, host, Map.of());
         }
 
-        /** Compatibilité : état sans description de l'hôte. */
+        /** Compatibility: state without host description. */
         public State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures) {
             this(running, ready, generations, metrics, failures, null, Map.of());
         }
 
-        /** Compatibilité : état sans mesures. */
+        /** Compatibility: state without measurements. */
         public State(List<String> running, List<String> ready, Map<String, Long> generations) {
             this(running, ready, generations, Map.of(), Map.of(), null, Map.of());
         }
 
-        /** Compatibilité : état sans générations. */
+        /** Compatibility: state without generations. */
         public State(List<String> running, List<String> ready) {
             this(running, ready, Map.of(), Map.of(), Map.of(), null, Map.of());
         }
     }
 
     /**
-     * Temps de démarrage d'une instance (joint à {@link State}, clé = nom de l'instance), mesurés par l'agent sur le DERNIER démarrage : {@code prepare} (début du démarrage ->
-     * unité lancée : environnement, exécutable, sandbox), {@code listen} (unité lancée -> le port accepte), {@code ready} (unité lancée -> sonde de disponibilité en 200) et
-     * {@code total} (début -> 200), en secondes ; -1 pour une phase non atteinte. {@code at} : fin du démarrage (ms epoch) ; {@code ok} faux = échec ({@code error} : cause courte).
-     * {@code history} : les {@code total} des derniers démarrages réussis (le plus récent en dernier, bornée) ; {@code starts} et {@code failures} : compteurs depuis le lancement de l'agent.
+     * Startup times of an instance (attached to {@link State}, key = instance name), measured by the agent on the LAST start: {@code prepare} (start of startup ->
+     * unit launched: environment, executable, sandbox), {@code listen} (unit launched -> the port accepts), {@code ready} (unit launched -> readiness probe answering 200) and
+     * {@code total} (start -> 200), in seconds; -1 for a phase not reached. {@code at}: end of the startup (epoch ms); {@code ok} false = failure ({@code error}: short cause).
+     * {@code history}: the {@code total}s of the last successful starts (most recent last, bounded); {@code starts} and {@code failures}: counters since the agent was launched.
      */
     record Startup(long at, boolean ok, double prepare, double listen, double ready, double total, String error, long starts, long failures, List<Double> history) {
         public Startup {
@@ -133,45 +133,45 @@ public sealed interface Msg {
     }
 
     /**
-     * Changement de disponibilité d'UNE instance, signalé tout de suite (sans attendre le {@link State} du cycle de 5 s) : {@code ready} vrai quand la sonde de disponibilité
-     * répond 200 pour la première fois après un démarrage, faux quand un contrôle périodique la voit retomber. {@code generation} : génération avec laquelle l'instance a
-     * démarré ; {@code sinceStart} : secondes écoulées entre l'ordre de démarrage et l'observation côté agent (-1 pour une retombée). Le control-plane l'applique aussitôt
-     * (l'ingress route vers l'instance) ; le {@link State} suivant reste la référence et corrige tout écart. Aucune réponse.
+     * Availability change of ONE instance, reported immediately (without waiting for the 5 s cycle {@link State}): {@code ready} true when the readiness probe
+     * answers 200 for the first time after a start, false when a periodic check sees it fall back. {@code generation}: generation with which the instance
+     * started; {@code sinceStart}: seconds elapsed between the start order and the observation on the agent side (-1 for a fall back). The control-plane applies it at once
+     * (the ingress routes to the instance); the next {@link State} remains the reference and corrects any discrepancy. No reply.
      */
     record Ready(String instance, boolean ready, long generation, double sinceStart) implements Msg {}
 
     /**
-     * Accusé de l'agent après avoir appliqué l'état de sommeil voulu d'UNE instance (voir {@link Desired#sleeping()}) : {@code state} = « frozen », « stopped » ou « active »
-     * (l'état atteint) ; {@code ok} faux : la transition a échoué ({@code error} : cause courte, par exemple cgroup.freeze absent) ; {@code ms} : durée de la transition côté agent.
-     * Sert aux évènements et aux mesures ; le control-plane ne bloque jamais dessus. Pas de réponse.
+     * Acknowledgement from the agent after applying the desired sleep state of ONE instance (see {@link Desired#sleeping()}): {@code state} = "frozen", "stopped" or "active"
+     * (the state reached); {@code ok} false: the transition failed ({@code error}: short cause, for example cgroup.freeze missing); {@code ms}: duration of the transition on the agent side.
+     * Used for events and measurements; the control-plane never blocks on it. No reply.
      */
     record Slept(String instance, String state, boolean ok, String error, double ms) implements Msg {}
 
     /**
-     * Description de l'hôte jointe à chaque {@link State} (lue dans /proc par l'agent) : version de l'agent, nombre de processeurs, mémoire utilisée (Mo), charge sur 1 minute,
-     * espace disque libre du répertoire de données (Mo) et durée de fonctionnement de la machine (secondes). Une valeur inconnue vaut -1 (0 pour {@code cpuCount}).
+     * Description of the host attached to every {@link State} (read from /proc by the agent): agent version, number of processors, memory used (MB), 1-minute load,
+     * free disk space of the data directory (MB) and machine uptime (seconds). An unknown value is -1 (0 for {@code cpuCount}).
      */
     /**
-     * Description de l'hôte. {@code x86Level} : niveau x86-64 du processeur (« v1 » à « v4 », lu dans les drapeaux de /proc/cpuinfo) ; null sur arm64, macOS, Windows et pour un ancien
-     * agent : le scheduler ne place jamais un exécutable d'un niveau supérieur sur ce nœud (voir {@link io.gluonify.plasma.AppSpec#artifactLevel}). {@code pythonVersion} : version
-     * mineure du {@code python3} du nœud (« 3.13 ») ; null : pas de python3 (ou ancien agent) : le scheduler n'y place aucune application Python, et une application Python n'y va
-     * que si sa version ({@link io.gluonify.plasma.AppSpec#pythonVersion}) est la même.
+     * Description of the host. {@code x86Level}: x86-64 level of the processor ("v1" to "v4", read from the /proc/cpuinfo flags); null on arm64, macOS, Windows and for an old
+     * agent: the scheduler never places an executable of a higher level on this node (see {@link io.gluonify.plasma.AppSpec#artifactLevel}). {@code pythonVersion}: minor
+     * version of the node's {@code python3} ("3.13"); null: no python3 (or old agent): the scheduler places no Python application there, and a Python application goes there only
+     * if its version ({@link io.gluonify.plasma.AppSpec#pythonVersion}) is the same.
      */
     record Host(String version, int cpuCount, int memoryUsedMb, double load, int diskFreeMb, long uptimeSec, String x86Level, String pythonVersion) {
-        /** Compatibilité : sans version de Python. */
+        /** Compatibility: without Python version. */
         public Host(String version, int cpuCount, int memoryUsedMb, double load, int diskFreeMb, long uptimeSec, String x86Level) {
             this(version, cpuCount, memoryUsedMb, load, diskFreeMb, uptimeSec, x86Level, null);
         }
 
-        /** Compatibilité : sans niveau x86-64. */
+        /** Compatibility: without x86-64 level. */
         public Host(String version, int cpuCount, int memoryUsedMb, double load, int diskFreeMb, long uptimeSec) {
             this(version, cpuCount, memoryUsedMb, load, diskFreeMb, uptimeSec, null);
         }
     }
 
     /**
-     * Dernières lignes du journal de l'instance {@code instance} de ce nœud, ou ses mesures Prometheus ({@code what} = "metrics" : ce que l'application expose sur
-     * /q/metrics ; vide ou "logs" : le journal). Réponse : {@link Logs}.
+     * Last lines of the log of the instance {@code instance} of this node, or its Prometheus metrics ({@code what} = "metrics": what the application exposes on
+     * /q/metrics; empty or "logs": the log). Reply: {@link Logs}.
      */
     record LogsRequest(long id, String instance, int tail, String what) implements Msg {
         public LogsRequest(long id, String instance, int tail) {
@@ -179,22 +179,22 @@ public sealed interface Msg {
         }
     }
 
-    /** Réponse à {@link LogsRequest} : status 200 + texte, 404 instance inconnue, 501 non pris en charge par ce runtime, 500 erreur. */
+    /** Reply to {@link LogsRequest}: status 200 + text, 404 unknown instance, 501 not supported by this runtime, 500 error. */
     record Logs(long id, int status, String text) implements Msg {}
 
     /**
-     * Rapport d'une instance, demandé par le control-plane (control-plane -> nœud) : seul l'agent peut le fournir pour une instance endormie (gelée ou arrêtée), dont le processus ne
-     * répond plus ou n'existe plus. Ne touche JAMAIS l'application (ni /q/metrics, ni son port) : elle n'est donc jamais réveillée par cette demande. {@code tail} : lignes de journal
-     * voulues (bornées côté agent). Réponse : {@link InstanceReport}.
+     * Report on an instance, requested by the control-plane (control-plane -> node): only the agent can provide it for a sleeping instance (frozen or stopped), whose process no longer
+     * answers or no longer exists. NEVER touches the application (neither /q/metrics nor its port): it is therefore never woken by this request. {@code tail}: wanted log lines
+     * (bounded on the agent side). Reply: {@link InstanceReport}.
      */
     record InstanceReportRequest(long id, String instance, int tail) implements Msg {}
 
     /**
-     * Réponse à {@link InstanceReportRequest} : {@code status} 200 (404 instance inconnue sur ce nœud, 500 erreur). {@code state} : active | frozen | stopped | absent (désirée mais sans unité,
-     * hors sommeil) ; {@code since} : début de cet état (ms epoch, 0 si inconnu) ; {@code running} : l'unité existe (une gelée tourne encore). {@code cpuSeconds} et {@code memoryBytes} : lus
-     * dans le cgroup (compteurs d'une instance qui tourne, y compris gelée) ou, pour une instance arrêtée, dernières valeurs connues ({@code lastKnown} vrai, mesurées à {@code measuredAt}, ms
-     * epoch) ; null si jamais mesurées. {@code startup} : dernier démarrage mesuré (voir {@link Startup}) ; {@code starts} : démarrages depuis le lancement de l'agent ;
-     * {@code logs} : les dernières lignes du journal (journald conserve celui d'une instance arrêtée), secrets masqués ; {@code at} : ms epoch de la réponse.
+     * Reply to {@link InstanceReportRequest}: {@code status} 200 (404 unknown instance on this node, 500 error). {@code state}: active | frozen | stopped | absent (desired but without a unit,
+     * outside sleep); {@code since}: start of this state (epoch ms, 0 if unknown); {@code running}: the unit exists (a frozen one is still running). {@code cpuSeconds} and {@code memoryBytes}: read
+     * from the cgroup (counters of a running instance, frozen included) or, for a stopped instance, last known values ({@code lastKnown} true, measured at {@code measuredAt}, ms
+     * epoch); null if never measured. {@code startup}: last measured start (see {@link Startup}); {@code starts}: starts since the agent was launched;
+     * {@code logs}: the last log lines (journald keeps those of a stopped instance), secrets masked; {@code at}: epoch ms of the reply.
      */
     record InstanceReport(long id, int status, String error, String instance, String state, long since, boolean running, Double cpuSeconds, Double memoryBytes, boolean lastKnown,
                           long measuredAt, Startup startup, long starts, List<String> logs, long at) implements Msg {}
@@ -242,60 +242,60 @@ public sealed interface Msg {
                          long measuredAt) {}
 
     /**
-     * Suivi du journal en continu (control-plane -> nœud) : le nœud répond par une suite de {@link LogsChunk} d'identifiant {@code id} (les {@code tail} dernières lignes, puis les
-     * nouvelles), jusqu'à {@link LogsStop}, à la fin de la durée {@code maxMs} ou à la disparition de l'instance.
+     * Continuous log follow (control-plane -> node): the node replies with a series of {@link LogsChunk} with identifier {@code id} (the last {@code tail} lines, then the
+     * new ones), until {@link LogsStop}, the end of the {@code maxMs} duration or the disappearance of the instance.
      */
     record LogsFollow(long id, String instance, int tail, long maxMs) implements Msg {}
 
-    /** Morceau d'un suivi ({@link LogsFollow}) : {@code status} 200 + texte (lignes complètes, secrets masqués) ; {@code end} = dernier message du suivi (status 404/501/500 si échec). */
+    /** Chunk of a follow ({@link LogsFollow}): {@code status} 200 + text (complete lines, secrets masked); {@code end} = last message of the follow (status 404/501/500 on failure). */
     record LogsChunk(long id, int status, String text, boolean end) implements Msg {}
 
-    /** Arrêt d'un suivi ({@link LogsFollow}) demandé par le control-plane (client parti, durée écoulée, trop lent). */
+    /** Stop of a follow ({@link LogsFollow}) requested by the control-plane (client gone, duration elapsed, too slow). */
     record LogsStop(long id) implements Msg {}
 
-    /** Clé publique WireGuard du nœud (envoyée à chaque connexion tant que le chiffrement entre nœuds est activé) : le control-plane lui attribue une adresse du maillage. */
+    /** WireGuard public key of the node (sent at every connection as long as inter-node encryption is enabled): the control-plane assigns it a mesh address. */
     record WgKey(String publicKey) implements Msg {}
 
-    /** Le top a redéployé le namespace ns (révision rev, croissante) : le control-plane redémarre les applis concernées, une réplique à la fois. */
+    /** The top redeployed namespace ns (revision rev, increasing): the control-plane restarts the affected apps, one replica at a time. */
     record Redeploy(String ns, long rev) implements Msg {}
 
-    /** Jetons à courte durée pour des applications du nœud ; id relie la réponse à la demande. */
+    /** Short-lived tokens for applications of the node; id links the reply to the request. */
     record TokensRequest(long id, List<String> apps) implements Msg {}
 
     /**
-     * Jetons d'application vers service ({@link ServiceToken}) pour des applications du nœud : un par service de leur {@code uses} que la politique
-     * du control-plane couvre. Un control-plane plus ancien ignore ce message : l'agent ne bloque jamais un démarrage sur la réponse.
+     * Application-to-service tokens ({@link ServiceToken}) for applications of the node: one per service of their {@code uses} that the control-plane
+     * policy covers. An older control-plane ignores this message: the agent never blocks a start on the reply.
      */
     record ServiceTokensRequest(long id, List<String> apps) implements Msg {}
 
     /**
-     * Verrou de fichier entre nœuds (nœud -> control-plane), demandé par le démon de montage de l'application. {@code op} : « set » (pose ; 409 si un autre propriétaire gêne),
-     * « test » (F_GETLK : 200, avec le verrou gênant s'il y en a un), « unset » (déverrouille la plage), « release » (retire tout ce que ce propriétaire tient sur le fichier),
-     * « release-app » (retire tout ce que CE nœud tient pour l'application : montage arrêté). {@code key} : « application/genre/chemin » ; {@code end} : {@link Long#MAX_VALUE} = fin du fichier.
+     * Cross-node file lock (node -> control-plane), requested by the application's mount daemon. {@code op}: "set" (set; 409 if another owner is in the way),
+     * "test" (F_GETLK: 200, with the blocking lock if there is one), "unset" (unlocks the range), "release" (removes everything this owner holds on the file),
+     * "release-app" (removes everything THIS node holds for the application: mount stopped). {@code key}: "application/kind/path"; {@code end}: {@link Long#MAX_VALUE} = end of file.
      */
     record LockRequest(long id, String op, String key, boolean flock, String owner, boolean write, long start, long end) implements Msg {}
 
     /**
-     * Lot d'enregistrements d'usage de l'agent (metering.md § 4.3), relayé par le control-plane au calorimètre : {@code body} est exactement le corps
-     * {@code {"records":[…]}} de {@code UsageEmitter}. Réponse : {@link UsageAck} de même {@code id}. Un control-plane ancien l'ignore (l'agent garde son spool).
+     * Batch of usage records from the agent (metering.md § 4.3), relayed by the control-plane to the calorimeter: {@code body} is exactly the body
+     * {@code {"records":[…]}} of {@code UsageEmitter}. Reply: {@link UsageAck} with the same {@code id}. An old control-plane ignores it (the agent keeps its spool).
      */
     record Usage(long id, String body) implements Msg {}
-    // n'est envoyé qu'à un control-plane qui annonce FEATURE_USAGE
+    // only sent to a control-plane that announces FEATURE_USAGE
 
-    // ---- control-plane -> nœud
-    /** Réponse à {@link Usage} : statut de type HTTP (2xx accepté, 413 trop gros, 422 refusé, 503 calorimètre injoignable…). */
+    // ---- control-plane -> node
+    /** Reply to {@link Usage}: HTTP-like status (2xx accepted, 413 too big, 422 refused, 503 calorimeter unreachable…). */
     record UsageAck(long id, int status) implements Msg {}
 
-    /** Réponse à {@link LockRequest} : 200, 409 (gêné : le verrou gênant est décrit) ou 400. */
+    /** Reply to {@link LockRequest}: 200, 409 (blocked: the blocking lock is described) or 400. */
     record LockReply(long id, int status, String conflictOwner, boolean conflictWrite, long conflictStart, long conflictEnd, String error) implements Msg {}
 
     /**
-     * Fonctions facultatives du protocole que le control-plane comprend, annoncées dans {@link Welcome} et {@link Enrolled} : un agent n'envoie un message additif
-     * qu'à un control-plane qui l'annonce (un control-plane ancien refuse un message inconnu et ferme la connexion).
+     * Optional protocol features that the control-plane understands, announced in {@link Welcome} and {@link Enrolled}: an agent only sends an additive message
+     * to a control-plane that announces it (an old control-plane refuses an unknown message and closes the connection).
      */
     String FEATURE_USAGE = "usage";
 
-    /** {@code features} : voir {@link #FEATURE_USAGE} ; vide pour un control-plane ancien. */
+    /** {@code features}: see {@link #FEATURE_USAGE}; empty for an old control-plane. */
     record Welcome(String node, List<String> features) implements Msg {
         public Welcome {
             features = features == null ? List.of() : List.copyOf(features);
@@ -312,8 +312,8 @@ public sealed interface Msg {
         public Enrolled(String node, String secret) { this(node, secret, null); }
     }
 
-    /** {@code sleeping} : état de sommeil voulu des instances de CE nœud (instance -> « frozen » ou « stopped » ; une instance absente est active) : l'agent gèle ou arrête, jamais ne redémarre une instance « stopped », et dégèle ou démarre quand elle redevient active. Mode endormi : voir gluonify-codex/ARCHITECTURE.md.
-     * État désiré du nœud, URLs API des control-planes membres (pour le basculement) environnement du cluster (GLUONIFY_ENVIRONMENT) et adresse d'une instance prête de chaque application (services : app -> http://hôte:port, pour GLUONIFY_SERVICE_<APP>_URL) adresse de ce nœud (GLUONIFY_SELF_URL), adresses de tous les nœuds vivants (pairs des ports supplémentaires), maillage WireGuard (wireguard) et adresses des control-planes dans le maillage (overlayControlPlanes : l'agent s'y reconnecte, c'est par là que passent les secrets) et secrets de démarrage demandés par les instances de CE nœud (nom -> valeur ; détenus par le control-plane, jamais écrits dans l'état Raft). */
+    /** {@code sleeping}: desired sleep state of THIS node's instances (instance -> "frozen" or "stopped"; an absent instance is active): the agent freezes or stops, never restarts a "stopped" instance, and thaws or starts it when it becomes active again. Sleep mode: see gluonify-codex/ARCHITECTURE.md.
+     * Desired state of the node, API URLs of the member control-planes (for failover), cluster environment (GLUONIFY_ENVIRONMENT) and address of a ready instance of each application (services: app -> http://host:port, for GLUONIFY_SERVICE_<APP>_URL), address of this node (GLUONIFY_SELF_URL), addresses of all live nodes (peers of the additional ports), WireGuard mesh (wireguard) and addresses of the control-planes in the mesh (overlayControlPlanes: the agent reconnects there, the secrets travel through it) and startup secrets requested by THIS node's instances (name -> value; held by the control-plane, never written in the Raft state). */
     record Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store, Map<String, String> sleeping,
                    Map<String, ImagePin> pins, String tokenPolicy) implements Msg {
         public Desired {
@@ -322,31 +322,31 @@ public sealed interface Msg {
         }
 
         /**
-         * Compatibilité : sans empreinte de la politique des jetons de service. {@code tokenPolicy} : empreinte courte (catalogue effectif et applications de la
-         * plateforme) de la politique de jetons d'application vers service du control-plane ; quand elle change, l'agent oublie les jetons détenus et les redemande.
-         * Absente ({@code null}, control-plane plus ancien) : l'agent fait comme avant (renouvellement à l'approche de l'expiration).
+         * Compatibility: without service-token policy digest. {@code tokenPolicy}: short digest (effective catalogue and platform applications) of the control-plane's
+         * application-to-service token policy; when it changes, the agent forgets the tokens it holds and requests them again.
+         * Absent ({@code null}, older control-plane): the agent behaves as before (renewal as the expiry approaches).
          */
         public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store, Map<String, String> sleeping,
                        Map<String, ImagePin> pins) {
             this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, store, sleeping, pins, null);
         }
 
-        /** Compatibilité : sans empreintes d'images épinglées pour le cluster. */
+        /** Compatibility: without image digests pinned for the cluster. */
         public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store, Map<String, String> sleeping) {
             this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, store, sleeping, Map.of(), null);
         }
 
-        /** Compatibilité : sans instances endormies. */
+        /** Compatibility: without sleeping instances. */
         public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store) {
             this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, store, Map.of(), Map.of(), null);
         }
 
-        /** Compatibilité : sans nœuds de stockage. */
+        /** Compatibility: without storage nodes. */
         public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes) {
             this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, null);
         }
 
-        /** Compatibilité : sans nom d'environnement ni adresses de services. */
+        /** Compatibility: without environment name or service addresses. */
         public Desired(List<Instance> desired, List<String> controlPlanes) {
             this(desired, controlPlanes, null, Map.of(), Map.of(), null, List.of(), null, List.of(), null);
         }
@@ -365,54 +365,54 @@ public sealed interface Msg {
     }
 
     /**
-     * Empreinte d'une image désignée par une étiquette ({@code image} : la chaîne de l'AppSpec, {@code dépôt:1.0} ; {@code digest} : {@code sha256:…} du manifeste).
-     * Dans {@link State} : résolue par le nœud au premier démarrage. Dans {@link Desired} : épingle du cluster (la première signalée), que chaque nœud lance par
-     * {@code dépôt@digest} sans plus résoudre l'étiquette (gluonify-codex/provenance.md § 8).
+     * Digest of an image designated by a tag ({@code image}: the AppSpec string, {@code repository:1.0}; {@code digest}: {@code sha256:…} of the manifest).
+     * In {@link State}: resolved by the node at the first start. In {@link Desired}: cluster pin (the first one reported), which every node launches by
+     * {@code repository@digest} without resolving the tag any more (gluonify-codex/provenance.md § 8).
      */
     record ImagePin(String image, String digest) {}
 
-    /** Nœuds de stockage prêts (adresses des instances du service « store ») et jeton d'accès (sous WireGuard, seulement par le tunnel). L'agent y télécharge les exécutables {@code gluonify-rup:<sha256>}. */
+    /** Ready storage nodes (addresses of the "store" service instances) and access token (under WireGuard, only through the tunnel). The agent downloads the {@code gluonify-rup:<sha256>} executables from there. */
     record Store(List<String> urls, String token) {}
 
-    /** Maillage WireGuard du nœud : son adresse, le port UDP et ses pairs (les autres nœuds et les control-planes). */
+    /** WireGuard mesh of the node: its address, the UDP port and its peers (the other nodes and the control-planes). */
     record Wg(String self, int port, List<WgPeer> peers) {}
 
     record WgPeer(String id, String publicKey, String endpoint, String overlay) {}
 
-    /** status 200 : tokens renseigné ; 501 : gluonify-charm non configuré ; 503 : gluonify-charm injoignable. */
+    /** status 200: tokens filled in; 501: gluonify-charm not configured; 503: gluonify-charm unreachable. */
     record Tokens(long id, int status, Map<String, AppTokensResponse.AppToken> tokens, String error) implements Msg {}
 
     /**
-     * Réponse à {@link ServiceTokensRequest} : application -> ses jetons (liste vide : aucun service couvert ; application absente : pas placée sur ce
-     * nœud ou inconnue). status 200 : tokens renseigné ; 501 : gluonify-charm non configuré ; 503 : gluonify-charm injoignable ; 403 : refusé (hors tunnel chiffré).
+     * Reply to {@link ServiceTokensRequest}: application -> its tokens (empty list: no service covered; application absent: not placed on this
+     * node or unknown). status 200: tokens filled in; 501: gluonify-charm not configured; 503: gluonify-charm unreachable; 403: refused (outside the encrypted tunnel).
      */
     record ServiceTokens(long id, int status, Map<String, List<ServiceToken>> tokens, String error, String policy) implements Msg {
         public ServiceTokens {
             tokens = tokens == null ? Map.of() : tokens;
         }
 
-        /** Compatibilité : sans {@code policy}, l'empreinte de la politique sous laquelle les jetons ont été émis (voir {@link Desired#tokenPolicy()}). */
+        /** Compatibility: without {@code policy}, the digest of the policy under which the tokens were issued (see {@link Desired#tokenPolicy()}). */
         public ServiceTokens(long id, int status, Map<String, List<ServiceToken>> tokens, String error) {
             this(id, status, tokens, error, null);
         }
     }
 
-    /** Demande d'amorçage reconnue : identifiant, rôle visé, version de distribution attendue et plus petite séquence de manifeste acceptée (anti-retour en arrière). */
+    /** Recognized bootstrap request: identifier, target role, expected distribution version and lowest manifest sequence accepted (anti-rollback). */
     record BootstrapAccepted(String request, String role, String release, long minSequence) implements Msg {}
 
-    /** Une tâche du catalogue fermé (voir TaskCatalogue) : un seul type à la fois ; l'agent revalide tout et refuse ce qui n'est pas au catalogue. */
+    /** A task of the closed catalogue (see TaskCatalogue): a single type at a time; the agent revalidates everything and refuses what is not in the catalogue. */
     record TaskRun(String id, String type, Map<String, String> params, int timeoutSec) implements Msg {
         public TaskRun {
             params = params == null ? Map.of() : params;
         }
     }
 
-    /** Annule la tâche en cours (l'agent arrête le processus de l'installateur). */
+    /** Cancels the current task (the agent stops the installer process). */
     record TaskCancel(String id) implements Msg {}
 
-    /** Fin de l'amorçage : ok = toutes les tâches ont réussi ; sinon error dit pourquoi. L'agent d'installation passe alors la main (ou s'arrête). */
+    /** End of bootstrap: ok = all the tasks succeeded; otherwise error says why. The installation agent then hands over (or stops). */
     record BootstrapDone(String request, boolean ok, String error) implements Msg {}
 
-    /** Refus ; la connexion est fermée ensuite. 401 : identité inconnue (le nœud doit se ré-enrôler) ; 403 : jeton invalide. */
+    /** Refusal; the connection is closed afterwards. 401: unknown identity (the node must re-enroll); 403: invalid token. */
     record Error(int code, String message) implements Msg {}
 }

@@ -22,13 +22,13 @@ class FermionTokenProviderTest {
     void platformLitLeFichierAChaqueConnexion() throws Exception {
         Path file = dir.resolve("fermion.token");
         FermionTokenProvider p = FermionTokenProvider.platform(Map.of("GLUONIFY_FERMION_TOKEN_FILE", file.toString())::get);
-        assertNull(p.token(), "fichier pas encore déposé");
+        assertNull(p.token(), "file not dropped yet");
         Files.writeString(file, " a\n");
         assertEquals("a", p.token());
         Files.writeString(file, "b");
         assertEquals("b", p.token());
         Files.writeString(file, "  ");
-        assertNull(p.token(), "fichier vide : pas de jeton");
+        assertNull(p.token(), "empty file: no token");
     }
 
     @Test

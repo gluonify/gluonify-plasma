@@ -15,8 +15,8 @@ import java.util.zip.ZipFile;
 import org.junit.jupiter.api.Test;
 
 /**
- * Marqueur de service ({@code META-INF/gluonify/services/<service>}, voir le README de gluonify-plasma) : les faux services de test n'en déclarent AUCUN (un service n'est jamais déduit d'une dépendance de test). Le builder (Bup) lit ces marqueurs
- * dans les jars du chemin de classes d'exécution de l'application et en déduit {@code uses}.
+ * Service marker ({@code META-INF/gluonify/services/<service>}, see the README of gluonify-plasma): the fake test services declare NONE (a service is never derived from a test dependency). The builder (Bup) reads these markers
+ * in the jars of the application's runtime classpath and derives {@code uses} from them.
  */
 class ServiceMarkerTest {
     static final String DIR = "META-INF/gluonify/services/";
@@ -26,7 +26,7 @@ class ServiceMarkerTest {
         assertEquals(Set.of(), markers(GluonifyTestServices.class));
     }
 
-    /** Marqueurs livrés par le module (dossier {@code target/classes} ou jar) qui contient {@code owner}, et lui seul. */
+    /** Markers shipped by the module (folder {@code target/classes} or jar) that contains {@code owner}, and only that one. */
     static Set<String> markers(final Class<?> owner) throws IOException, URISyntaxException {
         final Path location = Path.of(owner.getProtectionDomain().getCodeSource().getLocation().toURI());
         final Set<String> out = new TreeSet<>();

@@ -19,7 +19,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** Le rendu d'un modèle envoyé avec la demande ({@code POST /v1/render}), contre le faux Crystallon : mêmes en-têtes, erreurs et bornes que les modèles stockés. */
+/** Rendering of a template sent with the request ({@code POST /v1/render}), against the fake Crystallon: same headers, errors and limits as stored templates. */
 class InlineTemplateTest {
     private FakeCrystallon fake;
     private final PayloadCodec codec = PayloadCodec.detect();
@@ -43,7 +43,7 @@ class InlineTemplateTest {
         return fake.client().build();
     }
 
-    // ---- modèle prédéfini
+    // ---- preset template
 
     @Test
     void rendersAPredefinedTemplateByName() {
@@ -108,14 +108,14 @@ class InlineTemplateTest {
         assertEquals(Map.of(), body().get("params"));
     }
 
-    // ---- modèle envoyé
+    // ---- sent template
 
     @Test
     void sendsATemplateObjectAsTheTemplateOfTheBody() {
         final Map<String, Object> template = new LinkedHashMap<>();
         template.put("extends", "invoice");
         template.put("theme", Map.of("primary", "#005eb8"));
-        // LinkedHashMap et non Map.of : l'ordre de Map.of change à chaque JVM, et « "size":12, » exige que size ne soit pas la dernière clé
+        // LinkedHashMap and not Map.of: the order of Map.of changes on every JVM, and `"size":12,` requires size not to be the last key
         final Map<String, Object> text = new LinkedHashMap<>();
         text.put("type", "text");
         text.put("text", "{{ customer }}");
@@ -186,7 +186,7 @@ class InlineTemplateTest {
         }
     }
 
-    /** Isolés : le test ne référence Jackson 3 (ou 2) que dans ces classes. */
+    /** Isolated: the test references Jackson 3 (or 2) only in these classes. */
     private static final class Jackson3Node {
         static void check(final InlineTemplateTest t) {
             final tools.jackson.databind.json.JsonMapper mapper = tools.jackson.databind.json.JsonMapper.builder().build();
@@ -274,7 +274,7 @@ class InlineTemplateTest {
         assertNull(e.code());
     }
 
-    // ---- erreurs, jeton, bornes : le code des modèles stockés
+    // ---- errors, token, limits: the code of stored templates
 
     @Test
     void anUnknownPresetIsACrystallonExceptionWithItsCodeAndPath() {

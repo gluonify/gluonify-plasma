@@ -10,7 +10,7 @@
   </parent>
   <artifactId>gluonify-plasma-testing</artifactId>
   <name>Gluonify Plasma testing</name>
-  <description>Faux services de Gluonify en mémoire pour les tests des applications (GluonifyTestServices : Crystallon). Java 17, aucune dépendance hors du module services.</description>
+  <description>In-memory fake Gluonify services for application tests (GluonifyTestServices: Crystallon). Java 17, no dependency outside the services module.</description>
 
   <properties>
     <maven.compiler.release>17</maven.compiler.release>

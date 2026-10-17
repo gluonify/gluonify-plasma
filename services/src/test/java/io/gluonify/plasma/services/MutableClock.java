@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 
-/** Horloge des tests, avancée à la main. */
+/** Test clock, advanced by hand. */
 public final class MutableClock extends Clock {
     private volatile Instant now;
 

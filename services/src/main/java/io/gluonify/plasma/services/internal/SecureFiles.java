@@ -12,7 +12,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Set;
 
-/** Fichiers privés de {@code ~/.gluonify} : dossiers 0700, fichiers 0600, écriture atomique (fichier temporaire puis renommage). Pas une API publique. */
+/** Private files of {@code ~/.gluonify}: folders 0700, files 0600, atomic write (temporary file then rename). Not a public API. */
 public final class SecureFiles {
     private static final Set<PosixFilePermission> FILE = PosixFilePermissions.fromString("rw-------");
     private static final Set<PosixFilePermission> DIR = PosixFilePermissions.fromString("rwx------");
@@ -24,7 +24,7 @@ public final class SecureFiles {
         return p.getFileSystem().supportedFileAttributeViews().contains("posix");
     }
 
-    /** Crée le dossier (et ses parents) s'il manque ; le dossier lui-même est 0700. */
+    /** Creates the folder (and its parents) if missing; the folder itself is 0700. */
     public static void directory(final Path dir) throws IOException {
         if (Files.isDirectory(dir)) {
             if (posix(dir)) {
@@ -45,11 +45,11 @@ public final class SecureFiles {
             }
         }
         catch (final FileAlreadyExistsException e) {
-            // créé entre-temps par un autre processus
+            // created in the meantime by another process
         }
     }
 
-    /** Écrit {@code content} dans {@code file} (0600), atomiquement : un lecteur voit l'ancien contenu ou le nouveau, jamais un fichier à moitié écrit. */
+    /** Writes {@code content} to {@code file} (0600), atomically: a reader sees the old content or the new one, never a half-written file. */
     public static void write(final Path file, final String content) throws IOException {
         final Path dir = file.toAbsolutePath().getParent();
         directory(dir);
@@ -72,7 +72,7 @@ public final class SecureFiles {
         }
     }
 
-    /** Le contenu du fichier, ou {@code null} s'il n'existe pas. */
+    /** The content of the file, or {@code null} if it does not exist. */
     public static String read(final Path file) throws IOException {
         if (!Files.isRegularFile(file)) {
             return null;

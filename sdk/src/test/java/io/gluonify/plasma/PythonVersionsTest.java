@@ -15,7 +15,7 @@ class PythonVersionsTest {
     }
 
     @Test
-    void normalisation() {
+    void normalization() {
         assertNull(PythonVersions.normalize(null));
         assertNull(PythonVersions.normalize(" "));
         assertEquals("3.13", PythonVersions.normalize(" 3.13 "));
@@ -30,20 +30,20 @@ class PythonVersionsTest {
         assertTrue(PythonVersions.runs(null, null), "application non Python : partout");
         assertTrue(PythonVersions.runs("3.13", null));
         assertTrue(PythonVersions.runs("3.13", "3.13"));
-        assertFalse(PythonVersions.runs("3.11", "3.13"), "autre version mineure : venv et roues cp313 incompatibles");
-        assertFalse(PythonVersions.runs(null, "3.13"), "nœud sans python3 ou ancien agent : aucune application Python");
+        assertFalse(PythonVersions.runs("3.11", "3.13"), "other minor version: venv and cp313 wheels incompatible");
+        assertFalse(PythonVersions.runs(null, "3.13"), "node without python3 or old agent: no Python application");
     }
 
     @Test
-    void specificationEtDeploiement() {
+    void specificationAndDeployment() {
         assertEquals("3.13", spec("3.13.2").pythonVersion());
         assertNull(spec("").pythonVersion());
         assertThrows(IllegalArgumentException.class, () -> spec("python3"));
         assertEquals("3.13", spec(null).withPythonVersion("3.13").pythonVersion());
         AppSpec s = spec("3.13");
-        assertEquals("3.13", s.withProvenance(null).withOrganization("acme").withDistributedQuotaMb(null).withArtifactLevel("amd64:v2").pythonVersion(), "conservée par les copies");
+        assertEquals("3.13", s.withProvenance(null).withOrganization("acme").withDistributedQuotaMb(null).withArtifactLevel("amd64:v2").pythonVersion(), "kept by the copies");
         assertNull(new AppSpec("a", null, 1, 8080, 64, null, Map.of("amd64", "u#sha256=" + "a".repeat(64)), null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null).pythonVersion(), "constructeur de compatibilité : pas Python");
+                null, null, null, null).pythonVersion(), "compatibility constructor: not Python");
         var req = new DeployRequest(null, null, null, null, null, Map.of("amd64", "https://b/a#sha256=" + "a".repeat(64)), null, null, null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, "3.13");
         assertEquals("3.13", req.toSpec("stats").pythonVersion());
@@ -53,13 +53,13 @@ class PythonVersionsTest {
     void json() throws Exception {
         var m = JsonMapper.builder().build();
         assertNull(m.readValue("{\"version\":\"1\",\"cpuCount\":2,\"memoryUsedMb\":1,\"load\":0.1,\"diskFreeMb\":1,\"uptimeSec\":1,\"x86Level\":\"v2\"}", Msg.Host.class).pythonVersion(),
-                "ancien agent : sans version");
+                "old agent: no version");
         Msg.Host h = m.readValue(m.writeValueAsString(new Msg.Host("1", 2, 1, 0.1, 1, 1, "v3", "3.13")), Msg.Host.class);
         assertEquals("3.13", h.pythonVersion());
         assertEquals("v3", h.x86Level());
         AppSpec s = m.readValue(m.writeValueAsString(spec("3.13")), AppSpec.class);
         assertEquals("3.13", s.pythonVersion());
-        assertNull(m.readValue("{\"name\":\"a\",\"image\":\"r/a:1\"}", AppSpec.class).pythonVersion(), "ancienne spécification");
+        assertNull(m.readValue("{\"name\":\"a\",\"image\":\"r/a:1\"}", AppSpec.class).pythonVersion(), "old specification");
         DeployRequest d = m.readValue("{\"artifacts\":{\"amd64\":\"https://b/a#sha256=" + "a".repeat(64) + "\"},\"pythonVersion\":\"3.13\"}", DeployRequest.class);
         assertEquals("3.13", d.pythonVersion());
     }

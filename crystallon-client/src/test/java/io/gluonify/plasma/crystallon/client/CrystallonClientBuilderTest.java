@@ -14,7 +14,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** Construction du client : adresse obligatoire, environnement de la plateforme, valeurs refusées. */
+/** Client construction: mandatory address, platform environment, rejected values. */
 class CrystallonClientBuilderTest {
     @TempDir
     Path dir;

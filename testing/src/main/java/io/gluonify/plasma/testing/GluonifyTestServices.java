@@ -4,11 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Faux services de Gluonify pour les tests d'une application, <b>activés explicitement</b> : {@link #start()} démarre un faux Crystallon en mémoire
- * (un serveur HTTP du JDK sur la boucle locale, port libre) et pose la surcharge que lit {@code GluonifyServices}
- * ({@code GLUONIFY_SERVICE_CRYSTALLON_URL} et {@code GLUONIFY_CRYSTALLON_TOKEN} en propriétés système) : {@code CrystallonClient.create()} et le
- * producteur CDI de {@code gluonify-plasma-quarkus} s'y adressent sans rien configurer. {@link #close()} arrête le serveur et rend les propriétés
- * d'avant.
+ * Fake Gluonify services for an application's tests, <b>explicitly enabled</b>: {@link #start()} starts an in-memory fake Crystallon
+ * (a JDK HTTP server on the loopback interface, free port) and sets the override read by {@code GluonifyServices}
+ * ({@code GLUONIFY_SERVICE_CRYSTALLON_URL} and {@code GLUONIFY_CRYSTALLON_TOKEN} as system properties): {@code CrystallonClient.create()} and the
+ * CDI producer of {@code gluonify-plasma-quarkus} talk to it with nothing to configure. {@link #close()} stops the server and restores the previous
+ * properties.
  *
  * <pre>{@code
  * static GluonifyTestServices services;
@@ -22,11 +22,11 @@ import java.util.Map;
  * }
  * }</pre>
  *
- * <p>Une seule instance à la fois par processus (les propriétés système sont globales) ; un second {@code start()} avant {@code close()} lève une
- * {@link IllegalStateException}. Java 17, aucune dépendance.
+ * <p>Only one instance at a time per process (system properties are global); a second {@code start()} before {@code close()} throws an
+ * {@link IllegalStateException}. Java 17, no dependency.
  */
 public final class GluonifyTestServices implements AutoCloseable {
-    /** Jeton présenté par les clients pendant les tests (jamais un vrai jeton). */
+    /** Token presented by the clients during tests (never a real token). */
     public static final String TOKEN = "gluonify-test-token";
 
     private static final Object LOCK = new Object();
@@ -39,7 +39,7 @@ public final class GluonifyTestServices implements AutoCloseable {
         this.crystallon = new FakeCrystallon(TOKEN);
     }
 
-    /** Démarre les faux services et pose la surcharge. @throws IllegalStateException si une instance est déjà active */
+    /** Starts the fake services and sets the override. @throws IllegalStateException if an instance is already active */
     public static GluonifyTestServices start() {
         synchronized (LOCK) {
             if (active != null) {
@@ -53,7 +53,7 @@ public final class GluonifyTestServices implements AutoCloseable {
         }
     }
 
-    /** Le faux Crystallon : rendus reçus, échecs programmés. */
+    /** The fake Crystallon: renders received, scheduled failures. */
     public FakeCrystallon crystallon() {
         return crystallon;
     }
@@ -63,7 +63,7 @@ public final class GluonifyTestServices implements AutoCloseable {
         System.setProperty(key, value);
     }
 
-    /** Arrête les faux services et rend les propriétés système d'avant. */
+    /** Stops the fake services and restores the previous system properties. */
     @Override
     public void close() {
         synchronized (LOCK) {

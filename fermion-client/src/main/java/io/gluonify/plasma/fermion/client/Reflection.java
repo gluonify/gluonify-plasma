@@ -9,7 +9,7 @@ import io.gluonify.plasma.fermion.Translation;
 import io.gluonify.plasma.fermion.WorkflowDescriptor;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
-/** Types (dé)sérialisés par Jackson, à garder pour l'image native. */
+/** Types (de)serialized by Jackson, to keep for the native image. */
 @RegisterForReflection(targets = {
         FermionMsg.class, FermionMsg.Auth.class, FermionMsg.Hello.class, FermionMsg.Start.class, FermionMsg.Command.class,
         FermionMsg.Result.class, FermionMsg.Progress.class, FermionMsg.Error.class, Descriptor.class, SkillDescriptor.class, WorkflowDescriptor.class,

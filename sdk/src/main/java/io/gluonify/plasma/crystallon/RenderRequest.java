@@ -4,11 +4,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Map;
 
 /**
- * Corps d'une demande de rendu ou de validation Crystallon. {@code data} n'est jamais {@code null} : sans données, c'est l'objet vide
- * {@code {}} (un corps sans {@code data} ferait rendre l'exemple du modèle par le serveur). {@code params} {@code null} est omis (paramètres du modèle, puis du serveur).
+ * Body of a Crystallon render or validation request. {@code data} is never {@code null}: without data, it is the empty object
+ * {@code {}} (a body without {@code data} would make the server render the template's example). A {@code null} {@code params} is omitted (parameters of the template, then of the server).
  *
- * @param data   le payload du document (un objet JSON une fois sérialisé : record, {@link Map}, bean)
- * @param params les paramètres de génération, ou {@code null} pour ceux du modèle puis du serveur
+ * @param data   the document payload (a JSON object once serialized: record, {@link Map}, bean)
+ * @param params the generation parameters, or {@code null} for those of the template then of the server
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record RenderRequest(Object data, RenderParams params) {

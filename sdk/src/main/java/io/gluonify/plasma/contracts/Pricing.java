@@ -12,27 +12,27 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Valorisation de l'usage d'un mois ({@code contracts.md} § 6.1) : fonction pure, rejouée à l'identique par le calorimètre et Prism grâce au jeu d'essai commun
+ * Pricing of a month's usage ({@code contracts.md} § 6.1): pure function, replayed identically by the calorimeter and Prism thanks to the shared test vectors
  * {@code sdk/src/test/resources/contracts/pricing-vectors.json}.
  *
- * <p>Règles de calcul (toutes en {@link BigDecimal}, jamais en {@code double}) :
+ * <p>Calculation rules (all in {@link BigDecimal}, never {@code double}):
  * <ol>
- *   <li>l'usage est regroupé par (unité, dimensions, environnement) ; une unité indicative ou interne n'est pas valorisée ; une unité hors catalogue est refusée ;</li>
- *   <li>prix : la surcharge du contrat la plus précise (dimensions comprises dans celles de l'usage, puis environnement), sinon la ligne de liste la plus précise ;
- *       une surcharge sans prix ni paliers reprend le prix de la liste ; × (1 − {@code discountPct} de la surcharge). Sans prix : ligne « non tarifée », montant 0 ;</li>
- *   <li>quantité convertie dans la grandeur {@code per} (surcharge, sinon liste, sinon grandeur de base), arrondie à 9 décimales (demi supérieur) ;</li>
- *   <li>quantité facturée = max(0, quantité − {@code included} × part) ; les bornes des paliers sont aussi multipliées par la part (part = fraction du mois couverte
- *       par la section, arrondie à 9 décimales) ;</li>
- *   <li>montant de la ligne = Σ paliers (quantité dans le palier × prix), arrondi à l'unité mineure de la devise (ISO 4217), demi supérieur ;</li>
- *   <li>section : usage = Σ lignes arrondies ; × (1 − {@code discountPct} du contrat), arrondi ; part fixe = {@code monthly} × jours actifs ÷ jours du mois
- *       + {@code perApp} × applications·jours ÷ jours + {@code perHaApp} × applications réparties·jours ÷ jours, arrondie ;</li>
- *   <li>total = max({@code minimumMonthly} de la dernière section, Σ sections (usage remisé + part fixe)).</li>
+ *   <li>usage is grouped by (unit, dimensions, environment); an indicative or internal unit is not priced; a unit not in the catalog is refused;</li>
+ *   <li>price: the most specific contract override (dimensions contained in those of the usage, then environment), otherwise the most specific list line;
+ *       an override without price or tiers takes the list price; times (1 - the override's {@code discountPct}). Without a price: line "not priced", amount 0;</li>
+ *   <li>quantity converted into the unit {@code per} (override, otherwise list, otherwise base unit), rounded to 9 decimal places (half up);</li>
+ *   <li>billed quantity = max(0, quantity - {@code included} x share); tier bounds are also multiplied by the share (share = fraction of the month covered
+ *       by the section, rounded to 9 decimal places);</li>
+ *   <li>line amount = sum of tiers (quantity in the tier x price), rounded to the minor unit of the currency (ISO 4217), half up;</li>
+ *   <li>section: usage = sum of rounded lines; times (1 - the contract's {@code discountPct}), rounded; fixed part = {@code monthly} x active days / days of the month
+ *       + {@code perApp} x application-days / days + {@code perHaApp} x spread application-days / days, rounded;</li>
+ *   <li>total = max({@code minimumMonthly} of the last section, sum of sections (discounted usage + fixed part)).</li>
  * </ol>
  */
 public final class Pricing {
     private Pricing() {}
 
-    /** Quantité d'usage du mois, dans la grandeur de base du catalogue (chaîne décimale). */
+    /** Usage quantity of the month, in the catalog's base unit (decimal string). */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Usage(String unit, Map<String, String> dims, String env, String quantity) {
@@ -42,16 +42,16 @@ public final class Pricing {
     }
 
     /**
-     * Une section : la part du mois couverte par une version de contrat, avec ses termes de tarification, les lignes de la liste de prix employée, l'usage de la
-     * section et les jours de la part fixe.
+     * A section: the part of the month covered by a contract version, with its pricing terms, the lines of the price list used, the usage of the
+     * section and the days of the fixed part.
      *
-     * @param share     fraction du mois (0 à 1) : proratise {@code included} et les paliers ; absente : 1
-     * @param pricing   termes de tarification de la version ; absents : liste seule, sans part fixe
-     * @param list      lignes de la version de liste de prix ; absentes : aucune
-     * @param usage     quantités de la section
-     * @param activeDays jours actifs de l'organisation dans la section (part fixe {@code monthly}) ; absent : 0
-     * @param appDays   applications × jours (part {@code perApp}) ; absent : 0
-     * @param haAppDays applications réparties sur au moins 2 nœuds × jours (part {@code perHaApp}) ; absent : 0
+     * @param share     fraction of the month (0 to 1): prorates {@code included} and the tiers; absent: 1
+     * @param pricing   pricing terms of the version; absent: list only, no fixed part
+     * @param list      lines of the price list version; absent: none
+     * @param usage     quantities of the section
+     * @param activeDays active days of the organization in the section (fixed part {@code monthly}); absent: 0
+     * @param appDays   applications x days ({@code perApp} part); absent: 0
+     * @param haAppDays applications spread over at least 2 nodes x days ({@code perHaApp} part); absent: 0
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -67,29 +67,29 @@ public final class Pricing {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record TierAmount(String quantity, String price, String amount) {}
 
-    /** Ligne valorisée ({@code priced} faux : unité non tarifée, montrée avec un montant nul). */
+    /** Priced line ({@code priced} false: unit not priced, shown with a zero amount). */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Line(String unit, Map<String, String> dims, String env, String quantity, String per, String included, List<TierAmount> tiers, String amount, Boolean priced) {
-        /** Clé d'une ligne : {@code unit} suivie des dimensions triées {@code {k=v}} et de {@code @env}. */
+        /** Key of a line: {@code unit} followed by the sorted dimensions {@code {k=v}} and by {@code @env}. */
         public String key() { return Pricing.key(unit, dims, env); }
     }
 
-    /** Résultat d'une section. */
+    /** Result of a section. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record SectionResult(Integer contractVersion, List<Line> lines, String usage, String usageDiscounted, String fixed) {}
 
-    /** Relevé valorisé du mois. */
+    /** Priced statement of the month. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Statement(String currency, List<SectionResult> sections, String usage, String fixed, String minimum, String total) {}
 
-    /** Clé d'une ligne d'usage (regroupement et comparaison des jeux d'essai). */
+    /** Key of a usage line (grouping and comparison of the test vectors). */
     public static String key(String unit, Map<String, String> dims, String env) {
         return unit + (dims == null || dims.isEmpty() ? "" : new TreeMap<>(dims).toString()) + (env == null ? "" : "@" + env);
     }
 
-    /** Valorise un mois ({@code daysInMonth} : 28 à 31) dans la devise {@code currency}. */
+    /** Prices a month ({@code daysInMonth}: 28 to 31) in the currency {@code currency}. */
     public static Statement value(String currency, int daysInMonth, List<Section> sections) {
-        if (daysInMonth < 28 || daysInMonth > 31) throw new IllegalArgumentException("daysInMonth : 28 à 31");
+        if (daysInMonth < 28 || daysInMonth > 31) throw new IllegalArgumentException("daysInMonth: 28 to 31");
         if (currency == null || !Decimals.CURRENCY.matcher(currency).matches()) throw new IllegalArgumentException("devise ISO 4217 attendue");
         List<SectionResult> out = new ArrayList<>();
         BigDecimal usage = BigDecimal.ZERO, fixed = BigDecimal.ZERO, minimum = BigDecimal.ZERO;
@@ -107,13 +107,13 @@ public final class Pricing {
 
     private static SectionResult section(String currency, int days, Section s) {
         BigDecimal share = s.share() == null ? BigDecimal.ONE : Decimals.quantity(new BigDecimal(s.share()));
-        if (share.signum() < 0 || share.compareTo(BigDecimal.ONE) > 0) throw new IllegalArgumentException("share : de 0 à 1");
+        if (share.signum() < 0 || share.compareTo(BigDecimal.ONE) > 0) throw new IllegalArgumentException("share: from 0 to 1");
         ContractTerms.PricingTerms pr = s.pricing();
-        // regroupement de l'usage, dans l'ordre de première apparition
+        // grouping of the usage, in order of first appearance
         Map<String, Usage> grouped = new java.util.LinkedHashMap<>();
         for (Usage u : s.usage()) {
             UsageUnit unit = UsageCatalog.get(u.unit());
-            if (unit == null) throw new IllegalArgumentException("unité hors catalogue : " + u.unit());
+            if (unit == null) throw new IllegalArgumentException("unit not in the catalog: " + u.unit());
             if (!unit.priceable()) continue;
             String k = key(u.unit(), u.dims(), u.env());
             Usage prev = grouped.get(k);
@@ -180,7 +180,7 @@ public final class Pricing {
                 tiers.isEmpty() ? null : tiers, money(amount, currency), priced);
     }
 
-    /** Surcharge la plus précise : dimensions comprises dans celles de l'usage, environnement égal ou absent ; à égalité, la première. */
+    /** Most specific override: dimensions contained in those of the usage, environment equal or absent; on a tie, the first. */
     static ContractTerms.PriceOverride bestOverride(List<ContractTerms.PriceOverride> overrides, Usage u) {
         ContractTerms.PriceOverride best = null;
         int bestScore = -1;
@@ -196,7 +196,7 @@ public final class Pricing {
         return best;
     }
 
-    /** Ligne de liste la plus précise. */
+    /** Most specific list line. */
     static PriceLine bestLine(List<PriceLine> lines, Usage u) {
         PriceLine best = null;
         int bestScore = -1;

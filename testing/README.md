@@ -1,6 +1,6 @@
 # gluonify-plasma-testing
 
-Faux services de Gluonify pour les tests des applications, **activés explicitement** (Java 17, aucune dépendance hors de `gluonify-plasma-services`) :
+Fake Gluonify services for application tests, **explicitly enabled** (Java 17, no dependency outside `gluonify-plasma-services`):
 
 ```xml
 <dependency>
@@ -16,9 +16,9 @@ static GluonifyTestServices services;
 @AfterAll  static void stop()  { services.close(); }
 
 @Test void invoice() {
-    RenderedPdf pdf = CrystallonClient.create().byName("Gluonify invoice").render(payload);   // ou le client injecté (gluonify-plasma-quarkus)
+    RenderedPdf pdf = CrystallonClient.create().byName("Gluonify invoice").render(payload);   // or the injected client (gluonify-plasma-quarkus)
     assertEquals("Gluonify invoice", services.crystallon().lastRender().template());
 }
 ```
 
-`start()` démarre un **faux Crystallon** en mémoire (serveur HTTP du JDK sur `127.0.0.1`, port libre) et pose la surcharge que lit `GluonifyServices` (`GLUONIFY_SERVICE_CRYSTALLON_URL` et `GLUONIFY_CRYSTALLON_TOKEN` en propriétés système) ; `close()` l'arrête et rend les propriétés d'avant. Une instance à la fois par processus. Le faux service répond aux routes du client (`/v1/templates/{id}/render`, `/v1/templates/by-name/{nom}/render`, `/v1/render`, et `…/validate`) par un **PDF minimal valide** d'une page (`FakeCrystallon.pdf()`) ou une validation réussie, exige le jeton de test (401 sinon), garde chaque demande (`renders()`, `lastRender()` : modèle, requête, corps JSON) et rejoue un échec programmé (`failNext(422, "CRYSTALLON-0015", "…")`). `mvn clean verify` : 3 tests.
+`start()` starts an in-memory **fake Crystallon** (JDK HTTP server on `127.0.0.1`, free port) and sets the override read by `GluonifyServices` (`GLUONIFY_SERVICE_CRYSTALLON_URL` and `GLUONIFY_CRYSTALLON_TOKEN` as system properties); `close()` stops it and restores the previous properties. One instance at a time per process. The fake service answers the client's routes (`/v1/templates/{id}/render`, `/v1/templates/by-name/{name}/render`, `/v1/render`, and `…/validate`) with a **valid minimal one-page PDF** (`FakeCrystallon.pdf()`) or a successful validation, requires the test token (401 otherwise), keeps each request (`renders()`, `lastRender()`: template, query, JSON body) and replays a scheduled failure (`failNext(422, "CRYSTALLON-0015", "…")`). `mvn clean verify`: 3 tests.

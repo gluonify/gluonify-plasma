@@ -20,21 +20,21 @@ import java.util.Optional;
 import java.util.function.Function;
 
 /**
- * Client de gluonify-crystallon pour les applications : rend en PDF (ou valide) un modèle stocké dans Crystallon, désigné par son
- * identifiant ou par son nom, ou un modèle que l'application envoie avec la demande ({@link #inline(Object)}).
+ * Crystallon client for applications: renders to PDF (or validates) a template stored in Crystallon, designated by its identifier or its
+ * name, or a template that the application sends with the request ({@link #inline(Object)}).
  *
  * <pre>{@code
- * CrystallonClient crystallon = CrystallonClient.create();                 // aucune configuration : plateforme, poste du développeur ou faux services
+ * CrystallonClient crystallon = CrystallonClient.create();                 // no configuration: platform, developer workstation or fake services
  * RenderedPdf pdf = crystallon.byName("Gluonify invoice").render(payload);
- * RenderedPdf quote = crystallon.inline("quote").render(payload);          // modèle prédéfini, ou un objet modèle : rien à stocker
+ * RenderedPdf quote = crystallon.inline("quote").render(payload);          // a preset, or a template object: nothing to store
  * }</pre>
  *
- * <p>Java 17, aucune dépendance obligatoire hors du SDK de la plateforme : ni CDI, ni Quarkus, et la bibliothèque JSON (Jackson 2 ou 3) est celle de
- * l'application ({@link PayloadCodec#detect()}). Le client est immuable et sûr entre fils ; il garde un {@link HttpClient} créé au premier appel
- * (jamais dans un champ statique : image native).
+ * <p>Java 17, no mandatory dependency beyond the platform SDK: no CDI, no Quarkus, and the JSON library (Jackson 2 or 3) is the
+ * application's ({@link PayloadCodec#detect()}). The client is immutable and thread-safe; it keeps an {@link HttpClient} created on the first call
+ * (never in a static field: native image).
  */
 public final class CrystallonClient {
-    /** Variable d'environnement injectée par la plateforme quand l'application déclare {@code crystallon} dans {@code uses}. */
+    /** Environment variable injected by the platform when the application declares {@code crystallon} in {@code uses}. */
     static final String ENV_URL = "GLUONIFY_SERVICE_CRYSTALLON_URL";
 
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
@@ -67,30 +67,30 @@ public final class CrystallonClient {
     }
 
     /**
-     * Un client sans aucune configuration : l'adresse et le jeton viennent de {@link GluonifyServices#endpoint(String)}, selon l'endroit où tourne
-     * l'application. Sur la plateforme, l'adresse injectée pour {@code "uses": ["crystallon"]} et le jeton d'application (fichier relu à chaque
-     * appel) ; sur le poste du développeur, l'adresse publique de la zone de {@code gluonify login} et le jeton du développeur (renouvelé) ; en
-     * test, la surcharge {@code GLUONIFY_SERVICE_CRYSTALLON_URL} (propriété système, posée par {@code GluonifyTestServices}). Le JSON vient de
+     * A client with no configuration at all: the address and the token come from {@link GluonifyServices#endpoint(String)}, depending on where
+     * the application runs. On the platform, the address injected for {@code "uses": ["crystallon"]} and the application token (file re-read on every
+     * call); on the developer workstation, the public address of the {@code gluonify login} zone and the developer token (renewed); in
+     * tests, the {@code GLUONIFY_SERVICE_CRYSTALLON_URL} override (system property, set by {@code GluonifyTestServices}). The JSON comes from
      * {@link PayloadCodec#detect()}.
      *
-     * @throws io.gluonify.plasma.services.GluonifyServicesException si Crystallon ne peut pas être joint ; le message dit quoi faire
-     * @throws IllegalStateException si aucune bibliothèque JSON n'est présente
+     * @throws io.gluonify.plasma.services.GluonifyServicesException if Crystallon cannot be reached; the message says what to do
+     * @throws IllegalStateException if no JSON library is present
      */
     public static CrystallonClient create() {
         return create(GluonifyServices.defaults());
     }
 
-    /** Comme {@link #create()} avec une résolution fournie (tests, outils). */
+    /** Like {@link #create()} with a supplied resolution (tests, tools). */
     public static CrystallonClient create(final GluonifyServices services) {
         return builder().endpoint(services.resolve("crystallon")).build();
     }
 
     /**
-     * Un client configuré par l'environnement de la plateforme : l'adresse vient de {@code GLUONIFY_SERVICE_CRYSTALLON_URL} (injectée quand
-     * l'application déclare {@code crystallon} dans {@code uses}), le jeton de {@link CrystallonTokens#fromEnvironment()}, le JSON de
+     * A client configured by the platform environment: the address comes from {@code GLUONIFY_SERVICE_CRYSTALLON_URL} (injected when
+     * the application declares {@code crystallon} in {@code uses}), the token from {@link CrystallonTokens#fromEnvironment()}, the JSON from
      * {@link PayloadCodec#detect()}.
      *
-     * @throws IllegalStateException si l'adresse est absente, ou si aucune bibliothèque JSON n'est présente
+     * @throws IllegalStateException if the address is absent, or if no JSON library is present
      */
     public static CrystallonClient fromEnvironment() {
         return fromEnvironment(System::getenv);
@@ -105,26 +105,26 @@ public final class CrystallonClient {
         return builder().baseUrl(url.strip()).tokens(CrystallonTokens.fromEnvironment(environment)).build();
     }
 
-    /** Le modèle d'identifiant {@code id} (celui de l'éditeur de Crystallon). */
+    /** The template with identifier {@code id} (the one from the Crystallon editor). */
     public TemplateRef byId(final String id) {
         return new TemplateRef(this, "/v1/templates/" + segment(required(id, "id")), null);
     }
 
-    /** Le modèle de ce nom (espaces et caractères spéciaux admis : le nom est encodé comme segment de chemin). */
+    /** The template with this name (spaces and special characters allowed: the name is encoded as a path segment). */
     public TemplateRef byName(final String name) {
         return new TemplateRef(this, "/v1/templates/by-name/" + segment(required(name, "name")), null);
     }
 
     /**
-     * Un modèle envoyé avec chaque demande, sans rien stocker dans Crystallon ({@code POST /v1/render}) : le nom d'un modèle prédéfini
-     * ({@code invoice}, {@code letter}, {@code quote}) ou le modèle lui-même (un objet JSON, avec éventuellement {@code extends}). Le modèle est
-     * sérialisé tout de suite par le {@link PayloadCodec} : l'{@link InlineTemplate} garde une copie, que la modification ultérieure de l'objet passé ne
-     * change pas, et un modèle qui n'est pas sérialisable échoue ici plutôt qu'au premier rendu. Aucun appel réseau.
+     * A template sent with every request, without storing anything in Crystallon ({@code POST /v1/render}): the name of a preset
+     * ({@code invoice}, {@code letter}, {@code quote}) or the template itself (a JSON object, optionally with {@code extends}). The template is
+     * serialized immediately by the {@link PayloadCodec}: the {@link InlineTemplate} keeps a copy, which later modification of the passed object does not
+     * change, and a template that cannot be serialized fails here rather than at the first render. No network call.
      *
-     * @param template une {@code String} : le nom d'un modèle prédéfini ; sinon un objet qui se sérialise en objet JSON ({@code Map}, record, bean,
-     *                 {@code JsonNode} du Jackson du codec). Du JSON écrit dans une {@code String} n'est pas admis : le lire d'abord (une {@code Map},
-     *                 un {@code JsonNode})
-     * @throws IllegalArgumentException si le modèle est {@code null}, un nom vide, du JSON dans une chaîne, ou ne se sérialise pas en objet JSON
+     * @param template a {@code String}: the name of a preset; otherwise an object that serializes to a JSON object ({@code Map}, record, bean,
+     *                 {@code JsonNode} of the codec's Jackson). JSON written in a {@code String} is not accepted: read it first (into a {@code Map},
+     *                 a {@code JsonNode})
+     * @throws IllegalArgumentException if the template is {@code null}, an empty name, JSON in a string, or does not serialize to a JSON object
      */
     public InlineTemplate inline(final Object template) {
         return new InlineTemplate(this, snapshot(template));
@@ -252,7 +252,7 @@ public final class CrystallonClient {
                 error = json.read(body.bytes(), ErrorBody.class);
             }
             catch (final RuntimeException e) {
-                // pas un ErrorBody (page d'un proxy...) : on garde le statut seul
+                // not an ErrorBody (a proxy page...): keep the status alone
             }
         }
         if (error != null && (error.code() != null || error.message() != null)) {
@@ -323,7 +323,7 @@ public final class CrystallonClient {
         return value;
     }
 
-    /** Encode une valeur comme un segment de chemin : tout sauf {@code A-Z a-z 0-9 - . _ ~} en {@code %XX} (UTF-8) ; espace {@code %20}, barre {@code %2F}. */
+    /** Encodes a value as a path segment: everything except {@code A-Z a-z 0-9 - . _ ~} as {@code %XX} (UTF-8); space {@code %20}, slash {@code %2F}. */
     static String segment(final String value) {
         if (value.equals(".") || value.equals("..")) {
             return value.replace(".", "%2E");
@@ -353,7 +353,7 @@ public final class CrystallonClient {
         private Builder() {
         }
 
-        /** @param url adresse de Crystallon ({@code http://} ou {@code https://}), avec un éventuel préfixe de chemin ; la barre finale est ignorée */
+        /** @param url Crystallon address ({@code http://} or {@code https://}), with an optional path prefix; the trailing slash is ignored */
         public Builder baseUrl(final String url) {
             return baseUrl(URI.create(Objects.requireNonNull(url, "url").strip()));
         }
@@ -372,8 +372,8 @@ public final class CrystallonClient {
         }
 
         /**
-         * L'adresse et la source du jeton d'un service résolu par {@link GluonifyServices} ({@code GluonifyServices.endpoint("crystallon")}).
-         * Un appel suivant à {@link #baseUrl(String)} ou {@link #tokens(CrystallonTokens)} remplace la valeur correspondante.
+         * The address and token source of a service resolved by {@link GluonifyServices} ({@code GluonifyServices.endpoint("crystallon")}).
+         * A later call to {@link #baseUrl(String)} or {@link #tokens(CrystallonTokens)} replaces the corresponding value.
          */
         public Builder endpoint(final Endpoint endpoint) {
             Objects.requireNonNull(endpoint, "endpoint");
@@ -381,13 +381,13 @@ public final class CrystallonClient {
             return tokens(CrystallonTokens.of(endpoint));
         }
 
-        /** @param tokens la source du jeton (défaut : {@link CrystallonTokens#none()}) */
+        /** @param tokens the token source (default: {@link CrystallonTokens#none()}) */
         public Builder tokens(final CrystallonTokens tokens) {
             this.tokens = Objects.requireNonNull(tokens, "tokens");
             return this;
         }
 
-        /** @param timeout délai d'un appel, réponse complète comprise (défaut : 30 s) */
+        /** @param timeout timeout of a call, complete response included (default: 30 s) */
         public Builder timeout(final Duration timeout) {
             Objects.requireNonNull(timeout, "timeout");
             if (timeout.isZero() || timeout.isNegative()) {
@@ -397,19 +397,19 @@ public final class CrystallonClient {
             return this;
         }
 
-        /** @param codec la passerelle JSON (défaut : {@link PayloadCodec#detect()}) */
+        /** @param codec the JSON gateway (default: {@link PayloadCodec#detect()}) */
         public Builder json(final PayloadCodec codec) {
             this.json = Objects.requireNonNull(codec, "codec");
             return this;
         }
 
-        /** @param client le client HTTP à utiliser (défaut : un client créé au premier appel) */
+        /** @param client the HTTP client to use (default: a client created on the first call) */
         public Builder httpClient(final HttpClient client) {
             this.httpClient = Objects.requireNonNull(client, "client");
             return this;
         }
 
-        /** @param max taille maximale d'un PDF accepté, en octets (défaut : 50 Mo) */
+        /** @param max maximum size of an accepted PDF, in bytes (default: 50 MB) */
         public Builder maxPdfBytes(final long max) {
             if (max < 1) {
                 throw new IllegalArgumentException("the maximum PDF size must be positive");
@@ -418,7 +418,7 @@ public final class CrystallonClient {
             return this;
         }
 
-        /** @throws IllegalStateException si l'adresse manque, ou si aucune bibliothèque JSON n'est présente et qu'aucun codec n'est donné */
+        /** @throws IllegalStateException if the address is missing, or if no JSON library is present and no codec is given */
         public CrystallonClient build() {
             if (baseUrl == null) {
                 throw new IllegalStateException("the Crystallon base URL is required: baseUrl(...), endpoint(...) or CrystallonClient.create()");

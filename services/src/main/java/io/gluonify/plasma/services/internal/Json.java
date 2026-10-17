@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * JSON minimal (RFC 8259) pour les petits documents du module : découverte, {@code config.json}, fichiers de jetons, réponses de Charm. Aucune
- * dépendance, aucune réflexion (image native sans configuration). Lecture : objets en {@link LinkedHashMap}, tableaux en {@link ArrayList}, nombres
- * entiers en {@link Long} (sinon {@link Double}), {@code true}/{@code false}, {@code null}. Pas une API publique : peut changer sans préavis.
+ * Minimal JSON (RFC 8259) for the module's small documents: discovery, {@code config.json}, token files, Charm responses. No
+ * dependency, no reflection (native image without configuration). Reading: objects as {@link LinkedHashMap}, arrays as {@link ArrayList}, integer
+ * numbers as {@link Long} (otherwise {@link Double}), {@code true}/{@code false}, {@code null}. Not a public API: may change without notice.
  */
 public final class Json {
     private static final int MAX_DEPTH = 64;
@@ -21,7 +21,7 @@ public final class Json {
         this.s = s;
     }
 
-    /** @throws IllegalArgumentException si le texte n'est pas un JSON valide */
+    /** @throws IllegalArgumentException if the text is not valid JSON */
     public static Object parse(final String text) {
         final Json p = new Json(text);
         p.ws();
@@ -33,7 +33,7 @@ public final class Json {
         return v;
     }
 
-    /** Un objet JSON. @throws IllegalArgumentException si le texte n'est pas un objet JSON */
+    /** A JSON object. @throws IllegalArgumentException if the text is not a JSON object */
     @SuppressWarnings("unchecked")
     public static Map<String, Object> object(final String text) {
         final Object v = parse(text);
@@ -43,26 +43,26 @@ public final class Json {
         return (Map<String, Object>) v;
     }
 
-    /** La valeur de {@code key} si c'est un objet, sinon une table vide. */
+    /** The value of {@code key} if it is an object, otherwise an empty map. */
     @SuppressWarnings("unchecked")
     public static Map<String, Object> obj(final Map<String, Object> m, final String key) {
         final Object v = m == null ? null : m.get(key);
         return v instanceof Map ? (Map<String, Object>) v : Map.of();
     }
 
-    /** La valeur de {@code key} si c'est une chaîne non vide, sinon {@code null}. */
+    /** The value of {@code key} if it is a non-empty string, otherwise {@code null}. */
     public static String str(final Map<String, Object> m, final String key) {
         final Object v = m == null ? null : m.get(key);
         return v instanceof String && !((String) v).isBlank() ? ((String) v).strip() : null;
     }
 
-    /** La valeur de {@code key} si c'est un nombre, sinon {@code fallback}. */
+    /** The value of {@code key} if it is a number, otherwise {@code fallback}. */
     public static long num(final Map<String, Object> m, final String key, final long fallback) {
         final Object v = m == null ? null : m.get(key);
         return v instanceof Number ? ((Number) v).longValue() : fallback;
     }
 
-    /** Les chaînes de {@code key} : un tableau de chaînes, ou une chaîne seule ; sinon une liste vide. */
+    /** The strings of {@code key}: an array of strings, or a single string; otherwise an empty list. */
     public static List<String> strings(final Map<String, Object> m, final String key) {
         final Object v = m == null ? null : m.get(key);
         final List<String> out = new ArrayList<>();
@@ -79,7 +79,7 @@ public final class Json {
         return out;
     }
 
-    /** Écrit une valeur ({@code Map} à clés chaînes, {@code Collection}, {@code String}, {@code Number}, {@code Boolean}, {@code null}). */
+    /** Writes a value ({@code Map} with string keys, {@code Collection}, {@code String}, {@code Number}, {@code Boolean}, {@code null}). */
     public static String write(final Object value) {
         final StringBuilder out = new StringBuilder();
         write(out, value, 0);

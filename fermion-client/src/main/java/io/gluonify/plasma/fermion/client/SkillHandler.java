@@ -8,12 +8,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Une compétence que le nœud sait exécuter : {@link #action()} est le nom de l'action envoyée par fermion. Implémentation = bean CDI
- * (par exemple {@code @ApplicationScoped}) ; {@link SkillHandlerRegistry} les découvre et les annonce dans {@code Hello}.
+ * A skill that the node knows how to run: {@link #action()} is the name of the action sent by fermion. Implementation = CDI bean
+ * (for example {@code @ApplicationScoped}); {@link SkillHandlerRegistry} discovers them and announces them in {@code Hello}.
  */
 public interface SkillHandler {
 
-    /** Nom de la compétence (= action de la tâche). */
+    /** Name of the skill (= action of the task). */
     String action();
 
     default List<SkillParam> inputs() {
@@ -24,29 +24,29 @@ public interface SkillHandler {
         return List.of();
     }
 
-    /** Descriptions localisées : vide, ou les cinq langues (voir {@link #translations}). */
+    /** Localized descriptions: empty, or all five languages (see {@link #translations}). */
     default List<Translation> descriptions() {
         return List.of();
     }
 
     /**
-     * Plus long délai pendant lequel fermion peut rester sans résultat ni battement de cette tâche sans la juger perdue (annoncé dans
-     * {@code Hello}). {@code null} : le délai de fermion ({@code gluonify.fermion.dispatch.result-timeout}). Pour une attente de plusieurs
-     * jours (validation par un humain), l'annoncer ici : le battement automatique couvre déjà une tâche qui tourne, pas un nœud redémarré.
+     * Longest time fermion may stay without a result or heartbeat from this task before considering it lost (announced in
+     * {@code Hello}). {@code null}: the fermion timeout ({@code gluonify.fermion.dispatch.result-timeout}). For a wait of several
+     * days (human validation), announce it here: the automatic heartbeat already covers a running task, not a restarted node.
      */
     default Duration expectedDuration() {
         return null;
     }
 
     /**
-     * Exécute la tâche (hors du thread d'événements).
+     * Runs the task (off the event thread).
      *
-     * @return variables à fusionner dans l'état du workflow (peut être {@code null})
-     * @throws SkillFailureException pour un échec avec {@code errorKind} ; toute autre exception est un échec sans genre
+     * @return variables to merge into the workflow state (may be {@code null})
+     * @throws SkillFailureException for a failure with {@code errorKind}; any other exception is a failure without kind
      */
     Map<String, Object> handle(TaskContext context) throws Exception;
 
-    /** Les cinq traductions d'un texte, dans l'ordre en, fr, es, it, de. */
+    /** The five translations of a text, in the order en, fr, es, it, de. */
     static List<Translation> translations(final String en, final String fr, final String es, final String it, final String de) {
         return List.of(new Translation(Language.EN, en), new Translation(Language.FR, fr), new Translation(Language.ES, es),
                 new Translation(Language.IT, it), new Translation(Language.DE, de));

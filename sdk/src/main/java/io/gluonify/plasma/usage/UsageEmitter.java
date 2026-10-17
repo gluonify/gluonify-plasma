@@ -15,18 +15,18 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 /**
- * Émetteur d'usage d'un service ({@code metering.md} § 4.2) : {@link UsageMeter} → {@link UsageSpool} → {@code POST /v1/usage/records} du calorimètre.
- * Le service appelle {@link #tick()} toutes les quelques secondes depuis SON ordonnanceur (aucun fil n'est créé ici) : les fenêtres closes passent dans le spool,
- * puis les lots en attente sont envoyés du plus ancien au plus récent, avec un délai croissant après un échec (5 s, doublé jusqu'à 5 min). Ne lève jamais, ne bloque
- * jamais au-delà du délai d'une requête ; sans {@link Transport}, le spool garde tout dans ses bornes.
+ * Usage emitter of a service ({@code metering.md} § 4.2): {@link UsageMeter} to {@link UsageSpool} to the calorimeter's {@code POST /v1/usage/records}.
+ * The service calls {@link #tick()} every few seconds from ITS scheduler (no thread is created here): closed windows go into the spool,
+ * then pending batches are sent from the oldest to the newest, with an increasing delay after a failure (5 s, doubled up to 5 min). Never throws, never blocks
+ * beyond the timeout of a request; without a {@link Transport}, the spool keeps everything within its bounds.
  */
 public final class UsageEmitter {
-    /** Envoi d'un lot ; rend le statut HTTP (une exception : calorimètre injoignable). */
+    /** Sends a batch; returns the HTTP status (an exception: calorimeter unreachable). */
     public interface Transport {
         int post(String body) throws IOException, InterruptedException;
     }
 
-    /** Lots de 1 000 au plus (le calorimètre en accepte 5 000). */
+    /** Batches of at most 1,000 (the calorimeter accepts 5,000). */
     public static final int MAX_BATCH = 1000;
     static final long MIN_BACKOFF = 5_000, MAX_BACKOFF = 300_000;
 
@@ -49,24 +49,24 @@ public final class UsageEmitter {
 
     public UsageSpool spool() { return spool; }
 
-    /** Dernier statut HTTP du calorimètre (0 : jamais joint, -1 : injoignable). */
+    /** Last HTTP status of the calorimeter (0: never reached, -1: unreachable). */
     public int lastStatus() { return lastStatus; }
 
-    /** Enregistrements acquittés depuis le démarrage. */
+    /** Records acknowledged since startup. */
     public long sent() { return sent; }
 
-    /** Bascule les fenêtres closes dans le spool, puis tente l'envoi. */
+    /** Moves the closed windows into the spool, then tries to send. */
     public synchronized void tick() {
         try {
             List<UsageRecord> closed = meter.drain(clock.getAsLong());
             for (int i = 0; i < closed.size(); i += MAX_BATCH) spool.append(closed.subList(i, Math.min(closed.size(), i + MAX_BATCH)));
             send();
         } catch (RuntimeException e) {
-            // jamais d'exception vers le service
+            // never an exception towards the service
         }
     }
 
-    /** À l'arrêt du service : la fenêtre en cours aussi (incomplète, mais comptée), puis un dernier envoi. */
+    /** On service shutdown: the current window too (incomplete, but counted), then one last send. */
     public synchronized void close() {
         try {
             List<UsageRecord> all = meter.drain(Long.MAX_VALUE);
@@ -74,7 +74,7 @@ public final class UsageEmitter {
             nextTry = 0;
             send();
         } catch (RuntimeException e) {
-            // arrêt quand même
+            // shut down anyway
         }
     }
 
@@ -101,11 +101,11 @@ public final class UsageEmitter {
                 backoff = 0;
                 continue;
             }
-            if (status == 400 || status == 413 || status == 422) { // le lot ne passera jamais : abandonné et compté (le trou de seq le montre au calorimètre)
+            if (status == 400 || status == 413 || status == 422) { // the batch will never go through: dropped and counted (the seq gap shows it to the calorimeter)
                 spool.drop(b);
                 continue;
             }
-            backoff = backoff == 0 ? MIN_BACKOFF : Math.min(MAX_BACKOFF, backoff * 2); // 401, 403, 5xx, injoignable : on réessaie plus tard
+            backoff = backoff == 0 ? MIN_BACKOFF : Math.min(MAX_BACKOFF, backoff * 2); // 401, 403, 5xx, unreachable: retry later
             nextTry = now + backoff;
             return;
         }
@@ -121,8 +121,8 @@ public final class UsageEmitter {
     }
 
     /**
-     * Transport HTTP vers {@code <url>/v1/usage/records} avec le jeton relu à chaque envoi dans {@code tokenFile} (un jeton de service est renouvelé par
-     * la plateforme sans redémarrage). Client HTTP créé au premier envoi (image native : jamais dans un champ statique). Le jeton n'est jamais journalisé.
+     * HTTP transport to {@code <url>/v1/usage/records} with the token re-read on each send from {@code tokenFile} (a service token is renewed by
+     * the platform without a restart). HTTP client created on the first send (native image: never in a static field). The token is never logged.
      */
     public static Transport http(String url, Path tokenFile, Duration timeout) {
         String target = url.replaceAll("/+$", "") + "/v1/usage/records";
@@ -144,8 +144,8 @@ public final class UsageEmitter {
     }
 
     /**
-     * Transport tiré de l'environnement de la plateforme : {@code GLUONIFY_SERVICE_CALORIMETER_URL} et {@code GLUONIFY_CALORIMETER_TOKEN_FILE}
-     * ({@code uses: ["calorimeter"]}) ; null sans adresse. Relu à chaque appel par l'émetteur (le fichier du jeton peut arriver après le démarrage).
+     * Transport taken from the platform environment: {@code GLUONIFY_SERVICE_CALORIMETER_URL} and {@code GLUONIFY_CALORIMETER_TOKEN_FILE}
+     * ({@code uses: ["calorimeter"]}); null without an address. Re-read on each call by the emitter (the token file may arrive after startup).
      */
     public static Supplier<Transport> fromEnvironment(java.util.function.Function<String, String> env, Duration timeout) {
         Transport[] cached = new Transport[1];
@@ -163,7 +163,7 @@ public final class UsageEmitter {
         };
     }
 
-    /** Pour les tests : le corps d'un lot. */
+    /** For tests: the body of a batch. */
     static List<String> lines(List<UsageRecord> records) {
         List<String> out = new ArrayList<>();
         for (UsageRecord r : records) out.add(r.toJson());

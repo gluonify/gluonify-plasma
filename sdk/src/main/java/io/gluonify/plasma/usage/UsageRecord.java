@@ -12,14 +12,14 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
- * Enregistrement d'usage ({@code metering.md} § 4.1) : l'agrégat d'un émetteur, d'une fenêtre d'une minute et d'une clé {@code (env, org, appUuid, unit, dims)}.
- * Sérialisé à la main ({@link #toJson()}) : le SDK n'embarque pas jackson-databind, et rien n'est relu par Jackson côté émetteur (aucune entrée de réflexion à prévoir).
+ * Usage record ({@code metering.md} § 4.1): the aggregate of one emitter, one one-minute window and one key {@code (env, org, appUuid, unit, dims)}.
+ * Serialized by hand ({@link #toJson()}): the SDK does not bundle jackson-databind, and nothing is read back by Jackson on the emitter side (no reflection entry to provide).
  *
- * @param id        {@code sha256(service|replica|fenêtre|clé)} en hexadécimal : un renvoi du même agrégat a le même identifiant (idempotence au calorimètre)
- * @param seq       numéro croissant de l'émetteur (par {@code emitter.epoch}) : un trou dans la suite est un enregistrement perdu, que le calorimètre reporte
- *                  dans le manifeste de la période ({@code gaps}, {@code dropped})
- * @param windowStart début de la fenêtre (ms epoch, multiple de 60 000)
- * @param quantity  quantité dans la grandeur de base du catalogue, 9 décimales au plus
+ * @param id        {@code sha256(service|replica|window|key)} in hexadecimal: a resend of the same aggregate has the same identifier (idempotence at the calorimeter)
+ * @param seq       increasing number of the emitter (per {@code emitter.epoch}): a gap in the sequence is a lost record, which the calorimeter reports
+ *                  in the period manifest ({@code gaps}, {@code dropped})
+ * @param windowStart window start (epoch ms, multiple of 60,000)
+ * @param quantity  quantity in the catalog's base unit, at most 9 decimal places
  */
 public record UsageRecord(String id, long seq, Emitter emitter, String env, long windowStart, Subject subject, String unit, SortedMap<String, String> dims,
                           BigDecimal quantity, boolean internal, String onBehalfOf, String confidence) {
@@ -28,19 +28,19 @@ public record UsageRecord(String id, long seq, Emitter emitter, String env, long
 
     public UsageRecord {
         dims = dims == null ? new TreeMap<>() : new TreeMap<>(dims);
-        quantity = quantity.setScale(Math.min(9, Math.max(0, quantity.stripTrailingZeros().scale())), RoundingMode.DOWN); // en faveur du client
+        quantity = quantity.setScale(Math.min(9, Math.max(0, quantity.stripTrailingZeros().scale())), RoundingMode.DOWN); // in the customer's favour
     }
 
     /**
-     * Émetteur. {@code replica} fait partie de l'identifiant : deux émetteurs qui relèvent la MÊME grandeur (copies d'un espace de noms, leader de Higgs) prennent
-     * la même valeur logique pour n'être comptés qu'une fois. {@code epoch} : date de création du compteur {@code seq} (ms), qui distingue deux suites.
+     * Emitter. {@code replica} is part of the identifier: two emitters that read the SAME quantity (copies of a namespace, Higgs leader) take
+     * the same logical value so as to be counted only once. {@code epoch}: creation date of the {@code seq} counter (ms), which tells two sequences apart.
      */
     public record Emitter(String service, String replica, String node, String version, long epoch) {}
 
     /**
-     * Sujet de l'usage ; {@code kind} : {@code service}, {@code user}, {@code node} ou {@code unknown}. {@code org} vaut {@code _unassigned} à défaut.
-     * {@code resource} : la ressource d'où l'attribution est tirée quand l'émetteur ne connaît pas la spécification de l'application ({@code gdown:<base>},
-     * {@code rup:<genre>/<espace>}) ; le calorimètre en déduit alors l'organisation, le nom et l'UUID d'après les spécifications de Higgs (metering.md § 4.1).
+     * Subject of the usage; {@code kind}: {@code service}, {@code user}, {@code node} or {@code unknown}. {@code org} is {@code _unassigned} by default.
+     * {@code resource}: the resource from which the attribution is derived when the emitter does not know the application's specification ({@code gdown:<base>},
+     * {@code rup:<kind>/<namespace>}); the calorimeter then derives the organization, the name and the UUID from Higgs's specifications (metering.md § 4.1).
      */
     public record Subject(String org, String app, String appUuid, String kind, String resource) {
         public Subject {
@@ -51,7 +51,7 @@ public record UsageRecord(String id, long seq, Emitter emitter, String env, long
         public Subject(String org, String app, String appUuid, String kind) { this(org, app, appUuid, kind, null); }
     }
 
-    /** Clé de l'agrégat (sans l'émetteur ni la fenêtre). */
+    /** Key of the aggregate (without the emitter or the window). */
     public static String key(String env, Subject s, String unit, Map<String, String> dims) {
         StringBuilder b = new StringBuilder().append(env).append('|').append(s.org()).append('|').append(s.app() == null ? "" : s.app()).append('|')
                 .append(s.appUuid() == null ? "" : s.appUuid()).append('|').append(s.kind()).append('|').append(s.resource() == null ? "" : s.resource()).append('|').append(unit);
@@ -59,7 +59,7 @@ public record UsageRecord(String id, long seq, Emitter emitter, String env, long
         return b.toString();
     }
 
-    /** Identifiant déterministe : {@code sha256(service|replica|windowStart|clé)}. */
+    /** Deterministic identifier: {@code sha256(service|replica|windowStart|key)}. */
     public static String id(String service, String replica, long windowStart, String key) {
         try {
             MessageDigest d = MessageDigest.getInstance("SHA-256");
@@ -69,7 +69,7 @@ public record UsageRecord(String id, long seq, Emitter emitter, String env, long
         }
     }
 
-    /** JSON du format v1 (une ligne, sans saut de ligne). */
+    /** JSON of format v1 (one line, no line break). */
     public String toJson() {
         StringBuilder b = new StringBuilder(384);
         b.append("{\"v\":1,\"id\":").append(q(id)).append(",\"seq\":").append(seq);

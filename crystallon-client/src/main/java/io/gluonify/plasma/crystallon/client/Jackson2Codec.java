@@ -10,9 +10,9 @@ import java.io.IOException;
 import java.util.Objects;
 
 /**
- * {@link PayloadCodec} de Jackson 2 ({@code com.fasterxml.jackson}, 2.15 ou plus pour les records). Le {@code JavaTimeModule}
- * ({@code jackson-datatype-jsr310}) y est enregistré s'il est présent ; sans lui Jackson 2 refuse les {@code LocalDate}. N'est chargé que si
- * Jackson 2 est présent.
+ * {@link PayloadCodec} for Jackson 2 ({@code com.fasterxml.jackson}, 2.15 or later for records). The {@code JavaTimeModule}
+ * ({@code jackson-datatype-jsr310}) is registered on it if present; without it Jackson 2 rejects {@code LocalDate}. Loaded only if
+ * Jackson 2 is present.
  */
 public final class Jackson2Codec implements PayloadCodec {
     private final ObjectMapper mapper;
@@ -21,7 +21,7 @@ public final class Jackson2Codec implements PayloadCodec {
         this.mapper = mapper;
     }
 
-    /** Un codec sur le mapper de l'application, tel quel (le client n'y change rien). */
+    /** A codec over the application's mapper, as is (the client changes nothing on it). */
     public static PayloadCodec of(final ObjectMapper mapper) {
         return new Jackson2Codec(Objects.requireNonNull(mapper, "mapper"));
     }
@@ -72,8 +72,8 @@ public final class Jackson2Codec implements PayloadCodec {
     }
 
     /**
-     * Isolé pour que {@code JavaTimeModule}, facultatif, ne soit chargé que s'il est présent : la JVM vérifie une classe en entier dès qu'elle
-     * l'utilise, donc cette classe ne doit contenir que ce qui a besoin du module (elle n'est jamais touchée sans lui).
+     * Isolated so that {@code JavaTimeModule}, which is optional, is loaded only if present: the JVM verifies a whole class as soon as it
+     * uses it, so this class must contain only what needs the module (it is never touched without it).
      */
     private static final class JavaTime {
         static void register(final JsonMapper.Builder builder) {

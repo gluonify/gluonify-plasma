@@ -1,4 +1,4 @@
-# Build et dépendances
+# Build and dependencies
 target/
 node_modules/
 .quinoa/
@@ -6,7 +6,7 @@ dist/
 *.class
 *.log
 
-# Environnement
+# Environment
 .idea/
 .vscode/
 .DS_Store

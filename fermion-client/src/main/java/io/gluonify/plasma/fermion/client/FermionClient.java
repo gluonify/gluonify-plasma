@@ -25,8 +25,8 @@ import java.util.function.BiConsumer;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Connexion permanente à gluonify-fermion et API de soumission de workflows. Un nœud peut soumettre, exécuter des tâches (beans
- * {@link SkillHandler}), ou les deux. Reconnexion automatique ; les {@code Start} émis pendant une coupure attendent dans une file bornée.
+ * Permanent connection to gluonify-fermion and workflow submission API. A node can submit, run tasks (beans
+ * {@link SkillHandler}), or both. Automatic reconnection; the {@code Start} messages emitted during a disconnection wait in a bounded queue.
  */
 @ApplicationScoped
 public class FermionClient {
@@ -50,8 +50,8 @@ public class FermionClient {
     Instance<FermionTokenProvider> tokens;
 
     /**
-     * Un {@link WebSocketConnector} est un constructeur à état : {@code addHeader}, {@code baseUri} et {@code pathParam} s'accumulent. Réutilisé, il
-     * ajouterait des en-têtes à chaque tentative jusqu'au refus du serveur (HTTP 431). On en prend donc un NEUF par tentative, détruit ensuite.
+     * A {@link WebSocketConnector} is a stateful builder: {@code addHeader}, {@code baseUri} and {@code pathParam} accumulate. Reused, it
+     * would add headers on every attempt until the server refuses (HTTP 431). So a NEW one is taken for each attempt, then discarded.
      */
     @Inject
     Instance<WebSocketConnector<FermionClientEndpoint>> connectorFactory;
@@ -67,14 +67,14 @@ public class FermionClient {
     private volatile int connectorsCreated;
     private volatile Optional<String> resolvedUrl;
 
-    /** Client actif : activé et URL de fermion connue (configurée, ou résolue par {@code GluonifyServices}). */
+    /** Active client: enabled and fermion URL known (configured, or resolved by {@code GluonifyServices}). */
     public boolean isActive() {
         return config.enabled() && url().isPresent();
     }
 
     /**
-     * L'URL de fermion : {@code gluonify.fermion.client.url} si elle est renseignée, sinon (si {@code discover}) la résolution de
-     * {@link GluonifyServices#optional(String)}, faite une fois. Un échec de la résolution est journalisé et laisse le client inactif.
+     * The fermion URL: {@code gluonify.fermion.client.url} if set, otherwise (if {@code discover}) the resolution by
+     * {@link GluonifyServices#optional(String)}, done once. A resolution failure is logged and leaves the client inactive.
      */
     Optional<String> url() {
         Optional<String> u = resolvedUrl;
@@ -105,19 +105,19 @@ public class FermionClient {
         return current != null && current.isOpen();
     }
 
-    /** Nombre de {@code Start} en attente de reconnexion. */
+    /** Number of {@code Start} messages waiting for reconnection. */
     public int pendingCount() {
         synchronized (lock) {
             return pending.size();
         }
     }
 
-    /** Nombre de connecteurs créés depuis le démarrage (un par tentative de connexion). */
+    /** Number of connectors created since startup (one per connection attempt). */
     int connectorsCreated() {
         return connectorsCreated;
     }
 
-    /** Callback appelé quand fermion refuse ou abandonne un workflow soumis (correlationId, message). Un seul : le dernier remplace. */
+    /** Callback invoked when fermion refuses or abandons a submitted workflow (correlationId, message). Only one: the last replaces the previous. */
     public void onWorkflowError(final BiConsumer<String, String> sink) {
         this.errorSink = sink;
     }
@@ -149,7 +149,7 @@ public class FermionClient {
             return;
         }
         final WebSocketClientConnection current = connection;
-        // isOpen() peut rester vrai sur une connexion TCP à moitié morte : on sonde par un ping BORNÉ et on reconnecte s'il échoue.
+        // isOpen() can stay true on a half-dead TCP connection: probe with a BOUNDED ping and reconnect if it fails.
         if (current != null && current.isOpen()) {
             try {
                 current.sendPing(Buffer.buffer("fermion")).await().atMost(PING_TIMEOUT);
@@ -161,7 +161,7 @@ public class FermionClient {
                     current.close().await().atMost(PING_TIMEOUT);
                 }
                 catch (final Exception ignored) {
-                    // déjà morte
+                    // already dead
                 }
                 connection = null;
             }
@@ -169,7 +169,7 @@ public class FermionClient {
         connect();
     }
 
-    /** Appelé à la fermeture du canal : oublie la connexion (comparée par identifiant, pour ne pas écraser une connexion plus récente). */
+    /** Called when the channel closes: forgets the connection (compared by identifier, so as not to overwrite a more recent connection). */
     void connectionLost(final WebSocketClientConnection closed) {
         final WebSocketClientConnection current = connection;
         if (current != null && closed != null && current.id().equals(closed.id())) {
@@ -178,7 +178,7 @@ public class FermionClient {
         }
     }
 
-    /** Tente une connexion (un connecteur neuf) ; en cas de succès : {@code Auth}, {@code Hello}, puis rejeu de la file. */
+    /** Attempts a connection (a new connector); on success: {@code Auth}, {@code Hello}, then replay of the queue. */
     void connect() {
         synchronized (lock) {
             if (isConnected()) {
@@ -232,25 +232,25 @@ public class FermionClient {
         }
     }
 
-    /** Soumet un workflow ; la transaction globale prend par défaut le premier {@code correlationId} (côté fermion). */
+    /** Submits a workflow; the global transaction defaults to the first {@code correlationId} (on the fermion side). */
     public void startWorkflow(final String workflow, final String correlationId, final Map<String, Object> payload) {
         startWorkflow(workflow, correlationId, null, payload);
     }
 
     /**
-     * Soumet un workflow rattaché à une transaction métier existante. Pendant une coupure, le {@code Start} est gardé dans la file bornée et rejoué à
-     * la reconnexion.
+     * Submits a workflow attached to an existing business transaction. During a disconnection, the {@code Start} is kept in the bounded queue and replayed on
+     * reconnection.
      *
-     * @throws FermionClientException si le client est inactif
-     * @throws FermionQueueFullException si la coupure dure et que la file est pleine
+     * @throws FermionClientException if the client is inactive
+     * @throws FermionQueueFullException if the disconnection lasts and the queue is full
      */
     public void startWorkflow(final String workflow, final String correlationId, final String globalTransactionId, final Map<String, Object> payload) {
         startWorkflow(workflow, correlationId, globalTransactionId, payload, null);
     }
 
     /**
-     * Comme {@link #startWorkflow(String, String, String, Map)}, en fixant l'organisation de l'exécution : fermion la transmet à chaque tâche à la
-     * place de toute valeur {@code organization} de la charge utile. Réservé aux nœuds de la plateforme qui connaissent l'organisation de l'appelant.
+     * Like {@link #startWorkflow(String, String, String, Map)}, setting the organization of the execution: fermion passes it to each task in
+     * place of any {@code organization} value in the payload. Reserved for platform nodes that know the caller's organization.
      */
     public void startWorkflow(final String workflow, final String correlationId, final String globalTransactionId, final Map<String, Object> payload,
                               final String organization) {
@@ -276,7 +276,7 @@ public class FermionClient {
         }
     }
 
-    /** Ré-annonce compétences et workflows utilisés (à appeler quand cet ensemble change). Sans effet hors connexion : le prochain {@code Hello} les porte. */
+    /** Re-announces skills and workflows used (call when this set changes). No effect while disconnected: the next {@code Hello} carries them. */
     public void announceUsage() {
         synchronized (lock) {
             if (!isConnected()) {

@@ -10,10 +10,10 @@
   </parent>
   <artifactId>gluonify-plasma-services</artifactId>
   <name>Gluonify Plasma services</name>
-  <description>Résolution sans configuration des services de Gluonify (adresse et jeton) : surcharge, plateforme, poste du développeur. Java 17, aucune dépendance.</description>
+  <description>Zero-configuration resolution of Gluonify services (address and token): override, platform, developer workstation. Java 17, no dependency.</description>
 
   <properties>
-    <!-- Module publié pour les applications des clients : Java 17 pur, aucune dépendance (le parent compile en 25). -->
+    <!-- Module published for customers' applications: plain Java 17, no dependency (the parent compiles at 25). -->
     <maven.compiler.release>17</maven.compiler.release>
   </properties>
 
@@ -23,7 +23,7 @@
 
   <build>
     <plugins>
-      <!-- Les faux serveurs des tests (FakeCluster) servent aussi aux tests de la CLI. -->
+      <!-- The tests' fake servers (FakeCluster) are also used by the CLI tests. -->
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
         <executions>

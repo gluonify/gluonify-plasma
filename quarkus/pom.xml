@@ -10,10 +10,10 @@
   </parent>
   <artifactId>gluonify-plasma-quarkus</artifactId>
   <name>Gluonify Plasma Quarkus</name>
-  <description>Producteurs CDI par défaut (@DefaultBean) des clients de Gluonify pour une application Quarkus : rien à écrire dans l'application.</description>
+  <description>Default CDI producers (@DefaultBean) of Gluonify's clients for a Quarkus application: nothing to write in the application.</description>
 
   <properties>
-    <!-- Publié pour les applications Quarkus 4 des clients : Java 21, le minimum de Quarkus 4. -->
+    <!-- Published for the clients' Quarkus 4 applications: Java 21, the minimum of Quarkus 4. -->
     <maven.compiler.release>21</maven.compiler.release>
   </properties>
 

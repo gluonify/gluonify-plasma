@@ -1,6 +1,6 @@
 # gluonify-plasma-quarkus
 
-Producteurs CDI **par défaut** des clients de Gluonify pour une application Quarkus 4 (Java 21) : l'application n'écrit aucune classe de configuration.
+**Default** CDI producers of Gluonify's clients for a Quarkus 4 application (Java 21): the application writes no configuration class.
 
 ```xml
 <dependency>
@@ -10,14 +10,14 @@ Producteurs CDI **par défaut** des clients de Gluonify pour une application Qua
 ```
 
 ```java
-@Inject CrystallonClient crystallon;      // rien d'autre : adresse et jeton résolus par GluonifyServices
+@Inject CrystallonClient crystallon;      // nothing else: address and token resolved by GluonifyServices
 ```
 
-| Bean | Producteur | Source |
+| Bean | Producer | Source |
 |---|---|---|
-| `CrystallonClient` | `GluonifyProducers` (`@DefaultBean`, `@Singleton`, créé à la première injection) | `GluonifyServices.endpoint("crystallon")` et le `ObjectMapper` (Jackson 3) de l'application |
-| `FermionTokenProvider` | dans `gluonify-plasma-fermion-client` lui-même (`GluonifyTokenProducer`) : ce module ne dépend pas de fermion-client, qui reste facultatif | `FermionTokenProvider.gluonify()` |
+| `CrystallonClient` | `GluonifyProducers` (`@DefaultBean`, `@Singleton`, created on first injection) | `GluonifyServices.endpoint("crystallon")` and the application's `ObjectMapper` (Jackson 3) |
+| `FermionTokenProvider` | in `gluonify-plasma-fermion-client` itself (`GluonifyTokenProducer`): this module does not depend on fermion-client, which stays optional | `FermionTokenProvider.gluonify()` |
 
-Un bean du même type dans l'application remplace celui par défaut (par exemple un client qui transmet le jeton de la personne connectée, voir le README de crystallon-client). Le client est créé à la première injection : une application qui n'utilise pas Crystallon n'a rien à déclarer ; une application qui l'utilise sans `uses` reçoit à cette injection une `GluonifyServicesException` qui dit quoi faire. Image native : rien de statique, le `HttpClient` du client est créé au premier appel.
+A bean of the same type in the application replaces the default one (for example a client that forwards the signed-in person's token, see the README of crystallon-client). The client is created on first injection: an application that does not use Crystallon has nothing to declare; an application that uses it without `uses` gets, at that injection, a `GluonifyServicesException` that says what to do. Native image: nothing static, the client's `HttpClient` is created on the first call.
 
-En test : `GluonifyTestServices.start()` (module `gluonify-plasma-testing`) avant la première injection. `mvn clean verify` : 2 tests, dont un `@QuarkusTest` qui injecte le client et rend un PDF par le faux Crystallon avec le mapper de l'application.
+In tests: `GluonifyTestServices.start()` (module `gluonify-plasma-testing`) before the first injection. `mvn clean verify`: 2 tests, including a `@QuarkusTest` that injects the client and renders a PDF through the fake Crystallon with the application's mapper.

@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import tools.jackson.databind.ObjectMapper;
 
-/** Faux fermion : enregistre les trames reçues (par session) et peut envoyer des messages ou couper. */
+/** Fake fermion: records the frames received (per session) and can send messages or cut the connection. */
 @WebSocket(path = "/ws/fermion/{nodeId}")
 public class FakeFermionServer {
 

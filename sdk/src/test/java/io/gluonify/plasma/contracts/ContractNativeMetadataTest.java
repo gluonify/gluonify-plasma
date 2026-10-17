@@ -21,11 +21,11 @@ import java.util.TreeSet;
 import org.junit.jupiter.api.Test;
 
 /**
- * Natif : chaque type d'élément d'une liste des records du SDK (contrats, valorisation, constats d'analyse, catalogue des unités) a son TABLEAU dans
- * {@code reachability-metadata.json} du SDK. Jackson introspecte la classe de la liste ({@code ListN} de {@code List.copyOf} et de {@code Stream.toList},
- * dont le constructeur prend un {@code E[]}) et instancie le type tableau : sans l'entrée, la lecture échoue en natif seulement
- * ({@code MissingReflectionRegistrationError} sur {@code ContractVersion[]}, vu par {@code e2e-contracts.sh}). Même motif que
- * {@code ContractNativeMetadataTest} de gluonify-higgs, qui garde aussi ces entrées dans sa propre liste.
+ * Native: each element type of a list in the SDK records (contracts, pricing, analysis findings, unit catalogue) has its ARRAY in
+ * the SDK's {@code reachability-metadata.json}. Jackson introspects the list class ({@code ListN} de {@code List.copyOf} et de {@code Stream.toList},
+ * whose constructor takes an {@code E[]}) and instantiates the array type: without the entry, reading fails in native only
+ * ({@code MissingReflectionRegistrationError} on {@code ContractVersion[]}, seen by {@code e2e-contracts.sh}). Same reason as
+ * {@code ContractNativeMetadataTest} in gluonify-higgs, which also keeps these entries in its own list.
  */
 class ContractNativeMetadataTest {
     static final String METADATA = "/META-INF/native-image/io.gluonify.plasma/gluonify-plasma-sdk/reachability-metadata.json";
@@ -34,7 +34,7 @@ class ContractNativeMetadataTest {
             Pricing.Statement.class, AnalysisReport.class, UsageUnit.class, io.gluonify.plasma.usage.UsageReport.class, io.gluonify.plasma.ws.Msg.UsageReport.class};
 
     @Test
-    void tableauxDesListesEnregistres() throws Exception {
+    void listArraysRegistered() throws Exception {
         final String json;
         try (InputStream in = getClass().getResourceAsStream(METADATA)) {
             assertNotNull(in, METADATA);
@@ -51,7 +51,7 @@ class ContractNativeMetadataTest {
     }
 
     @Test
-    void leParcoursTrouveLesListesConnues() {
+    void theWalkFindsTheKnownLists() {
         final Set<String> names = new TreeSet<>();
         for (final Class<?> c : listElements()) {
             names.add(c.getSimpleName());
@@ -60,7 +60,7 @@ class ContractNativeMetadataTest {
                 names.toString());
     }
 
-    /** Types d'éléments des collections rencontrées en parcourant les composants des records depuis {@link #ROOTS} (valeurs des Map comprises). */
+    /** Element types of the collections met while walking the record components from {@link #ROOTS} (Map values included). */
     static Set<Class<?>> listElements() {
         final Set<Class<?>> seen = new LinkedHashSet<>();
         final Set<Class<?>> elements = new LinkedHashSet<>();

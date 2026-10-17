@@ -5,9 +5,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
 /**
- * Ce qu'un nœud sait faire : le nom de la compétence est l'action envoyée par {@link FermionMsg.Command}. {@code expectedDuration} (facultative,
- * durée ISO-8601 : {@code PT2H}, {@code P7D}) est le plus long délai pendant lequel la tâche peut rester sans résultat ni {@link FermionMsg.Progress}
- * sans que fermion la juge perdue et la renvoie.
+ * What a node can do: the skill name is the action sent by {@link FermionMsg.Command}. {@code expectedDuration} (optional,
+ * ISO-8601 duration: {@code PT2H}, {@code P7D}) is the longest time the task may stay without a result or {@link FermionMsg.Progress}
+ * before fermion considers it lost and sends it again.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)

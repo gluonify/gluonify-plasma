@@ -7,9 +7,9 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * JSON canonique : clés triées (ordre des chaînes Java), valeurs nulles omises, aucun espace, nombres entiers tels quels, chaînes échappées au minimum
- * ({@code "}, {@code \}, caractères de contrôle en séquence « u » à quatre chiffres hexadécimaux). Les records sont parcourus par leurs composants. Sert à l'empreinte des termes : deux
- * clusters, ou une période close, comparent les mêmes octets.
+ * Canonical JSON: sorted keys (Java string order), null values omitted, no whitespace, integers as is, strings escaped to the minimum
+ * ({@code "}, {@code \}, control characters as a "u" sequence followed by four hexadecimal digits). Records are walked through their components. Used for the terms fingerprint: two
+ * clusters, or a closed period, compare the same bytes.
  */
 public final class Canonical {
     private Canonical() {}
@@ -51,13 +51,13 @@ public final class Canonical {
                 try {
                     v = rc.getAccessor().invoke(o);
                 } catch (IllegalAccessException | InvocationTargetException e) {
-                    throw new IllegalStateException("composant illisible : " + rc.getName(), e);
+                    throw new IllegalStateException("unreadable component: " + rc.getName(), e);
                 }
                 if (v != null) fields.put(rc.getName(), v);
             }
             object(sb, fields);
         } else {
-            throw new IllegalArgumentException("type non canonique : " + o.getClass().getName());
+            throw new IllegalArgumentException("non-canonical type: " + o.getClass().getName());
         }
     }
 

@@ -3,23 +3,23 @@ package io.gluonify.plasma.release;
 import java.util.regex.Pattern;
 
 /**
- * Annonce de changement de clé de publication (voir gluonify-codex/docs/BOOTSTRAP.md §11 ter). Fichier {@code rollover.json} d'une version, SIGNÉ par la clé de publication
- * actuelle ({@code rollover.json.sig}) et contresigné par la NOUVELLE clé ({@code rollover.json.sig2} : preuve que la nouvelle clé existe et que son détenteur est d'accord).
- * Il est séparé de {@code manifest.json} À DESSEIN : le format du manifeste est strict (un nœud ou un install.sh de la version 0.1.0 refuse tout champ ajouté), donc l'annonce
- * ne peut pas y figurer sans empêcher les anciens nœuds de lire la version de transition. Elle est liée au manifeste par son empreinte ({@code manifestSha256}).
+ * Announcement of a publication key change (see gluonify-codex/docs/BOOTSTRAP.md §11 ter). {@code rollover.json} file of a release, SIGNED by the current publication key
+ * ({@code rollover.json.sig}) and countersigned by the NEW key ({@code rollover.json.sig2}: proof that the new key exists and that its holder agrees).
+ * It is kept apart from {@code manifest.json} ON PURPOSE: the manifest format is strict (a node or an install.sh of version 0.1.0 rejects any added field), so the announcement
+ * cannot appear in it without preventing old nodes from reading the transition release. It is bound to the manifest by its digest ({@code manifestSha256}).
  *
- * @param schema         version du format (1)
- * @param version        version de la distribution qui porte l'annonce (celle du manifeste)
- * @param sequence       séquence du manifeste (identique)
- * @param manifestSha256 empreinte SHA-256 des octets de {@code manifest.json} de cette version
- * @param createdAt      date de l'annonce (ISO-8601)
- * @param nextKey        nouvelle clé publique Ed25519, SubjectPublicKeyInfo DER en Base64 sur une ligne
- * @param nextKeySha256  empreinte SHA-256 de ce DER (celle que les clients passent à {@code --key-sha256})
- * @param retireOldAfter à partir de cette date, un manifeste signé SEULEMENT par l'ancienne clé est refusé (fin du recouvrement)
+ * @param schema         format version (1)
+ * @param version        version of the distribution that carries the announcement (that of the manifest)
+ * @param sequence       manifest sequence (identical)
+ * @param manifestSha256 SHA-256 digest of the bytes of this version's {@code manifest.json}
+ * @param createdAt      announcement date (ISO-8601)
+ * @param nextKey        new Ed25519 public key, DER SubjectPublicKeyInfo in Base64 on one line
+ * @param nextKeySha256  SHA-256 digest of this DER (the one clients pass to {@code --key-sha256})
+ * @param retireOldAfter from this date, a manifest signed ONLY by the old key is refused (end of the overlap)
  */
 public record KeyRollover(int schema, String version, long sequence, String manifestSha256, String createdAt, String nextKey, String nextKeySha256, String retireOldAfter) {
     public static final int SCHEMA = 1;
-    /** Recouvrement maximal accepté entre l'annonce et la fin de l'ancienne clé. */
+    /** Maximum overlap accepted between the announcement and the end of the old key. */
     public static final java.time.Duration MAX_OVERLAP = java.time.Duration.ofDays(400);
     public static final int MAX_BYTES = 4096;
     static final Pattern B64 = Pattern.compile("[A-Za-z0-9+/]{40,120}={0,2}");
@@ -28,23 +28,23 @@ public record KeyRollover(int schema, String version, long sequence, String mani
     private static final Pattern FORMAT = Pattern.compile("\\{\n\"schema\":([0-9]+),\n\"version\":\"([^\"]*)\",\n\"sequence\":([0-9]{1,15}),\n\"manifestSha256\":\"([^\"]*)\",\n\"createdAt\":\"([^\"]*)\",\n"
             + "\"nextKey\":\"([^\"]*)\",\n\"nextKeySha256\":\"([^\"]*)\",\n\"retireOldAfter\":\"([^\"]*)\"\n\\}\n");
 
-    /** Contrôle structurel ; la clé doit être un Ed25519 lisible dont l'empreinte est celle annoncée. */
+    /** Structural check; the key must be a readable Ed25519 whose digest is the announced one. */
     public KeyRollover validate() {
-        if (schema != SCHEMA) throw new ReleaseManifest.Invalid("schéma d'annonce de clé non pris en charge : " + schema);
-        if (version == null || !ReleaseManifest.VERSION.matcher(version).matches()) throw new ReleaseManifest.Invalid("annonce : version invalide");
-        if (sequence < 1) throw new ReleaseManifest.Invalid("annonce : séquence invalide");
-        if (manifestSha256 == null || !SHA.matcher(manifestSha256).matches()) throw new ReleaseManifest.Invalid("annonce : empreinte du manifeste invalide");
+        if (schema != SCHEMA) throw new ReleaseManifest.Invalid("unsupported key announcement schema: " + schema);
+        if (version == null || !ReleaseManifest.VERSION.matcher(version).matches()) throw new ReleaseManifest.Invalid("announcement: invalid version");
+        if (sequence < 1) throw new ReleaseManifest.Invalid("announcement: invalid sequence");
+        if (manifestSha256 == null || !SHA.matcher(manifestSha256).matches()) throw new ReleaseManifest.Invalid("announcement: invalid manifest digest");
         java.time.Instant created, retire;
         try {
             created = java.time.Instant.parse(createdAt);
             retire = java.time.Instant.parse(retireOldAfter);
         } catch (RuntimeException e) {
-            throw new ReleaseManifest.Invalid("annonce : date invalide");
+            throw new ReleaseManifest.Invalid("announcement: invalid date");
         }
-        if (!retire.isAfter(created) || retire.isAfter(created.plus(MAX_OVERLAP))) throw new ReleaseManifest.Invalid("annonce : fin de recouvrement hors limites");
-        if (nextKey == null || !B64.matcher(nextKey).matches()) throw new ReleaseManifest.Invalid("annonce : clé invalide");
-        TrustedKeys.Key k = TrustedKeys.Key.ofDer(nextKey); // lève Invalid si ce n'est pas un Ed25519
-        if (nextKeySha256 == null || !k.sha256().equals(nextKeySha256)) throw new ReleaseManifest.Invalid("annonce : l'empreinte ne correspond pas à la clé");
+        if (!retire.isAfter(created) || retire.isAfter(created.plus(MAX_OVERLAP))) throw new ReleaseManifest.Invalid("announcement: end of overlap out of range");
+        if (nextKey == null || !B64.matcher(nextKey).matches()) throw new ReleaseManifest.Invalid("announcement: invalid key");
+        TrustedKeys.Key k = TrustedKeys.Key.ofDer(nextKey); // raises Invalid if it is not an Ed25519
+        if (nextKeySha256 == null || !k.sha256().equals(nextKeySha256)) throw new ReleaseManifest.Invalid("announcement: the digest does not match the key");
         return this;
     }
 
@@ -56,19 +56,19 @@ public record KeyRollover(int schema, String version, long sequence, String mani
         return TrustedKeys.Key.ofDer(nextKey);
     }
 
-    /** Lit le format exact de {@link #toJson()} (re-sérialisation identique exigée) ; à n'appeler qu'APRÈS la vérification des signatures. */
+    /** Reads the exact format of {@link #toJson()} (identical re-serialization required); to be called only AFTER the signatures are verified. */
     public static KeyRollover parse(byte[] bytes) {
-        if (bytes.length > MAX_BYTES) throw new ReleaseManifest.Invalid("annonce de clé trop volumineuse");
+        if (bytes.length > MAX_BYTES) throw new ReleaseManifest.Invalid("key announcement too large");
         String text = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
         java.util.regex.Matcher m = FORMAT.matcher(text);
-        if (!m.matches()) throw new ReleaseManifest.Invalid("annonce de clé illisible");
+        if (!m.matches()) throw new ReleaseManifest.Invalid("unreadable key announcement");
         KeyRollover r = new KeyRollover(Integer.parseInt(m.group(1)), m.group(2), Long.parseLong(m.group(3)), m.group(4), m.group(5), m.group(6), m.group(7), m.group(8));
         r.validate();
-        if (!r.toJson().equals(text)) throw new ReleaseManifest.Invalid("annonce de clé non canonique");
+        if (!r.toJson().equals(text)) throw new ReleaseManifest.Invalid("non-canonical key announcement");
         return r;
     }
 
-    /** Même format que bin/sign-release.sh --next-key. */
+    /** Same format as bin/sign-release.sh --next-key. */
     public String toJson() {
         return "{\n\"schema\":" + schema + ",\n\"version\":\"" + version + "\",\n\"sequence\":" + sequence + ",\n\"manifestSha256\":\"" + manifestSha256 + "\",\n\"createdAt\":\"" + createdAt
                 + "\",\n\"nextKey\":\"" + nextKey + "\",\n\"nextKeySha256\":\"" + nextKeySha256 + "\",\n\"retireOldAfter\":\"" + retireOldAfter + "\"\n}\n";

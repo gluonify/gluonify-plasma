@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-/** Sans aucun Jackson sur le chemin de classes (exécution {@code no-jackson}) : erreur claire, et le client marche avec un codec fourni. */
+/** With no Jackson at all on the classpath (execution {@code no-jackson}): clear error, and the client works with a supplied codec. */
 class NoJacksonTest {
     @Test
     void theClasspathHasNoJackson() {

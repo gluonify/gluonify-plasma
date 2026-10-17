@@ -4,7 +4,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-/** Identité stable du nœud : {@code appId} (l'application) et {@code nodeId} (la réplique) ; {@link #id()} = {@code appId-nodeId}. */
+/** Stable identity of the node: {@code appId} (the application) and {@code nodeId} (the replica); {@link #id()} = {@code appId-nodeId}. */
 @ApplicationScoped
 public class NodeIdentity {
 

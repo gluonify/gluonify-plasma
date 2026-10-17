@@ -13,8 +13,8 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * Production d'un manifeste à partir d'un dossier de binaires ({@code <composant>-linux-<arch>}, {@code <composant>-linux-<arch>.gz} (gzip, voir {@link Gzip}) ou {@code <composant>.tar.gz}) et signature. La clé privée n'est lue qu'à
- * l'exécution, depuis un chemin donné : elle n'est jamais dans un dépôt. Même format que bin/sign-release.sh (qui sert en production, avec openssl).
+ * Production of a manifest from a directory of binaries ({@code <component>-linux-<arch>}, {@code <component>-linux-<arch>.gz} (gzip, see {@link Gzip}) or {@code <component>.tar.gz}) and signing. The private key is read only at
+ * run time, from a given path: it is never in a repository. Same format as bin/sign-release.sh (which is used in production, with openssl).
  */
 public final class ReleaseSigner {
     private ReleaseSigner() {}
@@ -39,7 +39,7 @@ public final class ReleaseSigner {
         return new ReleaseManifest(ReleaseManifest.SCHEMA, version, sequence, createdAt.toString(), expires.toString(), out).validate();
     }
 
-    /** Signature Ed25519 brute (64 octets) des octets du manifeste. */
+    /** Raw Ed25519 signature (64 bytes) of the manifest bytes. */
     public static byte[] sign(byte[] manifest, PrivateKey key) {
         try {
             Signature s = Signature.getInstance("Ed25519");
@@ -55,7 +55,7 @@ public final class ReleaseSigner {
         return Base64.getEncoder().encodeToString(sign(manifest, key)) + "\n";
     }
 
-    /** Annonce de changement de clé liée à {@code manifest} (octets signés) ; à signer avec la clé actuelle puis contresigner avec la nouvelle. */
+    /** Key change announcement bound to {@code manifest} (signed bytes); to be signed with the current key then countersigned with the new one. */
     public static KeyRollover rollover(byte[] manifestBytes, ReleaseManifest manifest, java.security.PublicKey nextKey, Instant createdAt, Instant retireOldAfter) {
         TrustedKeys.Key k = TrustedKeys.Key.ofDer(Base64.getEncoder().encodeToString(nextKey.getEncoded()));
         return new KeyRollover(KeyRollover.SCHEMA, manifest.version(), manifest.sequence(), ReleaseVerifier.sha256(manifestBytes), createdAt.toString(), k.der(), k.sha256(), retireOldAfter.toString()).validate();

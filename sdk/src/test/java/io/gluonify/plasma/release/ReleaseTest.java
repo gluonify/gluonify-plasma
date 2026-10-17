@@ -26,11 +26,11 @@ class ReleaseTest {
         Files.writeString(dir.resolve("gluonify-strange-linux-amd64"), "binaire strange amd64");
         Files.writeString(dir.resolve("gluonify-strange-linux-arm64"), "binaire strange arm64");
         Files.writeString(dir.resolve("gluonify-node-image.tar.gz"), "image");
-        Files.writeString(dir.resolve("autre.txt"), "ignoré");
+        Files.writeString(dir.resolve("autre.txt"), "ignored");
         return ReleaseSigner.build(dir, "1.2.3", 7, NOW, NOW.plusSeconds(86400 * 90));
     }
 
-    @Test void construireSignerVerifier() throws Exception {
+    @Test void buildSignerVerifier() throws Exception {
         KeyPair k = keys();
         ReleaseManifest m = manifest();
         assertEquals(3, m.artifacts().size());
@@ -40,11 +40,11 @@ class ReleaseTest {
         assertEquals(m, v);
         assertEquals("gluonify-strange-linux-arm64", v.find("gluonify-strange", "arm64").orElseThrow().file());
         assertEquals("gluonify-node-image.tar.gz", v.find("gluonify-node-image", "arm64").orElseThrow().file());
-        // signature brute de 64 octets acceptée aussi
+        // raw 64-byte signature also accepted
         assertTrue(ReleaseVerifier.signatureValid(bytes, ReleaseSigner.sign(bytes, k.getPrivate()), k.getPublic()));
     }
 
-    @Test void manifesteAltereOuMauvaiseCleRefuse() throws Exception {
+    @Test void alteredManifestOrWrongKeyRefused() throws Exception {
         KeyPair k = keys();
         byte[] bytes = manifest().toJson().getBytes(StandardCharsets.UTF_8);
         byte[] sig = ReleaseSigner.sign(bytes, k.getPrivate());
@@ -54,23 +54,23 @@ class ReleaseTest {
         assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(bytes, new byte[]{1, 2, 3}, k.getPublic(), ReleaseManifest::parse, 0, NOW));
     }
 
-    @Test void retourEnArriereEtExpirationRefuses() throws Exception {
+    @Test void rollbackAndExpirationRefused() throws Exception {
         KeyPair k = keys();
         byte[] bytes = manifest().toJson().getBytes(StandardCharsets.UTF_8);
         byte[] sig = ReleaseSigner.sign(bytes, k.getPrivate());
         var e = assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(bytes, sig, k.getPublic(), ReleaseManifest::parse, 8, NOW));
-        assertTrue(e.getMessage().contains("retour en arrière"));
+        assertTrue(e.getMessage().contains("rollback"));
         e = assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(bytes, sig, k.getPublic(), ReleaseManifest::parse, 1, NOW.plusSeconds(86400L * 91)));
-        assertTrue(e.getMessage().contains("expiré"));
+        assertTrue(e.getMessage().contains("expired"));
     }
 
-    @Test void empreinteEtTailleDesFichiers() throws Exception {
+    @Test void fileFingerprintAndSize() throws Exception {
         ReleaseManifest m = manifest();
         var a = m.find("gluonify-strange", "amd64").orElseThrow();
         ReleaseVerifier.checkFile(dir.resolve(a.file()), a);
         Files.writeString(dir.resolve(a.file()), "binaire strange amd64!");
         assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.checkFile(dir.resolve(a.file()), a));
-        Files.writeString(dir.resolve(a.file()), "binaire strange amd6X"); // même taille, autre contenu
+        Files.writeString(dir.resolve(a.file()), "binaire strange amd6X"); // same size, other content
         var e = assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.checkFile(dir.resolve(a.file()), a));
         assertTrue(e.getMessage().contains("SHA-256"));
     }
@@ -79,7 +79,7 @@ class ReleaseTest {
         return new ReleaseManifest(1, "1.0.0", 1, NOW.toString(), NOW.plusSeconds(10).toString(), List.of(new ReleaseManifest.Artifact(name, "amd64", file, sha, 10)));
     }
 
-    @Test void nomsDartefactsDangereuxRefuses() {
+    @Test void dangerousArtifactNamesRefused() {
         String sha = "a".repeat(64);
         for (String bad : List.of("../etc/passwd", "a/b", "/abs", ".cache", "a..b", "a b", "x;rm", "", "a\\b", "http://evil/x", "a".repeat(200)))
             assertThrows(ReleaseManifest.Invalid.class, () -> with(bad, "gluonify-strange", sha).validate(), bad);
@@ -88,38 +88,38 @@ class ReleaseTest {
         with("gluonify-strange-linux-amd64", "gluonify-strange", sha).validate();
     }
 
-    @Test void critereDeNomsChoisiParLAppelant() {
+    @Test void nameCriterionChosenByTheCaller() {
         String sha = "a".repeat(64);
         var nouveau = with("gluonify-nouveau-linux-arm64.gz", "gluonify-nouveau", sha);
-        assertThrows(ReleaseManifest.Invalid.class, () -> nouveau.validate(), "un client garde sa liste fermée : il n'installe que ce qu'il connaît");
-        nouveau.validate(n -> ReleaseManifest.SAFE_NAME.matcher(n).matches()); // le réservoir accepte tout nom sûr
+        assertThrows(ReleaseManifest.Invalid.class, () -> nouveau.validate(), "a client keeps its closed list: it only installs what it knows");
+        nouveau.validate(n -> ReleaseManifest.SAFE_NAME.matcher(n).matches()); // the reservoir accepts any safe name
         var dangereux = with("ok", "../evil", sha);
         assertThrows(ReleaseManifest.Invalid.class, () -> dangereux.validate(n -> ReleaseManifest.SAFE_NAME.matcher(n).matches()));
         assertThrows(ReleaseManifest.Invalid.class, () -> with("ok", "Evil", sha).validate(n -> ReleaseManifest.SAFE_NAME.matcher(n).matches()));
     }
 
-    @Test void gdownEstUnComposantDeLaRelease() {
+    @Test void gdownIsAReleaseComponent() {
         String sha = "a".repeat(64);
-        with("gluonify-gdown-linux-arm64.gz", "gluonify-gdown", sha).validate(); // gDown seul (gDown.sh) : même chaîne de confiance
+        with("gluonify-gdown-linux-arm64.gz", "gluonify-gdown", sha).validate(); // gDown alone (gDown.sh): same chain of trust
         assertThrows(ReleaseManifest.Invalid.class, () -> with("ok", "gluonify-graphdb", sha).validate());
     }
 
-    @Test void manifesteNonCanoniqueRefuse() throws Exception {
+    @Test void nonCanonicalManifestRefused() throws Exception {
         String json = manifest().toJson();
         assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse((json + " ").getBytes(StandardCharsets.UTF_8)));
         assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse(json.replace("\"schema\":1", "\"schema\":2").getBytes(StandardCharsets.UTF_8)));
         assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse("{}".getBytes(StandardCharsets.UTF_8)));
     }
 
-    @Test void clePubliquePem() throws Exception {
+    @Test void publicKeyPem() throws Exception {
         KeyPair k = keys();
         String pem = "-----BEGIN PUBLIC KEY-----\n" + Base64.getMimeEncoder(64, "\n".getBytes()).encodeToString(k.getPublic().getEncoded()) + "\n-----END PUBLIC KEY-----\n";
         assertEquals(k.getPublic(), ReleaseVerifier.publicKey(pem));
-        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.publicKey("pas une clé"));
+        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.publicKey("not a key"));
     }
 
-    /** Manifeste produit par bin/sign-release.sh (openssl) avec une clé de test jetable : la vérification Java accepte les mêmes octets. */
-    @Test void manifesteProduitParLeScriptShellVerifieParJava() throws Exception {
+    /** Manifest produced by bin/sign-release.sh (openssl) with a disposable test key: the Java verification accepts the same bytes. */
+    @Test void manifestProducedByTheShellScriptVerifiedByJava() throws Exception {
         byte[] m = getClass().getResourceAsStream("/release/manifest.json").readAllBytes();
         byte[] sig = getClass().getResourceAsStream("/release/manifest.json.sig").readAllBytes();
         String pem = new String(getClass().getResourceAsStream("/release/release.pub").readAllBytes(), StandardCharsets.US_ASCII);
@@ -127,7 +127,7 @@ class ReleaseTest {
         assertEquals("1.2.3", v.version());
         assertEquals(7, v.sequence());
         assertTrue(v.find("gluonify-node-image", "arm64").isPresent());
-        // un octet changé : refusé
+        // one byte changed: refused
         m[m.length - 3] ^= 1;
         assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(m, sig, ReleaseVerifier.publicKey(pem), ReleaseManifest::parse, 7, NOW));
     }
@@ -137,7 +137,7 @@ class ReleaseTest {
         assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse(new byte[2 * 1024 * 1024]));
     }
 
-    /** Sonar java:S5998 : l'ancienne expression régulière répétait un groupe (une récursion par ligne) et débordait la pile dès ~5 000 lignes vides, très en deçà de la borne de taille. */
+    /** Sonar java:S5998: the old regular expression repeated a group (one recursion per line) and overflowed the stack from ~5,000 empty lines, far below the size bound. */
     @Test
     void manyEmptyLinesAreRefusedWithoutStackOverflow() {
         String head = "{\n\"schema\":1,\n\"version\":\"1.0.0\",\n\"sequence\":1,\n\"createdAt\":\"2026-10-01T00:00:00Z\",\n\"expires\":\"2026-10-02T00:00:00Z\",\n\"artifacts\":[\n";
@@ -149,10 +149,10 @@ class ReleaseTest {
     @Test
     void manifestWithoutFootOrWithPartialLastLineIsRefused() throws Exception {
         String json = manifest().toJson();
-        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse(json.substring(0, json.length() - 2).getBytes(StandardCharsets.UTF_8)), "pied tronqué");
-        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse(json.replace("}\n]\n}\n", "}]\n}\n").getBytes(StandardCharsets.UTF_8)), "dernière ligne sans fin de ligne");
-        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse(json.replace("\"artifacts\":[\n", "\"artifacts\":[\n\n").getBytes(StandardCharsets.UTF_8)), "ligne vide dans la liste");
-        assertEquals(manifest(), ReleaseManifest.parse(json.getBytes(StandardCharsets.UTF_8)), "le format canonique reste lu à l'identique");
+        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse(json.substring(0, json.length() - 2).getBytes(StandardCharsets.UTF_8)), "truncated footer");
+        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse(json.replace("}\n]\n}\n", "}]\n}\n").getBytes(StandardCharsets.UTF_8)), "last line without line ending");
+        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse(json.replace("\"artifacts\":[\n", "\"artifacts\":[\n\n").getBytes(StandardCharsets.UTF_8)), "empty line in the list");
+        assertEquals(manifest(), ReleaseManifest.parse(json.getBytes(StandardCharsets.UTF_8)), "the canonical format is still read back identically");
     }
 
     @Test

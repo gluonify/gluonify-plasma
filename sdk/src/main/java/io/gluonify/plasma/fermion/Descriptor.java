@@ -2,7 +2,7 @@ package io.gluonify.plasma.fermion;
 
 import java.util.List;
 
-/** Description commune d'une compétence ou d'un workflow : identifiant, noms localisés, paramètres d'entrée. */
+/** Common description of a skill or a workflow: identifier, localized names, input parameters. */
 public interface Descriptor {
     String id();
 

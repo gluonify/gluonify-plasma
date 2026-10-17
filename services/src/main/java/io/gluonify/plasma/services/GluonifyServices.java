@@ -21,21 +21,21 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 /**
- * Comment joindre un service de Gluonify, sans aucune configuration : l'adresse et la source du jeton se déduisent de l'endroit où tourne
- * l'application. Ordre de résolution, le même pour chaque service :
+ * How to reach a Gluonify service, with no configuration at all: the address and the token source are derived from where the
+ * application runs. Resolution order, the same for every service:
  * <ol>
- *   <li><b>Surcharge explicite</b> ({@link Endpoint.Source#OVERRIDE}) : {@code GLUONIFY_SERVICE_<APP>_URL} en propriété système, ou en variable
- *       d'environnement hors de la plateforme ; jeton {@code GLUONIFY_<APP>_TOKEN} (fixe) ou {@code GLUONIFY_<APP>_TOKEN_FILE} (relu à chaque appel),
- *       propriété système d'abord, sinon aucun jeton.</li>
- *   <li><b>Sur la plateforme</b> ({@link Endpoint.Source#PLATFORM}, {@code GLUONIFY_ENVIRONMENT} présent) : l'adresse injectée pour un service de
- *       {@code uses} et le fichier du jeton d'application ({@code GLUONIFY_<APP>_TOKEN_FILE}, relu à chaque appel). Service absent : le message dit
- *       que la plateforme ne l'a pas accordé (application non construite par Bup avec le module du SDK, que Bup détecte pour en déduire
- *       {@code uses}, ou appel hors du SDK qui demande un {@code uses} explicite dans {@code gluonify.json}).</li>
- *   <li><b>Sur le poste du développeur</b> ({@link Endpoint.Source#DEVELOPER}) : la zone de {@code ~/.gluonify/config.json} (ou
- *       {@code GLUONIFY_ZONE}), écrite par {@code gluonify login <zone>} ; l'adresse publique du service vient du document de découverte
- *       {@code https://<zone>/.well-known/gluonify} (gardé 5 minutes) ; le jeton est celui du développeur ({@code ~/.gluonify/tokens/<zone>.json},
- *       renouvelé par le jeton de rafraîchissement).</li>
- *   <li><b>Sinon</b> : une {@link GluonifyServicesException} qui dit quoi faire ({@code gluonify login}, ou {@code GluonifyTestServices} en test).</li>
+ *   <li><b>Explicit override</b> ({@link Endpoint.Source#OVERRIDE}): {@code GLUONIFY_SERVICE_<APP>_URL} as a system property, or as an
+ *       environment variable outside the platform; token {@code GLUONIFY_<APP>_TOKEN} (fixed) or {@code GLUONIFY_<APP>_TOKEN_FILE} (reread on every call),
+ *       system property first, otherwise no token.</li>
+ *   <li><b>On the platform</b> ({@link Endpoint.Source#PLATFORM}, {@code GLUONIFY_ENVIRONMENT} present): the address injected for a service in
+ *       {@code uses} and the application token file ({@code GLUONIFY_<APP>_TOKEN_FILE}, reread on every call). Service absent: the message says
+ *       that the platform did not grant it (application not built by Bup with the SDK module, which Bup detects to derive
+ *       {@code uses}, or a call outside the SDK that requires an explicit {@code uses} in {@code gluonify.json}).</li>
+ *   <li><b>On the developer workstation</b> ({@link Endpoint.Source#DEVELOPER}): the zone of {@code ~/.gluonify/config.json} (or
+ *       {@code GLUONIFY_ZONE}), written by {@code gluonify login <zone>}; the service's public address comes from the discovery document
+ *       {@code https://<zone>/.well-known/gluonify} (kept 5 minutes); the token is the developer's ({@code ~/.gluonify/tokens/<zone>.json},
+ *       renewed with the refresh token).</li>
+ *   <li><b>Otherwise</b>: a {@link GluonifyServicesException} that says what to do ({@code gluonify login}, or {@code GluonifyTestServices} in tests).</li>
  * </ol>
  *
  * <pre>{@code
@@ -43,15 +43,15 @@ import java.util.regex.Pattern;
  * HttpRequest.newBuilder(crystallon.resolve("/v1/render")).header("Authorization", "Bearer " + crystallon.token().orElseThrow());
  * }</pre>
  *
- * <p>Java 17, aucune dépendance. Sûr entre fils. Aucun {@link HttpClient} dans un champ statique (image native) : celui de l'instance est créé au
- * premier appel réseau, seulement sur le poste du développeur. Rien n'est journalisé, aucun jeton n'apparaît dans un message.
+ * <p>Java 17, no dependency. Thread-safe. No {@link HttpClient} in a static field (native image): the instance's one is created on the
+ * first network call, only on the developer workstation. Nothing is logged, no token appears in a message.
  */
 public final class GluonifyServices {
-    /** Variable présente sur la plateforme seulement : l'environnement de l'application ({@code SBX}, {@code DEV}, {@code QUA}, {@code PRD}). */
+    /** Variable present on the platform only: the application's environment ({@code SBX}, {@code DEV}, {@code QUA}, {@code PRD}). */
     public static final String ENV_ENVIRONMENT = "GLUONIFY_ENVIRONMENT";
-    /** Variable ou propriété : la zone à utiliser sur le poste du développeur, au lieu de la zone courante de {@code config.json}. */
+    /** Variable or property: the zone to use on the developer workstation, instead of the current zone of {@code config.json}. */
     public static final String ENV_ZONE = "GLUONIFY_ZONE";
-    /** Durée de vie du document de découverte en mémoire. */
+    /** Lifetime of the discovery document in memory. */
     public static final Duration DISCOVERY_TTL = Duration.ofMinutes(5);
 
     private static final Pattern SERVICE = Pattern.compile("[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?");
@@ -79,7 +79,7 @@ public final class GluonifyServices {
         this.configuredHttp = b.httpClient;
     }
 
-    /** L'instance du processus : environnement et propriétés système réels, dossier {@code ~/.gluonify} (ou {@code GLUONIFY_HOME}). Créée au premier appel. */
+    /** The process instance: real environment and system properties, folder {@code ~/.gluonify} (or {@code GLUONIFY_HOME}). Created on the first call. */
     public static GluonifyServices defaults() {
         GluonifyServices d = defaults;
         if (d == null) {
@@ -94,12 +94,12 @@ public final class GluonifyServices {
         return d;
     }
 
-    /** Raccourci de {@code defaults().resolve(service)}. @throws GluonifyServicesException si le service ne peut pas être joint */
+    /** Shortcut for {@code defaults().resolve(service)}. @throws GluonifyServicesException if the service cannot be reached */
     public static Endpoint endpoint(final String service) {
         return defaults().resolve(service);
     }
 
-    /** Raccourci de {@code defaults().resolveOptional(service)}. */
+    /** Shortcut for {@code defaults().resolveOptional(service)}. */
     public static Optional<Endpoint> optional(final String service) {
         return defaults().resolveOptional(service);
     }
@@ -108,17 +108,17 @@ public final class GluonifyServices {
         return new Builder();
     }
 
-    /** Le dossier de Gluonify de cette instance ({@code ~/.gluonify}). */
+    /** The Gluonify folder of this instance ({@code ~/.gluonify}). */
     public Path home() {
         return home;
     }
 
     /**
-     * Résout le service.
+     * Resolves the service.
      *
-     * @param service nom du service tel qu'écrit dans {@code uses} ({@code crystallon})
-     * @throws GluonifyServicesException si le service ne peut pas être joint ; le message dit quoi faire
-     * @throws IllegalArgumentException  si le nom n'est pas un nom de service
+     * @param service name of the service as written in {@code uses} ({@code crystallon})
+     * @throws GluonifyServicesException if the service cannot be reached; the message says what to do
+     * @throws IllegalArgumentException  if the name is not a service name
      */
     public Endpoint resolve(final String service) {
         final String s = name(service);
@@ -133,9 +133,9 @@ public final class GluonifyServices {
     }
 
     /**
-     * Comme {@link #resolve(String)}, mais vide quand le service n'est simplement pas disponible : absent de {@code uses} sur la plateforme, aucun
-     * cluster connu sur le poste, ou zone qui ne publie pas ce service. Pour un service facultatif. Les autres échecs (session expirée, découverte
-     * injoignable) lèvent toujours une {@link GluonifyServicesException}.
+     * Like {@link #resolve(String)}, but empty when the service is simply not available: absent from {@code uses} on the platform, no known
+     * cluster on the workstation, or a zone that does not publish this service. For an optional service. Other failures (expired session, unreachable
+     * discovery) always throw a {@link GluonifyServicesException}.
      */
     public Optional<Endpoint> resolveOptional(final String service) {
         final String s = name(service);
@@ -158,12 +158,12 @@ public final class GluonifyServices {
         return Optional.of(developer(s, zone.get(), d));
     }
 
-    /** Vrai sur la plateforme ({@code GLUONIFY_ENVIRONMENT} présent). */
+    /** True on the platform ({@code GLUONIFY_ENVIRONMENT} present). */
     public boolean onPlatform() {
         return !blank(environment.apply(ENV_ENVIRONMENT));
     }
 
-    /** Oublie les documents de découverte gardés en mémoire. */
+    /** Forgets the discovery documents kept in memory. */
     public void invalidate() {
         discoveries.clear();
     }
@@ -178,12 +178,12 @@ public final class GluonifyServices {
         return "GLUONIFY_" + upper(service) + "_TOKEN";
     }
 
-    /** {@code crystallon} → {@code GLUONIFY_CRYSTALLON_TOKEN_FILE} (même règle que {@code ServiceToken.envName} du SDK). */
+    /** {@code crystallon} → {@code GLUONIFY_CRYSTALLON_TOKEN_FILE} (same rule as {@code ServiceToken.envName} of the SDK). */
     public static String tokenFileKey(final String service) {
         return tokenKey(service) + "_FILE";
     }
 
-    // ------------------------------------------------------------------------------------------------ 1. surcharge
+    // ------------------------------------------------------------------------------------------------ 1. override
 
     private Endpoint override(final String s) {
         final String key = urlKey(s);
@@ -218,7 +218,7 @@ public final class GluonifyServices {
         return () -> null;
     }
 
-    // ------------------------------------------------------------------------------------------------ 2. plateforme
+    // ------------------------------------------------------------------------------------------------ 2. platform
 
     private Endpoint platform(final String s) {
         final String key = urlKey(s);
@@ -236,12 +236,12 @@ public final class GluonifyServices {
             tokens = fixed(environment.apply(tokenKey(s)));
         }
         else {
-            tokens = () -> null; // plateforme sans jetons de service : le service répondra 401 s'il en exige un
+            tokens = () -> null; // platform without service tokens: the service will answer 401 if it requires one
         }
         return new Endpoint(s, uri(url, key), tokens, Endpoint.Source.PLATFORM, null, null);
     }
 
-    // ------------------------------------------------------------------------------------------------ 3. poste du développeur
+    // ------------------------------------------------------------------------------------------------ 3. developer workstation
 
     private Endpoint developer(final String s) {
         final DeveloperConfig config = DeveloperConfig.read(home);
@@ -275,7 +275,7 @@ public final class GluonifyServices {
         return config.current();
     }
 
-    /** Le document de découverte de la zone (mémoire de {@link #DISCOVERY_TTL} ; s'il est injoignable, la dernière copie lue est gardée). */
+    /** The zone's discovery document (memory of {@link #DISCOVERY_TTL}; if it is unreachable, the last copy read is kept). */
     public Discovery discovery(final DeveloperConfig.Zone zone) {
         final URI url = zone.discovery();
         final Cached cached = discoveries.get(url);
@@ -290,7 +290,7 @@ public final class GluonifyServices {
         }
         catch (final GluonifyServicesException e) {
             if (cached != null) {
-                return cached.discovery(); // cluster momentanément injoignable : la dernière copie vaut mieux qu'un échec
+                return cached.discovery(); // cluster momentarily unreachable: the last copy is better than a failure
             }
             throw e;
         }
@@ -340,14 +340,14 @@ public final class GluonifyServices {
         });
     }
 
-    // ------------------------------------------------------------------------------------------------ outils
+    // ------------------------------------------------------------------------------------------------ tools
 
     private static Supplier<String> fixed(final String token) {
         final String t = token.strip();
         return () -> t;
     }
 
-    /** Le jeton est relu à chaque appel ; fichier absent ou vide : pas de jeton (pas encore déposé par l'agent). */
+    /** The token is reread on every call; file absent or empty: no token (not yet dropped by the agent). */
     private static Supplier<String> file(final Path path, final String service) {
         return () -> {
             try {
@@ -399,7 +399,7 @@ public final class GluonifyServices {
         return !blank(a) ? a.strip() : !blank(b) ? b.strip() : null;
     }
 
-    /** Une instance à part : environnement, propriétés, dossier, horloge et client HTTP fournis (tests, outils). */
+    /** A separate instance: environment, properties, folder, clock and HTTP client supplied (tests, tools). */
     public static final class Builder {
         private Function<String, String> environment = System::getenv;
         private Function<String, String> properties = System::getProperty;
@@ -411,19 +411,19 @@ public final class GluonifyServices {
         private Builder() {
         }
 
-        /** @param env les variables d'environnement (défaut : {@link System#getenv(String)}) */
+        /** @param env the environment variables (default: {@link System#getenv(String)}) */
         public Builder environment(final Function<String, String> env) {
             this.environment = Objects.requireNonNull(env, "env");
             return this;
         }
 
-        /** @param props les propriétés système (défaut : {@link System#getProperty(String)}) */
+        /** @param props the system properties (default: {@link System#getProperty(String)}) */
         public Builder properties(final Function<String, String> props) {
             this.properties = Objects.requireNonNull(props, "props");
             return this;
         }
 
-        /** @param dir le dossier de Gluonify (défaut : {@code GLUONIFY_HOME}, sinon {@code ~/.gluonify}) */
+        /** @param dir the Gluonify folder (default: {@code GLUONIFY_HOME}, otherwise {@code ~/.gluonify}) */
         public Builder home(final Path dir) {
             this.home = Objects.requireNonNull(dir, "dir");
             return this;
@@ -434,13 +434,13 @@ public final class GluonifyServices {
             return this;
         }
 
-        /** @param ttl durée de vie du document de découverte en mémoire (défaut : 5 minutes) */
+        /** @param ttl lifetime of the discovery document in memory (default: 5 minutes) */
         public Builder discoveryTtl(final Duration ttl) {
             this.discoveryTtl = Objects.requireNonNull(ttl, "ttl");
             return this;
         }
 
-        /** @param client le client HTTP de la découverte et du renouvellement (défaut : un client créé au premier appel, par autorité de certification) */
+        /** @param client the HTTP client for discovery and renewal (default: a client created on the first call, per certificate authority) */
         public Builder httpClient(final HttpClient client) {
             this.httpClient = Objects.requireNonNull(client, "client");
             return this;

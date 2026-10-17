@@ -3,16 +3,16 @@ package io.gluonify.plasma;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 /**
- * Mode endormi (scale-to-zero) d'une application : sans requête depuis {@code freezeAfterSeconds}, ses répliques sont gelées (cgroup freezer : mémoire conservée, réveil en quelques
- * millisecondes) ; sans requête depuis {@code stopAfterSeconds}, elles sont arrêtées (mémoire rendue, réveil en ~0,2 s pour une application native légère). La requête suivante est
- * retenue par l'ingress pendant au plus {@code wakeTimeoutMs} le temps du réveil. Désactivé par défaut : rien ne change pour une application qui ne le demande pas.
+ * Sleep mode (scale-to-zero) of an application: with no request for {@code freezeAfterSeconds}, its replicas are frozen (cgroup freezer: memory kept, wake-up in a few
+ * milliseconds); with no request for {@code stopAfterSeconds}, they are stopped (memory released, wake-up in ~0.2 s for a light native application). The next request is
+ * held by the ingress for at most {@code wakeTimeoutMs} while waking up. Disabled by default: nothing changes for an application that does not ask for it.
  */
-@Schema(description = "Mode endormi : gel puis arrêt d'une application inactive, réveil par la requête suivante.")
-public record SleepSpec(@Schema(description = "true : activer le mode endormi (défaut false)", example = "true") Boolean enabled,
-                        @Schema(description = "Inactivité (secondes) avant le gel (1 à 86400, défaut 60)", example = "60") Integer freezeAfterSeconds,
-                        @Schema(description = "Inactivité (secondes) avant l'arrêt, comptée depuis la dernière requête, donc supérieure à freezeAfterSeconds (défaut : le plus grand de 900 et freezeAfterSeconds + 60)", example = "900") Integer stopAfterSeconds,
-                        @Schema(description = "Attente maximale (ms) d'une requête pendant le réveil, avant la réponse 503 + Retry-After (100 à 60000, défaut 5000)", example = "5000") Integer wakeTimeoutMs,
-                        @Schema(description = "Politique de réveil des répliques : combien d'abord, quand en réveiller d'autres (absent : les valeurs du cluster, gluonify.higgs.sleep.wake.*)") Wake wake) {
+@Schema(description = "Sleep mode: freeze then stop of an idle application, woken by the next request.")
+public record SleepSpec(@Schema(description = "true: enable sleep mode (default false)", example = "true") Boolean enabled,
+                        @Schema(description = "Inactivity (seconds) before the freeze (1 to 86400, default 60)", example = "60") Integer freezeAfterSeconds,
+                        @Schema(description = "Inactivity (seconds) before the stop, counted from the last request, hence greater than freezeAfterSeconds (default: the larger of 900 and freezeAfterSeconds + 60)", example = "900") Integer stopAfterSeconds,
+                        @Schema(description = "Maximum wait (ms) of a request during wake-up, before the 503 + Retry-After response (100 to 60000, default 5000)", example = "5000") Integer wakeTimeoutMs,
+                        @Schema(description = "Replica wake-up policy: how many first, when to wake others (absent: the cluster values, gluonify.higgs.sleep.wake.*)") Wake wake) {
     public static final int DEFAULT_FREEZE_SECONDS = 60;
     public static final int DEFAULT_STOP_SECONDS = 900;
     public static final int DEFAULT_WAKE_TIMEOUT_MS = 5000;
@@ -27,55 +27,55 @@ public record SleepSpec(@Schema(description = "true : activer le mode endormi (d
     public SleepSpec {
         enabled = enabled != null && enabled;
         freezeAfterSeconds = freezeAfterSeconds == null ? DEFAULT_FREEZE_SECONDS : freezeAfterSeconds;
-        if (freezeAfterSeconds < 1 || freezeAfterSeconds > 86400) throw new IllegalArgumentException("sleep.freezeAfterSeconds : 1 à 86400");
+        if (freezeAfterSeconds < 1 || freezeAfterSeconds > 86400) throw new IllegalArgumentException("sleep.freezeAfterSeconds: 1 to 86400");
         stopAfterSeconds = stopAfterSeconds == null ? Math.max(DEFAULT_STOP_SECONDS, freezeAfterSeconds + 60) : stopAfterSeconds;
-        if (stopAfterSeconds > MAX_SECONDS) throw new IllegalArgumentException("sleep.stopAfterSeconds : " + MAX_SECONDS + " au plus");
-        if (stopAfterSeconds <= freezeAfterSeconds) throw new IllegalArgumentException("sleep.stopAfterSeconds doit dépasser freezeAfterSeconds");
+        if (stopAfterSeconds > MAX_SECONDS) throw new IllegalArgumentException("sleep.stopAfterSeconds: " + MAX_SECONDS + " at most");
+        if (stopAfterSeconds <= freezeAfterSeconds) throw new IllegalArgumentException("sleep.stopAfterSeconds must exceed freezeAfterSeconds");
         wakeTimeoutMs = wakeTimeoutMs == null ? DEFAULT_WAKE_TIMEOUT_MS : wakeTimeoutMs;
-        if (wakeTimeoutMs < 100 || wakeTimeoutMs > 60000) throw new IllegalArgumentException("sleep.wakeTimeoutMs : 100 à 60000");
+        if (wakeTimeoutMs < 100 || wakeTimeoutMs > 60000) throw new IllegalArgumentException("sleep.wakeTimeoutMs: 100 to 60000");
     }
 
-    /** Compatibilité : sans politique de réveil propre (valeurs du cluster). */
+    /** Compatibility: no own wake-up policy (cluster values). */
     public SleepSpec(Boolean enabled, Integer freezeAfterSeconds, Integer stopAfterSeconds, Integer wakeTimeoutMs) {
         this(enabled, freezeAfterSeconds, stopAfterSeconds, wakeTimeoutMs, null);
     }
 
     /**
-     * Quand réveiller une deuxième (troisième…) réplique. {@code initialReplicas} répliques se réveillent d'abord (défaut 1, les gelées en premier) ; chaque ingress en réveille ensuite
-     * {@code stepReplicas} de plus (sur d'autres nœuds d'abord), au plus une fois par {@code cooldownSeconds}, quand un seuil est franchi : requêtes en cours par réplique éveillée,
-     * requêtes retenues depuis plus de {@code slowWakeMs}, débit par réplique. Un champ absent prend la valeur du cluster (gluonify.higgs.sleep.wake.*), puis le défaut ci-dessous.
+     * When to wake a second (third…) replica. {@code initialReplicas} replicas wake first (default 1, the frozen ones first); each ingress then wakes
+     * {@code stepReplicas} more (on other nodes first), at most once per {@code cooldownSeconds}, when a threshold is crossed: in-flight requests per awake replica,
+     * requests held for more than {@code slowWakeMs}, rate per replica. An absent field takes the cluster value (gluonify.higgs.sleep.wake.*), then the default below.
      */
-    @Schema(description = "Politique de réveil des répliques d'une application endormie.")
-    public record Wake(@Schema(description = "Répliques réveillées par la première requête (défaut 1 ; au moins le nombre de répliques : toutes ensemble)", example = "1") Integer initialReplicas,
-                       @Schema(description = "Seuils qui réveillent des répliques de plus") AdditionalWhen additionalWhen) {
+    @Schema(description = "Replica wake-up policy of a sleeping application.")
+    public record Wake(@Schema(description = "Replicas woken by the first request (default 1; at least the number of replicas: all together)", example = "1") Integer initialReplicas,
+                       @Schema(description = "Thresholds that wake more replicas") AdditionalWhen additionalWhen) {
         public Wake {
-            if (initialReplicas != null && (initialReplicas < 1 || initialReplicas > 100)) throw new IllegalArgumentException("sleep.wake.initialReplicas : 1 à 100");
+            if (initialReplicas != null && (initialReplicas < 1 || initialReplicas > 100)) throw new IllegalArgumentException("sleep.wake.initialReplicas: 1 to 100");
         }
     }
 
-    /** Seuils (par ingress) au-delà desquels une réplique de plus est réveillée ; un champ absent prend la valeur du cluster, puis le défaut. */
-    @Schema(description = "Seuils de réveil de répliques supplémentaires (mesurés par chaque ingress).")
-    public record AdditionalWhen(@Schema(description = "Requêtes en cours par réplique éveillée au-delà desquelles une réplique de plus est réveillée (défaut 20 ; 0 : critère désactivé)", example = "20") Integer inflightPerReplica,
-                                 @Schema(description = "Requêtes retenues (en attente d'un réveil) depuis plus de slowWakeMs qui en réveillent une de plus (défaut 1 ; 0 : désactivé)", example = "1") Integer heldRequests,
-                                 @Schema(description = "Attente (ms) d'une requête retenue au-delà de laquelle elle compte pour heldRequests (défaut 500)", example = "500") Integer slowWakeMs,
-                                 @Schema(description = "Requêtes par seconde et par réplique éveillée au-delà desquelles une réplique de plus est réveillée (défaut 0 : désactivé)", example = "0") Integer ratePerReplica,
-                                 @Schema(description = "Répliques réveillées à chaque décision (défaut 1)", example = "1") Integer stepReplicas,
-                                 @Schema(description = "Délai minimal (secondes) entre deux décisions de réveil supplémentaire (défaut 10)", example = "10") Integer cooldownSeconds) {
+    /** Thresholds (per ingress) beyond which one more replica is woken; an absent field takes the cluster value, then the default. */
+    @Schema(description = "Wake-up thresholds for additional replicas (measured by each ingress).")
+    public record AdditionalWhen(@Schema(description = "In-flight requests per awake replica beyond which one more replica is woken (default 20; 0: criterion disabled)", example = "20") Integer inflightPerReplica,
+                                 @Schema(description = "Held requests (waiting for a wake-up) for more than slowWakeMs that wake one more replica (default 1; 0: disabled)", example = "1") Integer heldRequests,
+                                 @Schema(description = "Wait (ms) of a held request beyond which it counts toward heldRequests (default 500)", example = "500") Integer slowWakeMs,
+                                 @Schema(description = "Requests per second per awake replica beyond which one more replica is woken (default 0: disabled)", example = "0") Integer ratePerReplica,
+                                 @Schema(description = "Replicas woken at each decision (default 1)", example = "1") Integer stepReplicas,
+                                 @Schema(description = "Minimum delay (seconds) between two additional wake-up decisions (default 10)", example = "10") Integer cooldownSeconds) {
         public AdditionalWhen {
             nonNeg("inflightPerReplica", inflightPerReplica, 100000);
             nonNeg("heldRequests", heldRequests, 100000);
             nonNeg("slowWakeMs", slowWakeMs, 60000);
             nonNeg("ratePerReplica", ratePerReplica, 1000000);
-            if (stepReplicas != null && (stepReplicas < 1 || stepReplicas > 100)) throw new IllegalArgumentException("sleep.wake.additionalWhen.stepReplicas : 1 à 100");
+            if (stepReplicas != null && (stepReplicas < 1 || stepReplicas > 100)) throw new IllegalArgumentException("sleep.wake.additionalWhen.stepReplicas: 1 to 100");
             nonNeg("cooldownSeconds", cooldownSeconds, 86400);
         }
 
         private static void nonNeg(String name, Integer v, int max) {
-            if (v != null && (v < 0 || v > max)) throw new IllegalArgumentException("sleep.wake.additionalWhen." + name + " : 0 à " + max);
+            if (v != null && (v < 0 || v > max)) throw new IllegalArgumentException("sleep.wake.additionalWhen." + name + ": 0 to " + max);
         }
     }
 
-    /** Mode désactivé (valeurs par défaut des délais). */
+    /** Disabled mode (default delay values). */
     public static SleepSpec off() {
         return new SleepSpec(false, null, null, null, null);
     }

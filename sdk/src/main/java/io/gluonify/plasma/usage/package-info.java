@@ -1,5 +1,5 @@
 /**
- * Catalogue fermé des unités d'usage ({@code gluonify-codex/metering.md} § 3.1, {@code analysis.md} § 10) et grandeurs de facturation. Livré avec la
- * phase C0 des contrats ({@code contracts.md} § 10) : la validation des grilles de prix s'appuie dessus.
+ * Closed catalog of usage units ({@code gluonify-codex/metering.md} § 3.1, {@code analysis.md} § 10) and billing units. Delivered with
+ * phase C0 of the contracts ({@code contracts.md} § 10): the validation of price grids relies on it.
  */
 package io.gluonify.plasma.usage;

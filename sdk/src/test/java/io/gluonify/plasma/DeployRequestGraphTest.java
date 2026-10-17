@@ -11,17 +11,17 @@ class DeployRequestGraphTest {
         return new DeployRequest("img", null, null, null, null, null, null, null, null, env, generated, uses, null, null, null, null, null, null, null, null, graph);
     }
 
-    @Test void baseDedieeInjecteBaseCompteSecretEtService() {
+    @Test void dedicatedBaseInjectsBaseAccountSecretAndService() {
         AppSpec s = req(true, Map.of("A", "1"), List.of("X"), null).toSpec("shop", "3f2b8c1e-9d4a-4e57-b6a1-0c7d5e8f9a12");
         assertEquals("app3f2b8c1e9d4a4e57", s.env().get("GLUONIFY_GDOWN_DATABASE"));
         assertEquals("app3f2b8c1e9d4a4e57", s.env().get("GLUONIFY_GDOWN_USER"));
         assertEquals("1", s.env().get("A"), "les variables de l'utilisateur restent");
         assertEquals(List.of("X", "GLUONIFY_GDOWN_PASSWORD_3F2B8C1E9D4A4E57"), s.generated());
-        assertEquals("${GLUONIFY_GDOWN_PASSWORD_3F2B8C1E9D4A4E57}", s.env().get("GLUONIFY_GDOWN_PASSWORD"), "l'application lit GLUONIFY_GDOWN_PASSWORD ; le secret est propre à l'application");
+        assertEquals("${GLUONIFY_GDOWN_PASSWORD_3F2B8C1E9D4A4E57}", s.env().get("GLUONIFY_GDOWN_PASSWORD"), "the application reads GLUONIFY_GDOWN_PASSWORD; the secret is specific to the application");
         assertTrue(s.uses().contains("gdown"));
     }
 
-    @Test void sansOptionRienNeChange() {
+    @Test void withoutOptionNothingChanges() {
         AppSpec s = req(null, null, null, null).toSpec("shop", "3f2b8c1e-9d4a-4e57-b6a1-0c7d5e8f9a12");
         assertTrue(s.env() == null || s.env().isEmpty());
         assertTrue(s.uses() == null || s.uses().isEmpty());

@@ -5,11 +5,11 @@ import java.util.Arrays;
 /**
  * Un document rendu.
  *
- * @param bytes    le PDF (commence par {@code %PDF}) ; le tableau n'est pas copié
- * @param pages    nombre de pages ({@code X-Crystallon-Pages}), 0 si l'en-tête manque
- * @param warnings nombre d'avertissements du rendu ({@code X-Crystallon-Warnings}), 0 si l'en-tête manque ; le détail vient de
+ * @param bytes    the PDF (starts with {@code %PDF}); the array is not copied
+ * @param pages    number of pages ({@code X-Crystallon-Pages}), 0 if the header is missing
+ * @param warnings number of render warnings ({@code X-Crystallon-Warnings}), 0 if the header is missing; the details come from
  *                 {@link TemplateRef#validate(Object)}
- * @param pdfa     verdict PDF/A ({@code X-Crystallon-PDFA} : {@code valid} ou {@code invalid}), {@code null} si l'en-tête est absent
+ * @param pdfa     PDF/A verdict ({@code X-Crystallon-PDFA}: {@code valid} or {@code invalid}), {@code null} if the header is absent
  */
 public record RenderedPdf(byte[] bytes, int pages, int warnings, Boolean pdfa) {
 

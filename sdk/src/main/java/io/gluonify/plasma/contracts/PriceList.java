@@ -7,17 +7,17 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * Liste de prix de la plateforme ({@code contracts.md} § 2.4) : objet versionné, une devise (immuable).
+ * Platform price list ({@code contracts.md} § 2.4): versioned object, one currency (immutable).
  *
- * @param id       identifiant ({@link #ID})
- * @param name     nom d'affichage
- * @param currency devise ISO 4217 (trois lettres majuscules)
- * @param versions versions, dans l'ordre croissant ; jamais null
+ * @param id       identifier ({@link #ID})
+ * @param name     display name
+ * @param currency ISO 4217 currency (three uppercase letters)
+ * @param versions versions, in increasing order; never null
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record PriceList(String id, String name, String currency, Long createdAt, String createdBy, List<PriceListVersion> versions) {
-    /** Identifiant d'une liste : a-z, 0-9 et tiret, 1 à 40 caractères. */
+    /** List identifier: a-z, 0-9 and hyphen, 1 to 40 characters. */
     public static final Pattern ID = Pattern.compile("[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?");
 
     public PriceList {
@@ -38,13 +38,13 @@ public record PriceList(String id, String name, String currency, Long createdAt,
         return max + 1;
     }
 
-    /** La version de ce numéro, ou null. */
+    /** The version with this number, or null. */
     public PriceListVersion version(int v) {
         for (PriceListVersion x : versions) if (x.version() == v) return x;
         return null;
     }
 
-    /** Version effective à {@code t} : plus grand {@code effectiveFrom ≤ t} (à égalité, le plus grand numéro) ; null s'il n'y en a pas. */
+    /** Effective version at {@code t}: greatest {@code effectiveFrom <= t} (on a tie, the greatest number); null if there is none. */
     public PriceListVersion effective(long t) {
         PriceListVersion best = null;
         for (PriceListVersion v : versions) {

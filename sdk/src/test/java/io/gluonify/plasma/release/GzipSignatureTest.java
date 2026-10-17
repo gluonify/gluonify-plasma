@@ -37,22 +37,22 @@ class GzipSignatureTest {
 
     static final GzipSignature.Expected EXPECT = new GzipSignature.Expected("gluonify-strange", "arm64", "1.2.3", 7L);
 
-    @Test void unFichierSigneSeVerifieSeulEtSeDecompresseNormalement() throws Exception {
+    @Test void aSignedFileVerifiesAloneAndDecompressesNormally() throws Exception {
         KeyPair k = key();
         byte[] content = "binaire natif de strange".repeat(1000).getBytes();
         Path u = plain(content), s = signed(u, k);
         var c = GzipSignature.verify(s, List.of(k.getPublic()), NOW, EXPECT);
         assertEquals("gluonify-strange", c.name());
-        assertEquals(ReleaseVerifier.sha256(u), c.digest(), "l'empreinte signée est celle de la forme non signée");
+        assertEquals(ReleaseVerifier.sha256(u), c.digest(), "the signed fingerprint is that of the unsigned form");
         assertEquals(ReleaseVerifier.sha256(u), GzipSignature.unsignedDigest(s));
         var out = new ByteArrayOutputStream();
         Gzip.gunzip(Files.newInputStream(s), Files.size(s), 1 << 20, out);
-        assertArrayEquals(content, out.toByteArray(), "un gzip signé se décompresse comme avant");
+        assertArrayEquals(content, out.toByteArray(), "a signed gzip decompresses as before");
         assertNull(GzipSignature.read(u));
         assertTrue(Files.size(s) > Files.size(u));
     }
 
-    @Test void toutOctetModifieEstRefuse() throws Exception {
+    @Test void anyModifiedByteIsRefused() throws Exception {
         KeyPair k = key();
         Path s = signed(plain("contenu".repeat(500).getBytes()), k);
         byte[] b = Files.readAllBytes(s);
@@ -63,30 +63,30 @@ class GzipSignatureTest {
             Files.write(f, t);
             assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.verify(f, List.of(k.getPublic()), NOW, EXPECT), "octet " + i);
         }
-        // revendications modifiées : la signature ne les valide plus
+        // modified claims: the signature no longer validates them
         byte[] t = b.clone();
         int at = new String(t, java.nio.charset.StandardCharsets.ISO_8859_1).indexOf("sequence=7");
         t[at + 9] = '8';
         Path f = dir.resolve("claims.gz");
         Files.write(f, t);
-        assertTrue(assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.verify(f, List.of(k.getPublic()), NOW, null)).getMessage().contains("invalide"));
+        assertTrue(assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.verify(f, List.of(k.getPublic()), NOW, null)).getMessage().contains("invalid"));
     }
 
-    @Test void cleInconnueExpireeEtRevendicationsInattendues() throws Exception {
+    @Test void unknownKeyExpiredAndUnexpectedClaims() throws Exception {
         KeyPair k = key(), other = key();
         Path s = signed(plain("x".repeat(100).getBytes()), k);
-        assertTrue(assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.verify(s, List.of(other.getPublic()), NOW, EXPECT)).getMessage().contains("invalide"));
-        assertEquals("gluonify-strange", GzipSignature.verify(s, List.of(other.getPublic(), k.getPublic()), NOW, EXPECT).name(), "l'une des clés suffit (rotation)");
-        assertTrue(assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.verify(s, List.of(k.getPublic()), NOW.plusSeconds(86400 * 2), EXPECT)).getMessage().contains("expirée"));
+        assertTrue(assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.verify(s, List.of(other.getPublic()), NOW, EXPECT)).getMessage().contains("invalid"));
+        assertEquals("gluonify-strange", GzipSignature.verify(s, List.of(other.getPublic(), k.getPublic()), NOW, EXPECT).name(), "any one of the keys is enough (rotation)");
+        assertTrue(assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.verify(s, List.of(k.getPublic()), NOW.plusSeconds(86400 * 2), EXPECT)).getMessage().contains("expired"));
         for (var bad : List.of(new GzipSignature.Expected("gluonify-higgs", null, null, null), new GzipSignature.Expected(null, "amd64", null, null),
                 new GzipSignature.Expected(null, null, "1.2.4", null), new GzipSignature.Expected(null, null, null, 8L)))
             assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.verify(s, List.of(k.getPublic()), NOW, bad), bad.toString());
-        assertTrue(assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.verify(plain("y".getBytes()), List.of(k.getPublic()), NOW, EXPECT)).getMessage().contains("pas de signature"));
+        assertTrue(assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.verify(plain("y".getBytes()), List.of(k.getPublic()), NOW, EXPECT)).getMessage().contains("no signature"));
     }
 
-    @Test void lesAutresSousChampsEtLeNomSontConserves() throws Exception {
+    @Test void theOtherSubfieldsAndTheNameAreKept() throws Exception {
         KeyPair k = key();
-        // gzip écrit à la main avec FEXTRA (sous-champ « AB ») et FNAME
+        // gzip written by hand with FEXTRA (subfield "AB") and FNAME
         byte[] raw = plain("données".repeat(50).getBytes()).toFile().length() > 0 ? Files.readAllBytes(plain("données".repeat(50).getBytes())) : null;
         var o = new ByteArrayOutputStream();
         byte[] sub = {'A', 'B', 3, 0, 1, 2, 3};
@@ -98,18 +98,18 @@ class GzipSignatureTest {
         Files.write(u, o.toByteArray());
         Path s = signed(u, k);
         GzipSignature.verify(s, List.of(k.getPublic()), NOW, EXPECT);
-        assertEquals(ReleaseVerifier.sha256(u), GzipSignature.unsignedDigest(s), "la forme non signée est identique à l'original, sous-champ AB et nom compris");
-        // changer le nom (hors du sous-champ) casse la signature : il est couvert
+        assertEquals(ReleaseVerifier.sha256(u), GzipSignature.unsignedDigest(s), "the unsigned form is identical to the original, AB subfield and name included");
+        // changing the name (outside the subfield) breaks the signature: it is covered
         byte[] b = Files.readAllBytes(s);
         int at = new String(b, java.nio.charset.StandardCharsets.ISO_8859_1).indexOf("nom.bin");
         b[at] = 'x';
         Path t = dir.resolve("renamed.gz");
         Files.write(t, b);
         assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.verify(t, List.of(k.getPublic()), NOW, EXPECT));
-        assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.sign(s, dir.resolve("again.gz"), "gluonify-strange", "arm64", "1.2.3", 7, NOW, k.getPrivate()), "déjà signé");
+        assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.sign(s, dir.resolve("again.gz"), "gluonify-strange", "arm64", "1.2.3", 7, NOW, k.getPrivate()), "already signed");
     }
 
-    @Test void gzipMalFormeOuAvecFhcrcRefuse() throws Exception {
+    @Test void malformedGzipOrWithFhcrcRefused() throws Exception {
         KeyPair k = key();
         Path s = signed(plain("abc".repeat(100).getBytes()), k);
         byte[] b = Files.readAllBytes(s);
@@ -127,7 +127,7 @@ class GzipSignatureTest {
         assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.read(f3));
     }
 
-    @Test void leManifesteAccepteJusqua1024Artefacts() {
+    @Test void theManifestAcceptsUpTo1024Artifacts() {
         var list = new java.util.ArrayList<ReleaseManifest.Artifact>();
         for (int i = 0; i < 1024; i++) list.add(new ReleaseManifest.Artifact("comp-" + i, "amd64", "comp-" + i + "-linux-amd64.gz", "a".repeat(64), 10));
         new ReleaseManifest(1, "1.0.0", 1, "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z", list).validate(ReleaseManifest.SAFE_NAME.asMatchPredicate());
@@ -135,8 +135,8 @@ class GzipSignatureTest {
         assertThrows(ReleaseManifest.Invalid.class, () -> new ReleaseManifest(1, "1.0.0", 1, "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z", list).validate(ReleaseManifest.SAFE_NAME.asMatchPredicate()));
     }
 
-    /** Fichier signé par bin/gzip-sign.py (Python + openssl) : le SDK Java le vérifie, et réciproquement le format est le même des deux côtés. */
-    @Test void unFichierSigneParLOutilPythonSeVerifieEnJava() throws Exception {
+    /** File signed by bin/gzip-sign.py (Python + openssl): the Java SDK verifies it, and conversely the format is the same on both sides. */
+    @Test void aFileSignedByThePythonToolVerifiesInJava() throws Exception {
         Path gz = Path.of("src/test/resources/gzip-signature/gluonify-strange-linux-arm64.gz");
         var pub = ReleaseVerifier.publicKey(Files.readString(Path.of("src/test/resources/gzip-signature/release.pub")));
         var c = GzipSignature.verify(gz, List.of(pub), NOW, new GzipSignature.Expected("gluonify-strange", "arm64", "1.2.3", 7L));

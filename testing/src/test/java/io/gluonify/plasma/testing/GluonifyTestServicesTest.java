@@ -48,16 +48,16 @@ class GluonifyTestServicesTest {
             final CrystallonException ex = assertThrows(CrystallonException.class, () -> client.byName("x").render(Map.of()));
             assertEquals(422, ex.status());
             assertEquals("CRYSTALLON-0015", ex.code());
-            client.byName("x").render(Map.of()); // l'échec ne vaut qu'une fois
+            client.byName("x").render(Map.of()); // the failure applies only once
 
             final CrystallonClient intruder = CrystallonClient.builder().baseUrl(e.url()).tokens(CrystallonTokens.fixed("other")).build();
             assertEquals(401, assertThrows(CrystallonException.class, () -> intruder.byName("x").render(Map.of())).status());
 
-            assertThrows(IllegalStateException.class, GluonifyTestServices::start, "une seule instance à la fois");
+            assertThrows(IllegalStateException.class, GluonifyTestServices::start, "only one instance at a time");
         }
-        assertNull(System.getProperty("GLUONIFY_SERVICE_CRYSTALLON_URL"), "propriétés rendues");
+        assertNull(System.getProperty("GLUONIFY_SERVICE_CRYSTALLON_URL"), "properties restored");
         assertNull(System.getProperty("GLUONIFY_CRYSTALLON_TOKEN"));
-        GluonifyTestServices.start().close(); // redémarrable
+        GluonifyTestServices.start().close(); // restartable
     }
 
     @Test
@@ -66,11 +66,11 @@ class GluonifyTestServicesTest {
         assertTrue(pdf.startsWith("%PDF-1.4"));
         assertTrue(pdf.endsWith("%%EOF\n"));
         final int startxref = Integer.parseInt(pdf.substring(pdf.lastIndexOf("startxref\n") + 10, pdf.lastIndexOf("\n%%EOF")).strip());
-        assertTrue(pdf.startsWith("xref", startxref), "startxref pointe sur la table");
+        assertTrue(pdf.startsWith("xref", startxref), "startxref points to the table");
         for (int k = 1; k <= 3; k++) {
             final String entry = pdf.substring(startxref).split("\n")[2 + k];
             final int offset = Integer.parseInt(entry.substring(0, 10));
-            assertTrue(pdf.startsWith(k + " 0 obj", offset), "décalage exact de l'objet " + k);
+            assertTrue(pdf.startsWith(k + " 0 obj", offset), "exact offset of object " + k);
         }
     }
 

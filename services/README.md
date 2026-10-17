@@ -1,35 +1,35 @@
 # gluonify-plasma-services
 
-Joindre un service de Gluonify **sans aucune configuration** : ni URL ni jeton dans l'application. `GluonifyServices.endpoint("crystallon")` rend l'adresse du service et la source de ses jetons, selon l'endroit où tourne l'application. Java 17, **aucune dépendance** (`java.net.http`, JSON interne), aucune réflexion : image native sans configuration. C'est la base de `CrystallonClient.create()`, du `FermionTokenProvider` par défaut, des producteurs de `gluonify-plasma-quarkus`, de `GluonifyTestServices` et de la CLI `gluonify`.
+Reach a Gluonify service **with no configuration at all**: no URL and no token in the application. `GluonifyServices.endpoint("crystallon")` returns the address of the service and the source of its tokens, depending on where the application runs. Java 17, **no dependency** (`java.net.http`, internal JSON), no reflection: native image without configuration. It is the foundation of `CrystallonClient.create()`, of the default `FermionTokenProvider`, of the producers of `gluonify-plasma-quarkus`, of `GluonifyTestServices` and of the `gluonify` CLI.
 
 ```java
-Endpoint crystallon = GluonifyServices.endpoint("crystallon");     // GluonifyServicesException si le service ne peut pas être joint : le message dit quoi faire
-URI render = crystallon.resolve("/v1/render");                      // url() : adresse de base, sans barre finale
-Optional<String> token = crystallon.token();                         // à chaque appel : relit le fichier, renouvelle le jeton du développeur
+Endpoint crystallon = GluonifyServices.endpoint("crystallon");     // GluonifyServicesException if the service cannot be reached: the message says what to do
+URI render = crystallon.resolve("/v1/render");                      // url(): base address, without a trailing slash
+Optional<String> token = crystallon.token();                         // on each call: rereads the file, renews the developer's token
 crystallon.source();                                                 // OVERRIDE | PLATFORM | DEVELOPER
 
-Optional<Endpoint> optional = GluonifyServices.optional("crystallon"); // service facultatif : vide s'il n'est simplement pas disponible
+Optional<Endpoint> optional = GluonifyServices.optional("crystallon"); // optional service: empty if it is simply not available
 ```
 
-## Ordre de résolution
+## Resolution order
 
-Le même pour chaque service (`<APP>` : le nom en majuscules, `-` devient `_`).
+The same for every service (`<APP>`: the name in upper case, `-` becomes `_`).
 
-| # | Cas | Adresse | Jeton (`Endpoint.tokens()`, appelé à chaque requête) |
+| # | Case | Address | Token (`Endpoint.tokens()`, called on every request) |
 |---|---|---|---|
-| 1 | **Surcharge** (`OVERRIDE`) : propriété système `GLUONIFY_SERVICE_<APP>_URL`, ou variable d'environnement du même nom **hors de la plateforme** | la valeur | `GLUONIFY_<APP>_TOKEN` (fixe) ou `GLUONIFY_<APP>_TOKEN_FILE` (relu), propriété système d'abord, sinon aucun |
-| 2 | **Plateforme** (`PLATFORM`) : `GLUONIFY_ENVIRONMENT` présent | `GLUONIFY_SERVICE_<APP>_URL`, injectée pour un service de `uses` | le jeton d'application, fichier `GLUONIFY_<APP>_TOKEN_FILE` déposé et renouvelé par l'agent du nœud (absent : pas encore de jeton) |
-| 3 | **Poste du développeur** (`DEVELOPER`) : la zone courante de `~/.gluonify/config.json` (ou `GLUONIFY_ZONE`) | l'adresse **publique** du service dans le document de découverte de la zone | le jeton du développeur, `~/.gluonify/tokens/<zone>.json`, renouvelé par le jeton de rafraîchissement quand il expire dans moins d'une minute |
-| 4 | Sinon | `GluonifyServicesException` : « this is not the Gluonify platform … and no cluster is known … Run gluonify login <zone> (for example gluonify login gluonify.lan), set GLUONIFY_SERVICE_<APP>_URL, or use fake services in tests (GluonifyTestServices.start()) » | |
+| 1 | **Override** (`OVERRIDE`): system property `GLUONIFY_SERVICE_<APP>_URL`, or environment variable of the same name **outside the platform** | the value | `GLUONIFY_<APP>_TOKEN` (fixed) or `GLUONIFY_<APP>_TOKEN_FILE` (reread), system property first, otherwise none |
+| 2 | **Platform** (`PLATFORM`): `GLUONIFY_ENVIRONMENT` present | `GLUONIFY_SERVICE_<APP>_URL`, injected for a service in `uses` | the application token, file `GLUONIFY_<APP>_TOKEN_FILE` dropped and renewed by the node agent (absent: no token yet) |
+| 3 | **Developer workstation** (`DEVELOPER`): the current zone of `~/.gluonify/config.json` (or `GLUONIFY_ZONE`) | the **public** address of the service in the zone's discovery document | the developer's token, `~/.gluonify/tokens/<zone>.json`, renewed with the refresh token when it expires in less than a minute |
+| 4 | Otherwise | `GluonifyServicesException`: "this is not the Gluonify platform … and no cluster is known … Run gluonify login <zone> (for example gluonify login gluonify.lan), set GLUONIFY_SERVICE_<APP>_URL, or use fake services in tests (GluonifyTestServices.start())" | |
 
-Messages des autres échecs (en anglais, sans jamais de jeton) : service non accordé sur la plateforme (« the platform did not grant the service "crystallon" … build it with Bup with the Gluonify SDK module of the service on its runtime classpath, or, for a call outside the SDK, add "crystallon" to "uses" in gluonify.json; then deploy again » : Bup déduit `uses` des marqueurs du SDK, voir le README racine) ; pas connecté à la zone (« run gluonify login <zone> ») ; session expirée ou révoquée ; zone qui ne publie pas le service (avec la liste de ceux qu'elle publie) ; jeton du développeur sans l'audience du service ; découverte injoignable ou désactivée (« is the cluster running? », PRD). `resolveOptional` / `optional` rend vide pour « pas dans `uses` », « aucun cluster connu » et « service non publié », et lève pour le reste.
+Messages of the other failures (in English, never containing a token): service not granted on the platform ("the platform did not grant the service "crystallon" … build it with Bup with the Gluonify SDK module of the service on its runtime classpath, or, for a call outside the SDK, add "crystallon" to "uses" in gluonify.json; then deploy again": Bup derives `uses` from the SDK markers, see the root README); not logged in to the zone ("run gluonify login <zone>"); expired or revoked session; zone that does not publish the service (with the list of those it publishes); developer token without the service's audience; discovery unreachable or disabled ("is the cluster running?", PRD). `resolveOptional` / `optional` returns empty for "not in `uses`", "no known cluster" and "service not published", and throws for the rest.
 
-## Sur le poste du développeur
+## On the developer's workstation
 
-`gluonify login <zone>` ([CLI](../cli/README.md)) écrit deux fichiers, dans `~/.gluonify` (ou `GLUONIFY_HOME`), dossiers 0700, fichiers 0600, écrits atomiquement :
+`gluonify login <zone>` ([CLI](../cli/README.md)) writes two files, in `~/.gluonify` (or `GLUONIFY_HOME`), directories 0700, files 0600, written atomically:
 
 ```json
-// ~/.gluonify/config.json : aucune donnée secrète
+// ~/.gluonify/config.json: no secret data
 { "current": "gluonify.lan",
   "zones": { "gluonify.lan": { "discovery": "https://gluonify.lan/.well-known/gluonify", "environment": "SBX", "caFile": "/…/pebble-root.pem" } } }
 
@@ -38,7 +38,7 @@ Messages des autres échecs (en anglais, sans jamais de jeton) : service non acc
   "audiences": ["gluonify-crystallon", "gluonify-fermion"], "accessToken": "…", "expiresAt": 1791000000, "refreshToken": "…", "refreshExpiresAt": 1793000000 }
 ```
 
-- **Document de découverte** `https://<zone>/.well-known/gluonify` (publié par Higgs, public, sans secret, désactivé en PRD par défaut), gardé **5 minutes** en mémoire ; s'il devient injoignable, la dernière copie lue sert encore. Délais : 5 s de connexion, 10 s de réponse, 1 Mio au plus. Format (`Discovery`) :
+- **Discovery document** `https://<zone>/.well-known/gluonify` (published by Higgs, public, no secret, disabled in PRD by default), kept **5 minutes** in memory; if it becomes unreachable, the last copy read is still used. Timeouts: 5 s to connect, 10 s for the response, 1 MiB at most. Format (`Discovery`):
 
   ```json
   { "zone": "gluonify.lan", "environment": "SBX", "issuer": "https://gluonify.lan/realms/gluonify",
@@ -47,21 +47,21 @@ Messages des autres échecs (en anglais, sans jamais de jeton) : service non acc
     "services": { "crystallon": { "url": "https://adm.gluonify.lan/crystallon", "audience": "gluonify-crystallon" } } }
   ```
 
-  `openidConfiguration` et `cli` sont facultatifs (défauts : `issuer` + `/.well-known/openid-configuration`, `gluonify-cli`). Une adresse qui n'est ni `https` ni la boucle locale est ignorée (découverte, point de jeton et services compris) : un jeton ne part jamais en clair hors de la machine.
-- **Jeton du développeur** : un seul jeton Charm d'une heure porte les audiences de tous les services (celles du client `gluonify-cli`). Charm fait tourner le jeton de rafraîchissement (usage unique) : le renouvellement se fait sous verrou, entre fils (`synchronized`) et entre processus (`FileLock` sur `<zone>.json.lock`), avec relecture du fichier sous le verrou ; le nouveau couple est réécrit atomiquement. Deux applications lancées en même temps sur le poste ne cassent donc pas la session.
-- **Autorité locale** (cluster de développement signé par Pebble) : `caFile` (`gluonify login … --ca <pem>`) est acceptée **en plus** des autorités du JDK, pour la découverte et le renouvellement. Les appels de l'application au service (Crystallon…) passent par le client HTTP de son SDK : pour une autorité locale, l'ajouter au truststore de la JVM (`-Djavax.net.ssl.trustStore`) ou passer un `HttpClient` au client.
+  `openidConfiguration` and `cli` are optional (defaults: `issuer` + `/.well-known/openid-configuration`, `gluonify-cli`). An address that is neither `https` nor the loopback interface is ignored (discovery, token endpoint and services included): a token never leaves the machine in clear text.
+- **Developer token**: a single one-hour Charm token carries the audiences of all the services (those of the `gluonify-cli` client). Charm rotates the refresh token (single use): renewal happens under a lock, between threads (`synchronized`) and between processes (`FileLock` on `<zone>.json.lock`), with the file reread under the lock; the new pair is rewritten atomically. Two applications started at the same time on the workstation therefore do not break the session.
+- **Local authority** (development cluster signed by Pebble): `caFile` (`gluonify login … --ca <pem>`) is accepted **in addition to** the JDK's authorities, for discovery and renewal. The application's calls to the service (Crystallon…) go through the HTTP client of its SDK: for a local authority, add it to the JVM truststore (`-Djavax.net.ssl.trustStore`) or pass an `HttpClient` to the client.
 
 ## API
 
-| Type | Rôle |
+| Type | Role |
 |---|---|
-| `GluonifyServices` | `endpoint(service)` / `optional(service)` (instance du processus, `defaults()`), `builder()` (environnement, propriétés, dossier, horloge, durée de vie de la découverte, `HttpClient` : tests et outils), `resolve`, `resolveOptional`, `onPlatform()`, `discovery(zone)`, `invalidate()`, `urlKey`, `tokenKey`, `tokenFileKey` |
-| `Endpoint` | `service`, `url`, `tokens` (`Supplier<String>`, `null` = pas de jeton), `source`, `audience`, `zone` ; `token()`, `resolve(path)` ; `toString()` sans jeton |
-| `GluonifyServicesException` | `IllegalStateException` dont le message dit quoi faire |
-| `Discovery`, `DeveloperConfig`, `DeveloperTokens` | le document de découverte, `config.json`, les jetons du développeur (lecture, écriture 0600, renouvellement) : utilisés par la CLI |
+| `GluonifyServices` | `endpoint(service)` / `optional(service)` (process instance, `defaults()`), `builder()` (environment, properties, folder, clock, discovery lifetime, `HttpClient`: tests and tools), `resolve`, `resolveOptional`, `onPlatform()`, `discovery(zone)`, `invalidate()`, `urlKey`, `tokenKey`, `tokenFileKey` |
+| `Endpoint` | `service`, `url`, `tokens` (`Supplier<String>`, `null` = no token), `source`, `audience`, `zone`; `token()`, `resolve(path)`; `toString()` without a token |
+| `GluonifyServicesException` | `IllegalStateException` whose message says what to do |
+| `Discovery`, `DeveloperConfig`, `DeveloperTokens` | the discovery document, `config.json`, the developer's tokens (read, write 0600, renewal): used by the CLI |
 
-Le paquet `io.gluonify.plasma.services.internal` (JSON, HTTP, fichiers) n'est pas une API. Rien n'est journalisé ; aucun `HttpClient` statique (celui de l'instance est créé au premier appel réseau, un par autorité de certification).
+The package `io.gluonify.plasma.services.internal` (JSON, HTTP, files) is not an API. Nothing is logged; no static `HttpClient` (the instance's one is created on the first network call, one per certificate authority).
 
 ## Tests
 
-`mvn clean verify` : 22 tests (`GluonifyServicesTest`, `DiscoveryTest`) contre un faux cluster (`FakeCluster` : découverte et faux Charm, PKCE et rafraîchissement à usage unique ; publié dans le test-jar pour la CLI et fermion-client) avec un dossier temporaire : les quatre cas, la surcharge sur la plateforme, le cache de 5 minutes et la copie gardée, le jeton expiré renouvelé (rotation, droits 0600), un seul renouvellement pour 16 appels concurrents, la session expirée, l'audience absente, `GLUONIFY_ZONE`, la découverte injoignable ou en clair, les messages.
+`mvn clean verify`: 22 tests (`GluonifyServicesTest`, `DiscoveryTest`) against a fake cluster (`FakeCluster`: discovery and fake Charm, PKCE and single-use refresh; published in the test-jar for the CLI and fermion-client) with a temporary folder: the four cases, the override on the platform, the 5-minute cache and the kept copy, the expired token renewed (rotation, 0600 permissions), a single renewal for 16 concurrent calls, the expired session, the missing audience, `GLUONIFY_ZONE`, discovery unreachable or in clear text, the messages.

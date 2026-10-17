@@ -10,47 +10,47 @@ import java.nio.file.Path;
 import java.util.function.Function;
 
 /**
- * Fournit le jeton Charm (audience {@code gluonify-fermion}) envoyé dans la première trame {@code auth}. Appelé à chaque (re)connexion :
- * l'implémentation renvoie un jeton valide, au besoin renouvelé. Sans bean de l'application, le client utilise {@link #gluonify()} (producteur
- * {@code @DefaultBean} de ce module) : rien à écrire.
+ * Provides the Charm token (audience {@code gluonify-fermion}) sent in the first {@code auth} frame. Called on every (re)connection:
+ * the implementation returns a valid token, renewed if necessary. Without an application bean, the client uses {@link #gluonify()} (
+ * {@code @DefaultBean} producer of this module): nothing to write.
  */
 @FunctionalInterface
 public interface FermionTokenProvider {
 
-    /** Variable d'environnement : chemin du fichier du jeton d'application déposé par la plateforme (application qui déclare {@code "uses": ["fermion"]}). */
+    /** Environment variable: path of the application token file dropped by the platform (application declaring {@code "uses": ["fermion"]}). */
     String ENV_TOKEN_FILE = "GLUONIFY_FERMION_TOKEN_FILE";
 
     String token();
 
     /**
-     * Le jeton résolu par {@link GluonifyServices} pour le service {@code fermion}, à chaque (re)connexion : sur la plateforme, le jeton d'application
-     * ({@code GLUONIFY_FERMION_TOKEN_FILE}) ; sur le poste du développeur, le jeton de {@code gluonify login} (renouvelé) ; en test, la surcharge
-     * {@code GLUONIFY_FERMION_TOKEN}. C'est le fournisseur par défaut quand l'application n'en produit pas.
+     * The token resolved by {@link GluonifyServices} for the {@code fermion} service, on every (re)connection: on the platform, the application token
+     * ({@code GLUONIFY_FERMION_TOKEN_FILE}); on the developer workstation, the {@code gluonify login} token (renewed); in tests, the
+     * {@code GLUONIFY_FERMION_TOKEN} override. This is the default provider when the application does not produce one.
      *
-     * @throws io.gluonify.plasma.services.GluonifyServicesException à l'appel de {@link #token()}, si fermion ne peut pas être joint
+     * @throws io.gluonify.plasma.services.GluonifyServicesException on the call to {@link #token()}, if fermion cannot be reached
      */
     static FermionTokenProvider gluonify() {
         return () -> GluonifyServices.endpoint("fermion").token().orElse(null);
     }
 
-    /** Comme {@link #gluonify()} avec une résolution fournie (tests). */
+    /** Like {@link #gluonify()} with a supplied resolution (tests). */
     static FermionTokenProvider gluonify(final GluonifyServices services) {
         return () -> services.resolve("fermion").token().orElse(null);
     }
 
     /**
-     * Le jeton d'application que la plateforme fournit à une application qui déclare {@code "uses": ["fermion"]} : le fichier de
-     * {@code GLUONIFY_FERMION_TOKEN_FILE}, déposé par l'agent du nœud, relu à chaque (re)connexion et renouvelé avant son expiration
-     * (audience {@code gluonify-fermion}, rôle {@code gluonify:fermion:user}). Fichier absent ou vide : pas de jeton ({@code null}).
-     * À produire en bean : {@code @Produces FermionTokenProvider tokens() { return FermionTokenProvider.platform(); }}.
+     * The application token that the platform provides to an application declaring {@code "uses": ["fermion"]}: the file from
+     * {@code GLUONIFY_FERMION_TOKEN_FILE}, dropped by the node agent, re-read on every (re)connection and renewed before it expires
+     * (audience {@code gluonify-fermion}, role {@code gluonify:fermion:user}). File missing or empty: no token ({@code null}).
+     * To produce as a bean: {@code @Produces FermionTokenProvider tokens() { return FermionTokenProvider.platform(); }}.
      *
-     * @throws IllegalStateException si la variable est absente (pas de {@code fermion} dans {@code uses}, ou plateforme sans jetons de service)
+     * @throws IllegalStateException if the variable is absent (no {@code fermion} in {@code uses}, or a platform without service tokens)
      */
     static FermionTokenProvider platform() {
         return platform(System::getenv);
     }
 
-    /** Comme {@link #platform()} avec un environnement fourni (tests). */
+    /** Like {@link #platform()} with a supplied environment (tests). */
     static FermionTokenProvider platform(final Function<String, String> environment) {
         final String file = environment.apply(ENV_TOKEN_FILE);
         if (file == null || file.isBlank()) {

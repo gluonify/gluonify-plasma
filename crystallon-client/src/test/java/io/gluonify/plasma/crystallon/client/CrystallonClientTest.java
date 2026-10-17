@@ -29,7 +29,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** Le client contre un faux Crystallon : chemins, corps, en-têtes, erreurs, limites. */
+/** The client against a fake Crystallon: paths, bodies, headers, errors, limits. */
 class CrystallonClientTest {
     private FakeCrystallon fake;
     private final PayloadCodec codec = PayloadCodec.detect();
@@ -280,7 +280,7 @@ class CrystallonClientTest {
         assertEquals(1, fake.calls().size());
     }
 
-    // ---- PDF refusé
+    // ---- PDF rejected
 
     @Test
     void aBodyThatIsNotAPdfIsRefused() {
@@ -319,7 +319,7 @@ class CrystallonClientTest {
         assertArrayEquals(exact, fake.client().maxPdfBytes(1000).build().byId("t1").render(Map.of()).bytes());
     }
 
-    // ---- réseau
+    // ---- network
 
     @Test
     void aSlowCrystallonTimesOut() {
@@ -360,7 +360,7 @@ class CrystallonClientTest {
         assertEquals(1, counting.sent.get());
     }
 
-    /** Un client HTTP qui compte les envois et délègue au client du JDK. */
+    /** An HTTP client that counts the sends and delegates to the JDK client. */
     private static final class CountingHttpClient extends HttpClient {
         final AtomicInteger sent = new AtomicInteger();
         private final HttpClient real = HttpClient.newHttpClient();
@@ -393,7 +393,7 @@ class CrystallonClientTest {
         }
     }
 
-    // ---- JSON du payload
+    // ---- payload JSON
 
     @Test
     void serializesARealPayloadWithDatesDecimalsAndLists() {

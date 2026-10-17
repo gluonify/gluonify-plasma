@@ -5,55 +5,55 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Organisations (les clients de la plateforme) et rôles des clients.
+ * Organizations (the platform's customers) and customer roles.
  *
- * <p>Higgs est la source de vérité du lien application → organisation ({@link AppSpec#organization()}), fixé par un
- * administrateur de la plateforme seulement (gluonify-codex/metering.md § 2.2). Charm rattache un compte à une
- * organisation et pose la revendication {@value #CLAIM} dans ses jetons.
+ * <p>Higgs is the source of truth for the application → organization link ({@link AppSpec#organization()}), set by a
+ * platform administrator only (gluonify-codex/metering.md § 2.2). Charm attaches an account to an
+ * organization and sets the {@value #CLAIM} claim in its tokens.
  *
- * <p>Rôles des clients, valables dans leur organisation seulement (jamais sous le préfixe réservé {@code gluonify:}) :
+ * <p>Customer roles, valid within their organization only (never under the reserved prefix {@code gluonify:}):
  * <ul>
- *   <li>{@value #OWNER} : tout, accès et facturation compris ;</li>
- *   <li>{@value #DEVELOPER} : dépôts, builds, déploiements, configuration, DNS et API ;</li>
- *   <li>{@value #VIEWER} : lecture seule ;</li>
- *   <li>{@value #BILLING} : consommation et factures.</li>
+ *   <li>{@value #OWNER}: everything, access and billing included;</li>
+ *   <li>{@value #DEVELOPER}: repositories, builds, deployments, configuration, DNS and API;</li>
+ *   <li>{@value #VIEWER}: read-only;</li>
+ *   <li>{@value #BILLING}: consumption and invoices.</li>
  * </ul>
  */
 public final class Organizations {
     private Organizations() {}
 
-    /** Valeur affichée (filtres, exports, consoles) pour une ressource rattachée à aucune organisation ; jamais enregistrée. */
+    /** Value displayed (filters, exports, consoles) for a resource attached to no organization; never stored. */
     public static final String UNASSIGNED = "_unassigned";
-    /** Nom de la revendication des jetons Charm qui porte l'organisation (lue telle quelle par Crystallon et Interfero). */
+    /** Name of the Charm token claim that carries the organization (read as is by Crystallon and Interfero). */
     public static final String CLAIM = "org";
-    /** Forme d'un identifiant d'organisation : étiquette DNS de 1 à 40 caractères (a-z, 0-9, tiret, ni en tête ni en fin), la même que gluonify-charm. */
+    /** Shape of an organization identifier: DNS label of 1 to 40 characters (a-z, 0-9, hyphen, neither leading nor trailing), the same as gluonify-charm. */
     public static final Pattern PATTERN = Pattern.compile("[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?");
 
     public static final String OWNER = "org:owner";
     public static final String DEVELOPER = "org:developer";
     public static final String VIEWER = "org:viewer";
     public static final String BILLING = "org:billing";
-    /** Les quatre rôles des clients, du plus large au plus étroit. */
+    /** The four customer roles, from the broadest to the narrowest. */
     public static final List<String> ROLES = List.of(OWNER, DEVELOPER, VIEWER, BILLING);
     private static final Set<String> ROLE_SET = Set.copyOf(ROLES);
 
-    /** Vrai si {@code org} est un identifiant d'organisation valide (null ne l'est pas). */
+    /** True if {@code org} is a valid organization identifier (null is not). */
     public static boolean isValid(String org) { return org != null && PATTERN.matcher(org).matches(); }
 
-    /** Refuse un identifiant invalide ; null (aucune organisation) est accepté. */
+    /** Rejects an invalid identifier; null (no organization) is accepted. */
     public static void requireValid(String org) {
-        if (org != null && !isValid(org)) throw new IllegalArgumentException("organization invalide (étiquette DNS : a-z, 0-9 et -, ni en tête ni en fin, 1 à 40 caractères)");
+        if (org != null && !isValid(org)) throw new IllegalArgumentException("invalid organization (DNS label: a-z, 0-9 and -, neither leading nor trailing, 1 to 40 characters)");
     }
 
-    /** Organisation pour l'affichage : {@link #UNASSIGNED} à défaut. */
+    /** Organization for display: {@link #UNASSIGNED} by default. */
     public static String orUnassigned(String org) { return org == null ? UNASSIGNED : org; }
 
     /**
-     * Vrai si une ressource d'organisation {@code org} (null : aucune) passe le filtre {@code filter} ;
-     * un filtre null laisse tout passer, {@value #UNASSIGNED} ne garde que les ressources sans organisation.
+     * True if a resource of organization {@code org} (null: none) passes the filter {@code filter};
+     * a null filter lets everything through, {@value #UNASSIGNED} keeps only the resources without an organization.
      */
     public static boolean matches(String filter, String org) { return filter == null || filter.equals(orUnassigned(org)); }
 
-    /** Vrai si {@code role} est un des rôles des clients. */
+    /** True if {@code role} is one of the customer roles. */
     public static boolean isCustomerRole(String role) { return role != null && ROLE_SET.contains(role); }
 }

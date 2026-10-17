@@ -24,34 +24,34 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /**
- * Les jetons du développeur pour une zone : {@code ~/.gluonify/tokens/<zone>.json} (0600), écrit par {@code gluonify login}. Le jeton d'accès
- * (Charm, une heure, audiences des services portées par le client {@code gluonify-cli}) est renouvelé par le jeton de rafraîchissement quand il
- * expire dans moins d'une minute ; Charm fait tourner le jeton de rafraîchissement (usage unique), donc le renouvellement se fait sous verrou (entre
- * fils et entre processus) et le nouveau couple est réécrit atomiquement. Aucun jeton n'apparaît dans un message ni dans un {@code toString()}.
+ * The developer's tokens for a zone: {@code ~/.gluonify/tokens/<zone>.json} (0600), written by {@code gluonify login}. The access token
+ * (Charm, one hour, service audiences carried by the {@code gluonify-cli} client) is renewed with the refresh token when it
+ * expires in less than a minute; Charm rotates the refresh token (single use), so renewal happens under a lock (between
+ * threads and between processes) and the new pair is rewritten atomically. No token appears in a message or in a {@code toString()}.
  */
 public final class DeveloperTokens {
-    /** Marge : un jeton qui expire dans moins de ce délai est renouvelé avant l'appel. */
+    /** Margin: a token that expires in less than this delay is renewed before the call. */
     public static final Duration MARGIN = Duration.ofSeconds(60);
 
-    /** Un verrou par fichier pour les fils de ce processus (le {@link FileLock} ne protège qu'entre processus). */
+    /** One lock per file for the threads of this process (the {@link FileLock} only protects between processes). */
     private static final Map<Path, Object> LOCKS = new ConcurrentHashMap<>();
 
     private DeveloperTokens() {
     }
 
     /**
-     * Les jetons d'une zone.
+     * The tokens of a zone.
      *
-     * @param zone             zone du cluster
-     * @param clientId         client public de Charm ({@code gluonify-cli})
-     * @param tokenEndpoint    point de jeton de Charm (renouvellement)
-     * @param accessToken      jeton d'accès (JWT)
-     * @param expiresAt        expiration du jeton d'accès (secondes depuis l'epoch)
-     * @param refreshToken     jeton de rafraîchissement, ou {@code null}
-     * @param refreshExpiresAt expiration du jeton de rafraîchissement (secondes depuis l'epoch), {@code 0} si inconnue
-     * @param audiences        audiences du jeton d'accès (lues dans le JWT, sans vérification : information seulement)
-     * @param subject          personne connectée ({@code preferred_username}, sinon {@code sub}), ou {@code null}
-     * @param revocationEndpoint point de révocation de Charm, ou {@code null}
+     * @param zone             zone of the cluster
+     * @param clientId         public client of Charm ({@code gluonify-cli})
+     * @param tokenEndpoint    Charm's token endpoint (renewal)
+     * @param accessToken      access token (JWT)
+     * @param expiresAt        expiry of the access token (seconds since the epoch)
+     * @param refreshToken     refresh token, or {@code null}
+     * @param refreshExpiresAt expiry of the refresh token (seconds since the epoch), {@code 0} if unknown
+     * @param audiences        audiences of the access token (read from the JWT, without verification: information only)
+     * @param subject          signed-in person ({@code preferred_username}, otherwise {@code sub}), or {@code null}
+     * @param revocationEndpoint Charm's revocation endpoint, or {@code null}
      */
     public record Session(String zone, String clientId, URI tokenEndpoint, String accessToken, long expiresAt, String refreshToken, long refreshExpiresAt,
                           List<String> audiences, String subject, URI revocationEndpoint) {
@@ -63,18 +63,18 @@ public final class DeveloperTokens {
             return Instant.ofEpochSecond(expiresAt);
         }
 
-        /** Vrai si le jeton d'accès est encore valable au moins {@code margin}. */
+        /** True if the access token is still valid for at least {@code margin}. */
         public boolean fresh(final Clock clock, final Duration margin) {
             return accessToken != null && clock.instant().plus(margin).isBefore(expiry());
         }
 
-        /** Vrai si un jeton de rafraîchissement existe et n'est pas expiré (expiration inconnue : on essaie). */
+        /** True if a refresh token exists and has not expired (unknown expiry: we try). */
         public boolean renewable(final Clock clock) {
             return refreshToken != null && (refreshExpiresAt == 0 || clock.instant().isBefore(Instant.ofEpochSecond(refreshExpiresAt)));
         }
 
         @Override
-        public String toString() { // jamais de jeton
+        public String toString() { // never a token
             return "Session[zone=" + zone + ", clientId=" + clientId + ", subject=" + subject + ", expiresAt=" + expiry() + ", audiences=" + audiences
                     + ", refreshable=" + (refreshToken != null) + "]";
         }
@@ -88,7 +88,7 @@ public final class DeveloperTokens {
         return home.resolve("tokens").resolve(zone + ".json");
     }
 
-    /** Les jetons de la zone, vide si le fichier n'existe pas. @throws GluonifyServicesException si le fichier est illisible */
+    /** The tokens of the zone, empty if the file does not exist. @throws GluonifyServicesException if the file is unreadable */
     public static Optional<Session> read(final Path home, final String zone) {
         final Path file = file(home, zone);
         final String text;
@@ -115,7 +115,7 @@ public final class DeveloperTokens {
                 Json.str(m, "subject"), re == null ? null : URI.create(re)));
     }
 
-    /** Écrit les jetons (0600, atomiquement). */
+    /** Writes the tokens (0600, atomically). */
     public static void write(final Path home, final Session s) {
         final Map<String, Object> m = new LinkedHashMap<>();
         m.put("zone", s.zone());
@@ -140,7 +140,7 @@ public final class DeveloperTokens {
         }
     }
 
-    /** Supprime les jetons de la zone. @return vrai si un fichier existait */
+    /** Deletes the tokens of the zone. @return true if a file existed */
     public static boolean delete(final Path home, final String zone) {
         try {
             Files.deleteIfExists(file(home, zone).resolveSibling(zone + ".json.lock"));
@@ -152,10 +152,10 @@ public final class DeveloperTokens {
     }
 
     /**
-     * Une session à partir de la réponse du point de jeton de Charm ({@code access_token}, {@code expires_in}, {@code refresh_token},
-     * {@code refresh_expires_in}). Sans nouveau jeton de rafraîchissement, celui de {@code previous} est gardé.
+     * A session built from the response of Charm's token endpoint ({@code access_token}, {@code expires_in}, {@code refresh_token},
+     * {@code refresh_expires_in}). Without a new refresh token, the one from {@code previous} is kept.
      *
-     * @throws GluonifyServicesException si la réponse n'a pas de jeton d'accès
+     * @throws GluonifyServicesException if the response has no access token
      */
     public static Session fromTokenResponse(final String zone, final String clientId, final URI tokenEndpoint, final URI revocationEndpoint,
                                             final Map<String, Object> response, final Clock clock, final Session previous) {
@@ -179,7 +179,7 @@ public final class DeveloperTokens {
         return new Session(zone, clientId, tokenEndpoint, access, now + expiresIn, refresh, refreshExp, Json.strings(claims, "aud"), subject, revocationEndpoint);
     }
 
-    /** Les revendications d'un JWT, lues sans vérification (pour information : audiences, personne). Vide si ce n'est pas un JWT. */
+    /** The claims of a JWT, read without verification (for information: audiences, person). Empty if it is not a JWT. */
     static Map<String, Object> claims(final String jwt) {
         final String[] parts = jwt.split("\\.");
         if (parts.length < 2) {
@@ -194,9 +194,9 @@ public final class DeveloperTokens {
     }
 
     /**
-     * Le jeton d'accès du développeur pour la zone, renouvelé s'il expire dans moins de {@link #MARGIN}.
+     * The developer's access token for the zone, renewed if it expires in less than {@link #MARGIN}.
      *
-     * @throws GluonifyServicesException pas connecté, session expirée ou révoquée, Charm injoignable : le message dit quoi faire
+     * @throws GluonifyServicesException not logged in, session expired or revoked, Charm unreachable: the message says what to do
      */
     public static String accessToken(final Path home, final String zone, final Supplier<HttpClient> http, final Clock clock) {
         final Session s = read(home, zone).orElseThrow(() -> notLoggedIn(zone));
@@ -207,9 +207,9 @@ public final class DeveloperTokens {
     }
 
     /**
-     * Renouvelle les jetons de la zone (sous verrou), sauf si un autre fil ou processus vient de le faire et que {@code force} est faux.
+     * Renews the zone's tokens (under a lock), unless another thread or process has just done so and {@code force} is false.
      *
-     * @throws GluonifyServicesException pas connecté, session expirée ou révoquée, Charm injoignable
+     * @throws GluonifyServicesException not logged in, session expired or revoked, Charm unreachable
      */
     public static Session refreshed(final Path home, final String zone, final Supplier<HttpClient> http, final Clock clock, final boolean force) {
         final Path file = file(home, zone);
@@ -221,7 +221,7 @@ public final class DeveloperTokens {
                      FileLock lock = ch.lock()) {
                     final Session s = read(home, zone).orElseThrow(() -> notLoggedIn(zone));
                     if (!force && s.fresh(clock, MARGIN)) {
-                        return s; // renouvelé entre-temps
+                        return s; // renewed in the meantime
                     }
                     if (!s.renewable(clock) || s.tokenEndpoint() == null) {
                         throw expired(zone);

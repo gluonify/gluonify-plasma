@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Contrats (contracts.md § 2) : JSON relu à l'identique, version effective, état calculé, empreinte canonique, catalogue, réflexion native. */
+/** Contracts (contracts.md § 2): JSON read back identically, effective version, computed state, canonical fingerprint, catalogue, native reflection. */
 class ContractsTest {
     private final JsonMapper json = JsonMapper.builder().build();
     static final long T = 1_790_000_000_000L;
@@ -59,12 +59,12 @@ class ContractsTest {
     }
 
     @Test
-    void lesTermesDeLaSpecificationSontValidesEtRelusALIdentique() {
+    void theSpecificationTermsAreValidAndReadBackIdentically() {
         ContractTerms t = terms();
         assertEquals(List.of(), TermsValidator.validate(t));
         String s = json.writeValueAsString(t);
         assertEquals(t, json.readValue(s, ContractTerms.class));
-        assertFalse(s.contains("unknownLaterField"), "propriété inconnue ignorée");
+        assertFalse(s.contains("unknownLaterField"), "unknown property ignored");
         assertTrue(t.enforcing());
         assertEquals(2, t.haFor("other").spread());
         assertEquals(3, t.haFor("shop").spread());
@@ -72,7 +72,7 @@ class ContractsTest {
     }
 
     @Test
-    void quotasEffectifsParEnvironnementEtParApplication() {
+    void effectiveQuotasPerEnvironmentAndPerApplication() {
         ContractTerms t = terms();
         ContractTerms.Quotas prd = t.quotasFor("PRD", "web");
         assertEquals(20, prd.apps());
@@ -80,9 +80,9 @@ class ContractsTest {
         ContractTerms.Quotas sbx = t.quotasFor("SBX", "web");
         assertEquals(40, sbx.apps());
         assertEquals(8192, sbx.reservedMemoryMb());
-        assertEquals(4, sbx.replicasPerApp(), "les clés absentes de quotasByEnv viennent de quotas");
+        assertEquals(4, sbx.replicasPerApp(), "keys absent from quotasByEnv come from quotas");
         ContractTerms.Quotas shop = t.quotasFor("PRD", "shop");
-        assertEquals(4096, shop.memoryMbPerReplica(), "surcharge par application qui élargit");
+        assertEquals(4096, shop.memoryMbPerReplica(), "per-application override that widens");
         assertEquals(6, shop.replicasPerApp());
         assertEquals(512, shop.scratchMbPerReplica());
         ContractTerms empty = new ContractTerms(null, null, null, null, null, null, null, null, null, null);
@@ -92,13 +92,13 @@ class ContractsTest {
     }
 
     @Test
-    void versionEffectiveEtEtatCalcule() {
+    void effectiveVersionAndComputedState() {
         ContractVersion v1 = v(1, T), v2 = v(2, T + 1000), v3 = v(3, T + 5000).cancel(T + 10, "ops"), v4 = v(4, T + 9000);
         List<ContractVersion> all = List.of(v1, v2, v3, v4);
         assertNull(Contracts.effective(all, T - 1));
         assertEquals(1, Contracts.effective(all, T).version());
         assertEquals(2, Contracts.effective(all, T + 1000).version());
-        assertEquals(2, Contracts.effective(all, T + 6000).version(), "une version annulée ne s'applique jamais");
+        assertEquals(2, Contracts.effective(all, T + 6000).version(), "a cancelled version never applies");
         assertEquals(4, Contracts.effective(all, T + 9000).version());
         assertEquals(Contracts.SUPERSEDED, Contracts.state(v1, all, T + 2000));
         assertEquals(Contracts.ACTIVE, Contracts.state(v2, all, T + 2000));
@@ -106,7 +106,7 @@ class ContractsTest {
         assertEquals(Contracts.SCHEDULED, Contracts.state(v4, all, T + 2000));
         assertEquals(4, Contracts.next(all, T + 2000).version());
         assertNull(Contracts.next(all, T + 9000));
-        // à date égale, le plus grand numéro
+        // on equal date, the highest number
         assertEquals(5, Contracts.effective(List.of(v(5, T), v1), T).version());
         // quatre yeux : en attente, jamais effective avant l'approbation
         ContractVersion p = new ContractVersion(6, T, T, "alice", "x", null, null, null, null, true, null, null);
@@ -116,13 +116,13 @@ class ContractsTest {
     }
 
     @Test
-    void empreinteCanoniqueStableEtSensibleAuxTermesSeulement() {
+    void canonicalFingerprintStableAndSensitiveToTermsOnly() {
         ContractTerms a = terms();
         ContractTerms b = json.readValue(json.writeValueAsString(a), ContractTerms.class);
         assertEquals(Contracts.fingerprint(a), Contracts.fingerprint(b));
         assertTrue(Contracts.fingerprint(a).matches("sha256:[0-9a-f]{64}"));
         assertNotEquals(Contracts.fingerprint(a), Contracts.fingerprint(a.withEnforcement("warn")));
-        // l'ordre des clés d'entrée ne compte pas
+        // the order of the input keys does not matter
         Map<String, ContractTerms.Quotas> m1 = new LinkedHashMap<>(), m2 = new LinkedHashMap<>();
         m1.put("SBX", new ContractTerms.Quotas(1L, null, null, null, null, null, null, null, null));
         m1.put("PRD", new ContractTerms.Quotas(2L, null, null, null, null, null, null, null, null));
@@ -131,7 +131,7 @@ class ContractsTest {
         ContractTerms x = new ContractTerms(null, null, null, null, null, m1, null, null, null, null), y = new ContractTerms(null, null, null, null, null, m2, null, null, null, null);
         assertEquals(Contracts.fingerprint(x), Contracts.fingerprint(y));
         assertEquals("{\"quotasByEnv\":{\"PRD\":{\"apps\":2},\"SBX\":{\"apps\":1}}}", Contracts.canonical(x));
-        // une liste vide (rien n'est permis) n'est pas une liste absente (tout est permis)
+        // an empty list (nothing is allowed) is not an absent list (everything is allowed)
         ContractTerms none = new ContractTerms(null, null, null, new ContractTerms.Services(List.of(), null, null, null, null, null, null, null, null), null, null, null, null, null, null);
         ContractTerms all = new ContractTerms(null, null, null, new ContractTerms.Services(null, null, null, null, null, null, null, null, null), null, null, null, null, null, null);
         assertNotEquals(Contracts.fingerprint(none), Contracts.fingerprint(all));
@@ -139,7 +139,7 @@ class ContractsTest {
     }
 
     @Test
-    void organisationEtVersionsRelues() {
+    void organizationAndVersionsReadBack() {
         ContractVersion cv = new ContractVersion(1, T, T, "ops", "premier", Contracts.fingerprint(terms()), terms(), null, null, null, null, null);
         Organization o = new Organization("acme", "Acme SA", null, "CRM-1", T, "ops", List.of(cv));
         assertEquals(Organization.ACTIVE, o.status());
@@ -147,7 +147,7 @@ class ContractsTest {
         assertEquals(o, json.readValue(s, Organization.class));
         JsonNode n = json.readTree(s);
         assertEquals(false, n.get("versions").get(0).get("pending").asBoolean());
-        // un ancien document sans versions ni statut se relit
+        // an old document without versions or status can be read back
         Organization old = json.readValue("{\"id\":\"acme\",\"name\":\"Acme\"}", Organization.class);
         assertEquals(List.of(), old.versions());
         assertEquals(Organization.ACTIVE, old.status());
@@ -165,7 +165,7 @@ class ContractsTest {
     }
 
     @Test
-    void listeDePrixVersionEffective() {
+    void priceListEffectiveVersion() {
         PriceListVersion a = new PriceListVersion(1, T, T, "ops", "a", List.of(new PriceLine("strange.instance.cpu", null, "hour", "0.02")));
         PriceListVersion b = new PriceListVersion(2, T + 100, T, "ops", "b", List.of());
         PriceList pl = new PriceList("standard-chf", "Tarif", "CHF", T, "ops", List.of(a, b));
@@ -177,7 +177,7 @@ class ContractsTest {
     }
 
     @Test
-    void catalogueEtConversions() {
+    void catalogueAndConversions() {
         assertNotNull(UsageCatalog.get("strange.instance.memory_reserved"));
         assertTrue(UsageCatalog.get("strange.instance.memory_reserved").priceable());
         assertFalse(UsageCatalog.get("strange.instance.memory_used").priceable(), "indicative");
@@ -193,11 +193,11 @@ class ContractsTest {
     }
 
     @Test
-    void decimaux() {
+    void decimals() {
         assertTrue(Decimals.valid("0"));
         assertTrue(Decimals.valid("490.00"));
         assertTrue(Decimals.valid("0.000000001"));
-        assertFalse(Decimals.valid("0.0000000001"), "10 décimales");
+        assertFalse(Decimals.valid("0.0000000001"), "10 decimals");
         assertFalse(Decimals.valid("-1"));
         assertFalse(Decimals.valid("1e3"));
         assertFalse(Decimals.valid("01"));
@@ -208,7 +208,7 @@ class ContractsTest {
     }
 
     @Test
-    void reflexionNativeDeclaree() throws Exception {
+    void nativeReflectionDeclared() throws Exception {
         JsonNode meta;
         try (InputStream in = getClass().getResourceAsStream("/META-INF/native-image/io.gluonify.plasma/gluonify-plasma-sdk/reachability-metadata.json")) {
             meta = json.readTree(in);

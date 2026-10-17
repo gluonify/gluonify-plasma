@@ -8,20 +8,20 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Une organisation (le client), objet de Higgs répliqué par Raft ({@code contracts.md} § 2.1), avec l'historique de ses versions de contrat.
+ * An organization (the customer), a Higgs object replicated by Raft ({@code contracts.md} § 2.1), with the history of its contract versions.
  *
- * @param id          identifiant immuable ({@link Organizations#PATTERN}), ou {@value #DEFAULT} pour le contrat par défaut
- * @param name        nom d'affichage (1 à 120 caractères)
- * @param status      {@value #ACTIVE}, {@value #SUSPENDED} ou {@value #ARCHIVED}
- * @param externalRef référence externe libre (CRM), 120 caractères au plus
- * @param createdAt   instant de création (ms)
- * @param createdBy   auteur
- * @param versions    versions du contrat, dans l'ordre croissant de {@code version} ; jamais null
+ * @param id          immutable identifier ({@link Organizations#PATTERN}), or {@value #DEFAULT} for the default contract
+ * @param name        display name (1 to 120 characters)
+ * @param status      {@value #ACTIVE}, {@value #SUSPENDED} or {@value #ARCHIVED}
+ * @param externalRef free external reference (CRM), at most 120 characters
+ * @param createdAt   creation instant (ms)
+ * @param createdBy   author
+ * @param versions    contract versions, in increasing order of {@code version}; never null
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Organization(String id, String name, String status, String externalRef, Long createdAt, String createdBy, List<ContractVersion> versions) {
-    /** Pseudo-organisation qui porte le contrat par défaut : il s'applique à toute organisation sans version propre. */
+    /** Pseudo-organization that carries the default contract: it applies to any organization without a version of its own. */
     public static final String DEFAULT = "_default";
     public static final String ACTIVE = "active";
     public static final String SUSPENDED = "suspended";
@@ -34,10 +34,10 @@ public record Organization(String id, String name, String status, String externa
         if (status == null) status = ACTIVE;
     }
 
-    /** Identifiant admis pour une organisation créée par l'API (le motif de Charm ; {@value #DEFAULT} n'en est pas un). */
+    /** Identifier accepted for an organization created through the API (Charm's pattern; {@value #DEFAULT} is not one). */
     public static boolean validId(String id) { return Organizations.isValid(id); }
 
-    /** Nom d'affichage valide : 1 à 120 caractères, sans caractère de contrôle. */
+    /** Valid display name: 1 to 120 characters, no control character. */
     public static boolean validName(String name) {
         return name != null && !name.isBlank() && name.length() <= MAX_NAME && name.chars().noneMatch(c -> c < 0x20 || c == 0x7f);
     }
@@ -48,7 +48,7 @@ public record Organization(String id, String name, String status, String externa
 
     public Organization withVersions(List<ContractVersion> v) { return new Organization(id, name, status, externalRef, createdAt, createdBy, v); }
 
-    /** Copie avec une version ajoutée (ou remplacée si le numéro existe). */
+    /** Copy with a version added (or replaced if the number exists). */
     public Organization withVersion(ContractVersion v) {
         List<ContractVersion> out = new ArrayList<>();
         boolean replaced = false;
@@ -64,13 +64,13 @@ public record Organization(String id, String name, String status, String externa
         return withVersions(out);
     }
 
-    /** La version de ce numéro, ou null. */
+    /** The version with this number, or null. */
     public ContractVersion version(int v) {
         for (ContractVersion x : versions) if (x.version() == v) return x;
         return null;
     }
 
-    /** Prochain numéro de version. */
+    /** Next version number. */
     public int nextVersion() {
         int max = 0;
         for (ContractVersion x : versions) max = Math.max(max, x.version());

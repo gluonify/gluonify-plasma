@@ -19,16 +19,16 @@ import java.util.concurrent.TimeUnit;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Côté client du canal : exécute les {@code Command} (hors du thread d'événements) et répond par un {@code Result}, relaie les {@code Error}.
- * L'authentification et le {@code Hello} sont émis par {@link FermionClient} dès la connexion obtenue.
+ * Client side of the channel: runs the {@code Command}s (off the event thread) and answers with a {@code Result}, relays the {@code Error}s.
+ * Authentication and the {@code Hello} are sent by {@link FermionClient} as soon as the connection is obtained.
  * <p>
- * Traitement {@link InboundProcessingMode#CONCURRENT} : chaque {@code Command} est exécutée sur un fil de travail dès sa réception, sans attendre la
- * fin des précédentes. Une compétence longue (build natif, attente d'une décision humaine) ne bloque donc plus les autres tâches du nœud ; chaque
- * {@code Result} part dès que sa tâche se termine, dans l'ordre des fins et non des arrivées (fermion les apparie par {@code correlationId}).
- * Un handler doit donc être sûr en accès concurrent (ce que sont déjà les beans {@code @ApplicationScoped} sans état).
+ * {@link InboundProcessingMode#CONCURRENT} processing: each {@code Command} is run on a worker thread as soon as it is received, without waiting for the
+ * end of the previous ones. A long skill (native build, waiting for a human decision) therefore no longer blocks the node's other tasks; each
+ * {@code Result} is sent as soon as its task ends, in order of completion and not of arrival (fermion matches them by {@code correlationId}).
+ * A handler must therefore be safe under concurrent access (as stateless {@code @ApplicationScoped} beans already are).
  * <p>
- * Battement : tant qu'une tâche s'exécute, un {@code Progress} part toutes les {@code gluonify.fermion.client.heartbeat-interval} (60 s par
- * défaut) ; fermion ne renvoie donc pas une tâche longue à un autre nœud tant que celui-ci donne signe de vie.
+ * Heartbeat: while a task is running, a {@code Progress} is sent every {@code gluonify.fermion.client.heartbeat-interval} (60 s by
+ * default); fermion therefore does not resend a long task to another node as long as this one gives a sign of life.
  */
 @WebSocketClient(path = "/ws/fermion/{nodeId}", inboundProcessingMode = InboundProcessingMode.CONCURRENT)
 public class FermionClientEndpoint {
@@ -45,7 +45,7 @@ public class FermionClientEndpoint {
     @Inject
     FermionClientConfig config;
 
-    /** Fil des battements, partagé par toutes les tâches (créé à la première tâche, jamais en statique). */
+    /** Heartbeat thread, shared by all tasks (created on the first task, never statically). */
     private volatile ScheduledExecutorService heartbeats;
 
     @OnTextMessage
@@ -77,7 +77,7 @@ public class FermionClientEndpoint {
         return null;
     }
 
-    /** Programme les battements de {@code command} ; {@code null} si désactivés. */
+    /** Schedules the heartbeats of {@code command}; {@code null} if disabled. */
     private ScheduledFuture<?> startHeartbeat(final FermionMsg.Command command, final WebSocketClientConnection connection) {
         final Duration every = config.heartbeatInterval();
         if (every == null || every.isZero() || every.isNegative() || connection == null) {

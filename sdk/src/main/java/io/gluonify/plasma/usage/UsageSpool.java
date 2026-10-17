@@ -16,12 +16,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * File d'attente durable des lots d'usage non acquittés ({@code metering.md} § 4.2), sur le disque LOCAL de l'émetteur (jamais sur {@code /distributed/*}) :
- * un fichier {@code b-<ms>-<n>-<count>.jsonl} par lot (une ligne JSON par enregistrement), écrit dans un temporaire puis déplacé (un lecteur ne voit jamais un lot à moitié écrit).
- * Bornée : au-delà de {@code maxRecords} enregistrements ou de {@code maxAgeMs}, les lots les plus anciens sont supprimés et COMPTÉS ({@link #dropped()}, persisté) :
- * la perte est en faveur du client, et visible au calorimètre par le trou de {@code seq}.
- * <p>Garde aussi la suite {@code seq} de l'émetteur (fichier {@code seq} : {@code <époque> <dernier>}, réécrit à chaque lot) : elle survit au redémarrage sans trou.
- * Sans dossier ({@code dir == null}), tout reste en mémoire (perdu au redémarrage, mêmes bornes).
+ * Durable queue of unacknowledged usage batches ({@code metering.md} § 4.2), on the emitter's LOCAL disk (never on {@code /distributed/*}):
+ * one {@code b-<ms>-<n>-<count>.jsonl} file per batch (one JSON line per record), written to a temporary file then moved (a reader never sees a half-written batch).
+ * Bounded: beyond {@code maxRecords} records or {@code maxAgeMs}, the oldest batches are removed and COUNTED ({@link #dropped()}, persisted):
+ * the loss is in the customer's favour, and visible to the calorimeter through the {@code seq} gap.
+ * <p>Also keeps the emitter's {@code seq} sequence ({@code seq} file: {@code <epoch> <last>}, rewritten at each batch): it survives a restart without a gap.
+ * Without a directory ({@code dir == null}), everything stays in memory (lost at restart, same bounds).
  */
 public final class UsageSpool implements UsageMeter.SeqSource {
     private static final Pattern NAME = Pattern.compile("b-(\\d+)-(\\d+)-(\\d+)\\.jsonl");
@@ -35,7 +35,7 @@ public final class UsageSpool implements UsageMeter.SeqSource {
     private long counter;
     private long epoch, seq;
 
-    /** Un lot en attente : ses lignes JSON, sa date d'écriture, et son fichier (null en mémoire). */
+    /** A pending batch: its JSON lines, its write date, and its file (null in memory). */
     public record Batch(long at, List<String> lines, Path file) {}
 
     public UsageSpool(Path dir, int maxRecords, long maxAgeMs, LongSupplier clock) {
@@ -58,7 +58,7 @@ public final class UsageSpool implements UsageMeter.SeqSource {
                 if (Files.isRegularFile(d)) dropped.set(Long.parseLong(Files.readString(d, StandardCharsets.UTF_8).trim()));
                 for (Batch b : pending()) counter = Math.max(counter, seqOf(b.file()) + 1);
             } catch (IOException | RuntimeException e) {
-                epoch = now; // suite illisible : une nouvelle époque (le calorimètre ne cherche pas de trou entre deux époques)
+                epoch = now; // unreadable sequence: a new epoch (the calorimeter does not look for a gap between two epochs)
                 seq = 0;
             }
         }
@@ -72,10 +72,10 @@ public final class UsageSpool implements UsageMeter.SeqSource {
         return ++seq;
     }
 
-    /** Enregistrements abandonnés depuis toujours (persisté), exposé en {@code gluonify_usage_dropped_total}. */
+    /** Records dropped since the beginning (persisted), exposed as {@code gluonify_usage_dropped_total}. */
     public long dropped() { return dropped.get(); }
 
-    /** Ajoute un lot (jamais d'exception : un disque en erreur garde le lot en mémoire). */
+    /** Appends a batch (never an exception: a failing disk keeps the batch in memory). */
     public synchronized void append(List<UsageRecord> records) {
         if (records.isEmpty()) return;
         List<String> lines = new ArrayList<>(records.size());
@@ -95,13 +95,13 @@ public final class UsageSpool implements UsageMeter.SeqSource {
             try {
                 write(dir.resolve("seq"), (epoch + " " + seq).getBytes(StandardCharsets.UTF_8));
             } catch (IOException e) {
-                // disque en erreur : la suite continue en mémoire
+                // failing disk: the sequence continues in memory
             }
         }
         trim(now);
     }
 
-    /** Lots en attente, du plus ancien au plus récent. */
+    /** Pending batches, from the oldest to the newest. */
     public synchronized List<Batch> pending() {
         List<Batch> out = new ArrayList<>(memory);
         if (dir != null) {
@@ -119,9 +119,9 @@ public final class UsageSpool implements UsageMeter.SeqSource {
                     for (String l : Files.readAllLines(p, StandardCharsets.UTF_8)) if (!l.isBlank()) lines.add(l);
                     out.add(new Batch(Long.parseLong(m.group(1)), lines, p));
                 } catch (NoSuchFileException e) {
-                    // envoyé entre-temps
+                    // sent in the meantime
                 } catch (IOException e) {
-                    // illisible : laissé là, retiré par l'âge
+                    // unreadable: left there, removed by age
                 }
             }
         }
@@ -129,32 +129,32 @@ public final class UsageSpool implements UsageMeter.SeqSource {
         return out;
     }
 
-    /** Nombre d'enregistrements en attente. */
+    /** Number of pending records. */
     public synchronized int size() {
         int n = 0;
         for (Batch b : pending()) n += b.lines().size();
         return n;
     }
 
-    /** Le lot a été acquitté par le calorimètre. */
+    /** The batch has been acknowledged by the calorimeter. */
     public synchronized void remove(Batch b) {
         memory.remove(b);
         if (b.file() != null) {
             try {
                 Files.deleteIfExists(b.file());
             } catch (IOException e) {
-                // supprimé au prochain passage (un renvoi est sans effet : idempotence par id)
+                // deleted on the next pass (a resend has no effect: idempotence by id)
             }
         }
     }
 
-    /** Abandonne un lot refusé en bloc (400 : il ne passera jamais) en le comptant. */
+    /** Drops a batch refused as a whole (400: it will never go through), counting it. */
     public synchronized void drop(Batch b) {
         addDropped(b.lines().size());
         remove(b);
     }
 
-    /** Applique les bornes : âge, puis nombre d'enregistrements, en retirant les plus anciens. */
+    /** Applies the bounds: age, then number of records, removing the oldest. */
     public synchronized void trim(long now) {
         List<Batch> all = pending();
         int total = 0;
@@ -172,7 +172,7 @@ public final class UsageSpool implements UsageMeter.SeqSource {
             try {
                 write(dir.resolve("dropped"), Long.toString(v).getBytes(StandardCharsets.UTF_8));
             } catch (IOException e) {
-                // compté en mémoire
+                // counted in memory
             }
         }
     }

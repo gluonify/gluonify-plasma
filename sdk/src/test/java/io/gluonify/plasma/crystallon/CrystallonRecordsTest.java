@@ -12,7 +12,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Contrat JSON des records de Crystallon : ce que le client envoie, ce que le serveur répond. */
+/** JSON contract of the Crystallon records: what the client sends, what the server answers. */
 class CrystallonRecordsTest {
     private final JsonMapper json = JsonMapper.builder().build();
 

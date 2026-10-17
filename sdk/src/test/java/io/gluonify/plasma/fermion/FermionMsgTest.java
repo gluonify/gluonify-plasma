@@ -51,8 +51,8 @@ class FermionMsgTest {
     }
 
     @Test
-    void stepIdEtOrganisationSontFacultatifsEtReprisParLaReponse() throws Exception {
-        // Un ancien nœud (Interfero) ignore stepId et ne l'envoie pas : les deux sens restent lisibles.
+    void stepIdAndOrganizationAreOptionalAndTakenOverByTheResponse() throws Exception {
+        // An old node (Interfero) ignores stepId and does not send it: both directions remain readable.
         var c = (FermionMsg.Command) json.readValue("{\"t\":\"command\",\"correlationId\":\"c\",\"action\":\"A\"}", FermionMsg.class);
         assertNull(c.stepId());
         var r = (FermionMsg.Result) json.readValue("{\"t\":\"result\",\"correlationId\":\"c\",\"action\":\"A\",\"success\":true}", FermionMsg.class);
@@ -70,12 +70,12 @@ class FermionMsgTest {
     }
 
     @Test
-    void battementEtDureeAttendueSontFacultatifs() throws Exception {
+    void heartbeatAndExpectedDurationAreOptional() throws Exception {
         var p = (FermionMsg.Progress) json.readValue("{\"t\":\"progress\",\"correlationId\":\"c\",\"action\":\"A\",\"stepId\":\"Task_A\"}", FermionMsg.class);
         assertEquals("Task_A", p.stepId());
         assertNull(p.message());
         assertTrue(json.writeValueAsString(p).contains("\"t\":\"progress\""));
-        // Un nœud antérieur n'annonce pas de durée : le champ est absent du JSON et vaut null.
+        // An earlier node does not announce a duration: the field is absent from the JSON and is null.
         var skill = new SkillDescriptor("A", List.of(), List.of(), List.of());
         assertNull(skill.expectedDuration());
         assertFalse(json.writeValueAsString(skill).contains("expectedDuration"));

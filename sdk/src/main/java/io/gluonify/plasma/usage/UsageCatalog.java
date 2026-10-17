@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Catalogue fermé des unités d'usage ({@code metering.md} § 3.1 et {@code analysis.md} § 10), livré par le SDK pour que Higgs valide les grilles de prix sans
- * appeler le calorimètre ({@code contracts.md} § 2.4). Un nom hors de ce catalogue n'est ni enregistrable ni tarifable.
+ * Closed catalog of usage units ({@code metering.md} § 3.1 and {@code analysis.md} § 10), shipped by the SDK so that Higgs validates price grids without
+ * calling the calorimeter ({@code contracts.md} § 2.4). A name outside this catalog can be neither recorded nor priced.
  */
 public final class UsageCatalog {
     private UsageCatalog() {}
@@ -91,12 +91,12 @@ public final class UsageCatalog {
 
     private static final Map<String, UsageUnit> VIEW = Collections.unmodifiableMap(UNITS);
 
-    /** L'unité de ce nom, ou null hors catalogue. */
+    /** The unit with this name, or null if not in the catalog. */
     public static UsageUnit get(String name) { return name == null ? null : VIEW.get(name); }
 
-    /** Toutes les unités, dans l'ordre du catalogue. */
+    /** All the units, in catalog order. */
     public static Collection<UsageUnit> all() { return VIEW.values(); }
 
-    /** Les noms, dans l'ordre du catalogue. */
+    /** The names, in catalog order. */
     public static List<String> names() { return List.copyOf(VIEW.keySet()); }
 }

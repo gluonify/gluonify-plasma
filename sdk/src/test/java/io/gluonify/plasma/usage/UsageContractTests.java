@@ -12,22 +12,22 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Test commun du contrat d'usage {@code gluonify-usage/1} ({@code usage-mcp.md} § 6.1), publié dans le jar de tests du SDK : chaque composant en hérite
- * et ne fournit que l'accès à son point d'accès {@code /q/usage} (réponse avec le bon rôle, statut sans jeton et avec un jeton sans rôle, valeurs secrètes).
+ * Common test of the usage contract {@code gluonify-usage/1} ({@code usage-mcp.md} § 6.1), published in the SDK's test jar: each component inherits it
+ * and only provides access to its {@code /q/usage} endpoint (response with the right role, status without a token and with a token without the role, secret values).
  */
 public abstract class UsageContractTests {
-    /** Le corps de {@code GET /q/usage} avec un jeton portant le rôle de lecture. */
+    /** The body of {@code GET /q/usage} with a token carrying the read role. */
     protected abstract byte[] authorizedBody();
 
-    /** Le statut HTTP de {@code GET /q/usage} sans aucun jeton. */
+    /** The HTTP status of {@code GET /q/usage} without any token. */
     protected abstract int statusWithoutToken();
 
-    /** Le statut HTTP de {@code GET /q/usage} avec un jeton valide mais sans le rôle d'usage. */
+    /** The HTTP status of {@code GET /q/usage} with a valid token but without the usage role. */
     protected abstract int statusWithoutRole();
 
     /**
-     * Les valeurs de configuration sensibles du composant (mots de passe, clés, jetons, tels que les tests les connaissent) : aucune ne doit figurer dans la
-     * réponse. Abstraite à dessein : chaque composant doit la fournir, et {@link #aucunSecret()} refuse une liste vide (le contrôle serait tautologique).
+     * The component's sensitive configuration values (passwords, keys, tokens, as the tests know them): none may appear in the
+     * response. Abstract on purpose: each component must provide it, and {@link #noSecret()} refuses an empty list (the check would be tautological).
      */
     protected abstract Collection<String> secrets();
 
@@ -40,22 +40,22 @@ public abstract class UsageContractTests {
     }
 
     @Test
-    void reponseConforme() {
+    void conformingResponse() {
         assertEquals(List.of(), UsageContract.check(authorizedBody()));
     }
 
     @Test
-    void jamaisAnonyme() {
+    void neverAnonymous() {
         assertEquals(401, statusWithoutToken());
     }
 
     @Test
-    void roleExige() {
+    void roleRequired() {
         assertEquals(403, statusWithoutRole());
     }
 
     @Test
-    void tailleBornee() {
+    void boundedSize() {
         assertTrue(authorizedBody().length <= UsageContract.MAX_BYTES);
     }
 
@@ -82,13 +82,13 @@ public abstract class UsageContractTests {
     }
 
     @Test
-    void aucunSecret() {
+    void noSecret() {
         final Collection<String> secrets = secrets();
-        assertTrue(secrets != null && !secrets.isEmpty(), "secrets() doit donner au moins une valeur sensible du composant");
+        assertTrue(secrets != null && !secrets.isEmpty(), "secrets() must give at least one sensitive value of the component");
         final String body = new String(authorizedBody(), StandardCharsets.UTF_8);
         for (final String secret : secrets) {
-            assertFalse(secret == null || secret.isBlank(), "une valeur de secrets() est vide");
-            assertFalse(body.contains(secret), "une valeur secrète figure dans la réponse");
+            assertFalse(secret == null || secret.isBlank(), "a value of secrets() is empty");
+            assertFalse(body.contains(secret), "a secret value appears in the response");
         }
     }
 }

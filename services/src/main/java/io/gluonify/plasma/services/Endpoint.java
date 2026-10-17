@@ -6,25 +6,25 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * Comment joindre un service de Gluonify : son adresse, la source de ses jetons, et d'où vient la résolution.
+ * How to reach a Gluonify service: its address, the source of its tokens, and where the resolution comes from.
  *
- * @param service  nom du service, tel qu'écrit dans {@code uses} ({@code crystallon}, {@code fermion}…)
- * @param url      adresse de base du service, sans barre finale (interne sur la plateforme, publique sur le poste du développeur)
- * @param tokens   appelé à chaque requête : le jeton à présenter en {@code Authorization: Bearer}, ou {@code null} pour n'en présenter aucun ; peut
- *                 relire un fichier ou renouveler le jeton du développeur, et lever une {@link GluonifyServicesException} qui dit quoi faire
- * @param source   d'où vient la résolution
- * @param audience audience attendue par le service ({@code gluonify-crystallon}), si elle est connue ; sinon {@code null}
- * @param zone     zone du cluster pour {@link Source#DEVELOPER}, sinon {@code null}
+ * @param service  name of the service, as written in {@code uses} ({@code crystallon}, {@code fermion}...)
+ * @param url      base address of the service, without a trailing slash (internal on the platform, public on the developer workstation)
+ * @param tokens   called on every request: the token to present as {@code Authorization: Bearer}, or {@code null} to present none; may
+ *                 reread a file or renew the developer's token, and throw a {@link GluonifyServicesException} that says what to do
+ * @param source   where the resolution comes from
+ * @param audience audience expected by the service ({@code gluonify-crystallon}), if known; otherwise {@code null}
+ * @param zone     zone of the cluster for {@link Source#DEVELOPER}, otherwise {@code null}
  */
 public record Endpoint(String service, URI url, Supplier<String> tokens, Source source, String audience, String zone) {
 
-    /** D'où vient la résolution d'un service. */
+    /** Where the resolution of a service comes from. */
     public enum Source {
-        /** Surcharge explicite ({@code GLUONIFY_SERVICE_<APP>_URL} en propriété système, ou en variable hors de la plateforme) : tests, cas particuliers. */
+        /** Explicit override ({@code GLUONIFY_SERVICE_<APP>_URL} as a system property, or as a variable outside the platform): tests, special cases. */
         OVERRIDE,
-        /** Sur la plateforme : adresse injectée pour un service de {@code uses}, jeton d'application déposé par l'agent du nœud. */
+        /** On the platform: address injected for a service in {@code uses}, application token dropped by the node agent. */
         PLATFORM,
-        /** Sur le poste du développeur : document de découverte de la zone et jeton du développeur ({@code gluonify login}). */
+        /** On the developer workstation: the zone's discovery document and the developer's token ({@code gluonify login}). */
         DEVELOPER
     }
 
@@ -35,20 +35,20 @@ public record Endpoint(String service, URI url, Supplier<String> tokens, Source 
         Objects.requireNonNull(source, "source");
     }
 
-    /** Le jeton du moment, vide s'il n'y en a pas (le service répondra 401 s'il en exige un). */
+    /** The current token, empty if there is none (the service will answer 401 if it requires one). */
     public Optional<String> token() {
         final String t = tokens.get();
         return t == null || t.isBlank() ? Optional.empty() : Optional.of(t.strip());
     }
 
-    /** {@code url} suivie de {@code path} ({@code /v1/...}). */
+    /** {@code url} followed by {@code path} ({@code /v1/...}). */
     public URI resolve(final String path) {
         final String base = url.toString().replaceAll("/+$", "");
         return URI.create(base + (path.startsWith("/") ? path : "/" + path));
     }
 
     @Override
-    public String toString() { // jamais de jeton
+    public String toString() { // never a token
         return "Endpoint[service=" + service + ", url=" + url + ", source=" + source + (audience == null ? "" : ", audience=" + audience)
                 + (zone == null ? "" : ", zone=" + zone) + "]";
     }

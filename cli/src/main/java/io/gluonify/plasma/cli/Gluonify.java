@@ -1,6 +1,6 @@
 package io.gluonify.plasma.cli;
 
-/** Point d'entrée de la commande {@code gluonify} ({@code java -jar gluonify-plasma-cli.jar <commande>}). */
+/** Entry point of the {@code gluonify} command ({@code java -jar gluonify-plasma-cli.jar <command>}). */
 public final class Gluonify {
     private Gluonify() {
     }

@@ -3,13 +3,13 @@ package io.gluonify.plasma.crystallon.client;
 import io.gluonify.plasma.crystallon.RenderParams;
 
 /**
- * Options d'un rendu : les paramètres de génération ({@link RenderParams}) et la conversion PDF/A-1B. Immuable. {@link #DEFAULT} : PDF/A, et
- * aucun paramètre demandé : chacun prend la valeur du modèle s'il en porte une ({@code params} à la racine du modèle), sinon le défaut du serveur
- * (la langue du document, le pays, la devise... se déduisent de {@code lang}, anglais par défaut). Un paramètre renseigné ici l'emporte toujours.
+ * Options of a render: the generation parameters ({@link RenderParams}) and the PDF/A-1B conversion. Immutable. {@link #DEFAULT}: PDF/A, and
+ * no parameter requested: each takes the value of the template if it carries one ({@code params} at the template root), otherwise the server default
+ * (the document language, country, currency... are derived from {@code lang}, English by default). A parameter set here always wins.
  */
 public final class RenderOptions {
 
-    /** PDF/A-1B, aucun paramètre demandé (ceux du modèle, puis du serveur). */
+    /** PDF/A-1B, no parameter requested (those of the template, then of the server). */
     public static final RenderOptions DEFAULT = builder().build();
 
     private final RenderParams params;
@@ -24,12 +24,12 @@ public final class RenderOptions {
         return new Builder();
     }
 
-    /** @return les paramètres de génération ; jamais {@code null} (les champs absents valent {@code null}) */
+    /** @return the generation parameters; never {@code null} (absent fields are {@code null}) */
     public RenderParams params() {
         return params;
     }
 
-    /** @return {@code true} (défaut) pour demander la conversion en PDF/A-1B */
+    /** @return {@code true} (default) to request the PDF/A-1B conversion */
     public boolean pdfa() {
         return pdfa;
     }
@@ -51,7 +51,7 @@ public final class RenderOptions {
         private Builder() {
         }
 
-        /** @param lang {@code en}, {@code fr}, {@code es}, {@code it} ou {@code de} */
+        /** @param lang {@code en}, {@code fr}, {@code es}, {@code it} or {@code de} */
         public Builder lang(final String lang) {
             this.lang = lang;
             return this;
@@ -69,19 +69,19 @@ public final class RenderOptions {
             return this;
         }
 
-        /** @param timezone fuseau IANA, par exemple {@code Europe/Zurich} */
+        /** @param timezone IANA time zone, for example {@code Europe/Zurich} */
         public Builder timezone(final String timezone) {
             this.timezone = timezone;
             return this;
         }
 
-        /** @param dateStyle {@code short}, {@code medium}, {@code long}, {@code full} ou {@code iso} */
+        /** @param dateStyle {@code short}, {@code medium}, {@code long}, {@code full} or {@code iso} */
         public Builder dateStyle(final String dateStyle) {
             this.dateStyle = dateStyle;
             return this;
         }
 
-        /** @param numberStyle {@code locale}, {@code swiss} ou {@code plain} */
+        /** @param numberStyle {@code locale}, {@code swiss} or {@code plain} */
         public Builder numberStyle(final String numberStyle) {
             this.numberStyle = numberStyle;
             return this;

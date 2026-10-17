@@ -3,16 +3,16 @@ package io.gluonify.plasma.crystallon;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * Paramètres de génération d'un document Crystallon (hors du payload) : ils pilotent les formats des nombres, des montants, des dates et des
- * adresses. Un champ {@code null} n'est pas sérialisé : le paramètre prend la valeur par défaut du modèle s'il en porte une ({@code params} à la
- * racine du modèle), sinon celle du serveur ; un champ renseigné l'emporte toujours.
+ * Generation parameters of a Crystallon document (outside the payload): they drive the formats of numbers, amounts, dates and
+ * addresses. A {@code null} field is not serialized: the parameter takes the default value of the template if it carries one ({@code params} at the
+ * root of the template), otherwise that of the server; a field that is set always wins.
  *
- * @param lang        {@code en}, {@code fr}, {@code es}, {@code it} ou {@code de}
- * @param country     code pays ISO 3166 alpha-2 (par exemple {@code CH})
- * @param currency    code devise ISO 4217 (par exemple {@code CHF})
- * @param timezone    fuseau IANA appliqué aux instants (par exemple {@code Europe/Zurich})
- * @param dateStyle   {@code short}, {@code medium}, {@code long}, {@code full} ou {@code iso}
- * @param numberStyle {@code locale}, {@code swiss} ou {@code plain}
+ * @param lang        {@code en}, {@code fr}, {@code es}, {@code it} or {@code de}
+ * @param country     ISO 3166 alpha-2 country code (for example {@code CH})
+ * @param currency    ISO 4217 currency code (for example {@code CHF})
+ * @param timezone    IANA time zone applied to instants (for example {@code Europe/Zurich})
+ * @param dateStyle   {@code short}, {@code medium}, {@code long}, {@code full} or {@code iso}
+ * @param numberStyle {@code locale}, {@code swiss} or {@code plain}
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record RenderParams(String lang, String country, String currency, String timezone, String dateStyle, String numberStyle) {

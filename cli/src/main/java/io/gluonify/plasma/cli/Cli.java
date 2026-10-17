@@ -26,17 +26,17 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * La commande {@code gluonify} du poste du développeur :
+ * The {@code gluonify} command for the developer's workstation:
  * <ul>
- *   <li>{@code login <zone>} : connexion dans le navigateur (Charm, PKCE S256, client public {@code gluonify-cli}, retour sur
- *       {@code http://127.0.0.1:<port>/callback}) ; écrit {@code ~/.gluonify/config.json} et {@code ~/.gluonify/tokens/<zone>.json} (0600).
- *       Aucun mot de passe ne passe par la ligne de commande ;</li>
- *   <li>{@code logout [zone]} : révoque (au mieux) et efface les jetons de la zone ;</li>
- *   <li>{@code status} : zones connues, personne connectée, expirations (jamais un jeton) ;</li>
- *   <li>{@code token <service> [--print]} : résout le service comme le SDK et vérifie le jeton (renouvelé au besoin) ; n'affiche le jeton qu'avec
+ *   <li>{@code login <zone>}: sign-in in the browser (Charm, PKCE S256, public client {@code gluonify-cli}, redirect to
+ *       {@code http://127.0.0.1:<port>/callback}); writes {@code ~/.gluonify/config.json} and {@code ~/.gluonify/tokens/<zone>.json} (0600).
+ *       No password goes through the command line;</li>
+ *   <li>{@code logout [zone]}: revokes (best effort) and deletes the tokens of the zone;</li>
+ *   <li>{@code status}: known zones, who is logged in, expiry times (never a token);</li>
+ *   <li>{@code token <service> [--print]}: resolves the service like the SDK and checks the token (renewed if needed); prints the token only with
  *       {@code --print}.</li>
  * </ul>
- * Codes de sortie : 0 succès, 1 échec, 2 usage.
+ * Exit codes: 0 success, 1 failure, 2 usage.
  */
 public final class Cli {
     static final String USAGE = String.join("\n",
@@ -78,7 +78,7 @@ public final class Cli {
                 Clock.systemUTC(), ZoneId.systemDefault());
     }
 
-    /** Exécute la commande. @return le code de sortie */
+    /** Runs the command. @return the exit code */
     public int run(final String[] args) {
         if (args.length == 0 || args[0].equals("help") || args[0].equals("--help") || args[0].equals("-h")) {
             out.println(USAGE);
@@ -159,7 +159,7 @@ public final class Cli {
         return 0;
     }
 
-    /** Révocation au mieux du jeton de rafraîchissement : un échec n'empêche pas d'effacer les jetons du poste. */
+    /** Best-effort revocation of the refresh token: a failure does not prevent deleting the tokens from this computer. */
     private void revoke(final DeveloperTokens.Session s, final Path ca) {
         if (s.revocationEndpoint() == null || s.refreshToken() == null || !Http.secure(s.revocationEndpoint())) {
             return;
@@ -258,13 +258,13 @@ public final class Cli {
         return 0;
     }
 
-    // ------------------------------------------------------------------------------------------------ outils
+    // ------------------------------------------------------------------------------------------------ tools
 
     String time(final Instant instant) {
         return TIME.format(instant.atZone(timeZone));
     }
 
-    /** Retire les options de {@code args} (qui garde les arguments) et les rend. */
+    /** Removes the options from {@code args} (which keeps the arguments) and returns them. */
     private static Map<String, String> options(final List<String> args, final List<String> withValue, final List<String> flags) {
         final Map<String, String> opts = new LinkedHashMap<>();
         for (int k = 0; k < args.size(); ) {
@@ -305,7 +305,7 @@ public final class Cli {
         }
     }
 
-    /** Ouvre l'adresse dans le navigateur du système ; un échec est sans gravité (l'adresse est affichée). */
+    /** Opens the address in the system browser; a failure is harmless (the address is printed). */
     static void openBrowser(final URI uri) {
         final String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
         final List<String> cmd = os.contains("mac") ? List.of("open", uri.toString())
@@ -314,7 +314,7 @@ public final class Cli {
             new ProcessBuilder(cmd).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.DISCARD).start();
         }
         catch (final IOException e) {
-            // pas de navigateur : l'adresse est affichée
+            // no browser: the address is printed
         }
     }
 

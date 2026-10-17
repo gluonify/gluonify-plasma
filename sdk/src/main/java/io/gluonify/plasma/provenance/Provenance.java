@@ -18,28 +18,28 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Jeton de provenance : {@code base64url(octets canoniques de la déclaration) "." base64url(signature Ed25519 de 64 octets)}, sans remplissage. Une seule chaîne, portée
- * telle quelle par {@code AppSpec.provenance} (état Raft, historique des versions, retour arrière), {@code DeployRequest.provenance}, la configuration de la pile ou un fichier
- * {@code .sig}. Signature et vérification par le JDK ({@code Ed25519}), sans dépendance.
+ * Provenance token: {@code base64url(canonical bytes of the statement) "." base64url(64-byte Ed25519 signature)}, without padding. A single string, carried
+ * as is by {@code AppSpec.provenance} (Raft state, version history, rollback), {@code DeployRequest.provenance}, the stack configuration or a
+ * {@code .sig} file. Signing and verification by the JDK ({@code Ed25519}), without dependencies.
  */
 public final class Provenance {
     private Provenance() {}
 
-    /** Longueur maximale d'un jeton (déclaration de 2048 octets au plus, signature de 64). */
+    /** Maximum length of a token (statement of at most 2048 bytes, signature of 64). */
     public static final int MAX_TOKEN = 2840;
     private static final Pattern TOKEN = Pattern.compile("[A-Za-z0-9_-]{8,2800}\\.[A-Za-z0-9_-]{86}");
     private static final Pattern ARTIFACT_SHA = Pattern.compile("#sha256=([0-9a-fA-F]{64})$");
     private static final Pattern IMAGE_DIGEST = Pattern.compile("@(sha256:[0-9a-f]{64})$");
 
-    /** Jeton décodé : déclaration (lue après la vérification seulement, voir {@link #verify}), octets signés et signature. */
+    /** Decoded token: statement (read only after verification, see {@link #verify}), signed bytes and signature. */
     public record Signed(ProvenanceStatement statement, byte[] statementBytes, byte[] signature) {}
 
-    /** Forme valide d'un jeton (sans vérifier la signature) : c'est ce que contrôle {@code AppSpec}. */
+    /** Valid shape of a token (without verifying the signature): this is what {@code AppSpec} checks. */
     public static boolean wellFormed(String token) {
         return token != null && token.length() <= MAX_TOKEN && TOKEN.matcher(token).matches();
     }
 
-    /** Signe la déclaration avec une clé privée Ed25519 et rend le jeton. */
+    /** Signs the statement with an Ed25519 private key and returns the token. */
     public static String sign(ProvenanceStatement s, PrivateKey key) {
         byte[] b = s.canonicalBytes();
         try {
@@ -49,27 +49,27 @@ public final class Provenance {
             Base64.Encoder enc = Base64.getUrlEncoder().withoutPadding();
             return enc.encodeToString(b) + "." + enc.encodeToString(sig.sign());
         } catch (GeneralSecurityException e) {
-            throw new IllegalStateException("provenance : signature impossible (clé Ed25519 attendue)", e);
+            throw new IllegalStateException("provenance: signing impossible (Ed25519 key expected)", e);
         }
     }
 
-    /** Découpe le jeton sans rien vérifier ; la déclaration n'est PAS lue ici (elle ne l'est qu'après la signature). */
+    /** Splits the token without verifying anything; the statement is NOT read here (it is read only after the signature). */
     static byte[][] split(String token) {
-        if (!wellFormed(token)) throw new IllegalArgumentException("provenance : jeton illisible");
+        if (!wellFormed(token)) throw new IllegalArgumentException("provenance: unreadable token");
         int dot = token.indexOf('.');
         try {
             Base64.Decoder dec = Base64.getUrlDecoder();
             byte[] b = dec.decode(token.substring(0, dot));
             byte[] s = dec.decode(token.substring(dot + 1));
-            if (s.length != 64 || b.length > ProvenanceStatement.MAX_BYTES) throw new IllegalArgumentException("provenance : jeton illisible");
+            if (s.length != 64 || b.length > ProvenanceStatement.MAX_BYTES) throw new IllegalArgumentException("provenance: unreadable token");
             return new byte[][] {b, s};
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("provenance : jeton illisible");
+            throw new IllegalArgumentException("provenance: unreadable token");
         }
     }
 
     /**
-     * Identifiant de clé annoncé par le jeton, lu SANS vérification (pour choisir la clé publique) ; à ne jamais utiliser pour une décision. Null si illisible.
+     * Key identifier claimed by the token, read WITHOUT verification (to choose the public key); never to be used for a decision. Null if unreadable.
      */
     public static String claimedKeyId(String token) {
         try {
@@ -79,7 +79,7 @@ public final class Provenance {
         }
     }
 
-    /** Vérifie la signature avec {@code key}, puis lit la déclaration. {@link IllegalArgumentException} si le jeton est illisible ou la signature fausse. */
+    /** Verifies the signature with {@code key}, then reads the statement. {@link IllegalArgumentException} if the token is unreadable or the signature is wrong. */
     public static Signed verify(String token, PublicKey key) {
         byte[][] p = split(token);
         boolean ok;
@@ -91,46 +91,46 @@ public final class Provenance {
         } catch (GeneralSecurityException e) {
             ok = false;
         }
-        if (!ok) throw new IllegalArgumentException("provenance : signature invalide");
+        if (!ok) throw new IllegalArgumentException("provenance: invalid signature");
         return new Signed(ProvenanceStatement.parse(p[0]), p[0], p[1]);
     }
 
     /**
-     * La déclaration couvre-t-elle exactement les livrables de l'application {@code app} ? Nom identique ; avec des exécutables : chaque architecture de la spécification
-     * a la même empreinte dans la déclaration (la déclaration peut en lister d'autres) ; sans exécutable : l'image est désignée par la même empreinte. Rend la raison du
-     * refus, ou null.
+     * Does the statement cover exactly the deliverables of the application {@code app}? Identical name; with executables: each architecture of the specification
+     * has the same digest in the statement (the statement may list others); without executables: the image is designated by the same digest. Returns the reason for
+     * the refusal, or null.
      */
     public static String mismatch(ProvenanceStatement s, String app, Map<String, String> artifacts, String image) {
-        if (!s.app().equals(app)) return "la déclaration est pour une autre application";
+        if (!s.app().equals(app)) return "the statement is for another application";
         if (artifacts != null && !artifacts.isEmpty()) {
             for (var e : artifacts.entrySet()) {
                 String sha = artifactSha256(e.getValue());
-                if (sha == null) return "exécutable " + e.getKey() + " sans empreinte #sha256=";
-                if (!sha.equals(s.artifacts().get(e.getKey()))) return "empreinte de l'exécutable " + e.getKey() + " non couverte par la déclaration";
+                if (sha == null) return "executable " + e.getKey() + " without #sha256= digest";
+                if (!sha.equals(s.artifacts().get(e.getKey()))) return "digest of executable " + e.getKey() + " not covered by the statement";
             }
             return null;
         }
         String d = imageDigest(image);
-        if (d == null) return "image sans empreinte (@sha256:…)";
-        if (!d.equals(s.imageDigest())) return "empreinte de l'image non couverte par la déclaration";
+        if (d == null) return "image without digest (@sha256:…)";
+        if (!d.equals(s.imageDigest())) return "digest of the image not covered by the statement";
         return null;
     }
 
-    /** SHA-256 (minuscules) d'une référence d'exécutable {@code url#sha256=<hexa>}, ou null. */
+    /** SHA-256 (lowercase) of an executable reference {@code url#sha256=<hex>}, or null. */
     public static String artifactSha256(String ref) {
         if (ref == null) return null;
         Matcher m = ARTIFACT_SHA.matcher(ref);
         return m.find() ? m.group(1).toLowerCase(java.util.Locale.ROOT) : null;
     }
 
-    /** Empreinte {@code sha256:<hexa>} d'une image désignée par {@code dépôt@sha256:<hexa>}, ou null (étiquette seule). */
+    /** Digest {@code sha256:<hex>} of an image designated by {@code repository@sha256:<hex>}, or null (tag only). */
     public static String imageDigest(String image) {
         if (image == null) return null;
         Matcher m = IMAGE_DIGEST.matcher(image.trim());
         return m.find() ? m.group(1) : null;
     }
 
-    /** Vrai si les deux spécifications exécutent les mêmes octets : mêmes architectures et mêmes empreintes, ou même image (les URL peuvent différer). */
+    /** True if both specifications run the same bytes: same architectures and same digests, or same image (the URLs may differ). */
     public static boolean sameDeliverable(Map<String, String> a1, String i1, Map<String, String> a2, String i2) {
         boolean bin1 = a1 != null && !a1.isEmpty(), bin2 = a2 != null && !a2.isEmpty();
         if (bin1 != bin2) return false;
@@ -145,40 +145,40 @@ public final class Provenance {
         return Objects.equals(i1 == null ? null : i1.trim(), i2 == null ? null : i2.trim());
     }
 
-    // ------------------------------------------------------------------ clés
+    // ------------------------------------------------------------------ keys
 
-    /** Clé publique Ed25519 : SubjectPublicKeyInfo en Base64 (DER) ou PEM « PUBLIC KEY ». */
+    /** Ed25519 public key: SubjectPublicKeyInfo in Base64 (DER) or PEM "PUBLIC KEY". */
     public static PublicKey publicKey(String text) {
         try {
             String b64 = text.replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "").replaceAll("\\s", "");
             PublicKey k = KeyFactory.getInstance("Ed25519").generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(b64)));
             return k;
         } catch (GeneralSecurityException | IllegalArgumentException | NullPointerException e) {
-            throw new IllegalArgumentException("provenance : clé publique Ed25519 illisible");
+            throw new IllegalArgumentException("provenance: unreadable Ed25519 public key");
         }
     }
 
-    /** Clé privée Ed25519 : PEM « PRIVATE KEY » (PKCS#8, celui de {@code openssl genpkey -algorithm ed25519}). Le contenu n'apparaît dans aucun message. */
+    /** Ed25519 private key: PEM "PRIVATE KEY" (PKCS#8, as produced by {@code openssl genpkey -algorithm ed25519}). The content appears in no message. */
     public static PrivateKey privateKey(String pem) {
         try {
             String b64 = pem.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replaceAll("\\s", "");
             return KeyFactory.getInstance("Ed25519").generatePrivate(new PKCS8EncodedKeySpec(Base64.getDecoder().decode(b64)));
         } catch (GeneralSecurityException | IllegalArgumentException | NullPointerException e) {
-            throw new IllegalArgumentException("provenance : clé privée Ed25519 illisible");
+            throw new IllegalArgumentException("provenance: unreadable Ed25519 private key");
         }
     }
 
-    /** Lit une clé privée depuis un fichier (PEM PKCS#8) ; le chemin seul figure dans l'erreur. */
+    /** Reads a private key from a file (PEM PKCS#8); only the path appears in the error. */
     public static PrivateKey readPrivateKey(Path file) throws IOException {
         String pem = Files.readString(file, StandardCharsets.US_ASCII);
         try {
             return privateKey(pem);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("provenance : clé privée Ed25519 illisible dans " + file);
+            throw new IllegalArgumentException("provenance: unreadable Ed25519 private key in " + file);
         }
     }
 
-    /** Clé publique d'une clé privée Ed25519 (Base64 du DER SubjectPublicKeyInfo), à déclarer dans {@code gluonify.higgs.provenance.trusted-keys.<id>}. */
+    /** Public key of an Ed25519 private key (Base64 of the DER SubjectPublicKeyInfo), to declare in {@code gluonify.higgs.provenance.trusted-keys.<id>}. */
     public static String publicKeyBase64(PublicKey k) {
         return Base64.getEncoder().encodeToString(k.getEncoded());
     }

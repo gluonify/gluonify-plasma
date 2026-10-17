@@ -7,7 +7,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.Map;
 
-/** Beans de test : jeton, compétences, workflows utilisés. */
+/** Test beans: token, skills, workflows used. */
 public final class TestBeans {
     private TestBeans() {
     }
@@ -82,7 +82,7 @@ public final class TestBeans {
         }
     }
 
-    /** Compétence longue : attend que RELEASE soit exécutée (10 s au plus) ; prouve qu'une tâche longue ne bloque pas les autres. */
+    /** Long skill: waits for RELEASE to be run (10 s at most); proves that a long task does not block the others. */
     public static final java.util.concurrent.CountDownLatch RELEASED = new java.util.concurrent.CountDownLatch(1);
 
     @ApplicationScoped
@@ -117,7 +117,7 @@ public final class TestBeans {
         }
     }
 
-    /** Compétence qui attend son verrou (battements observables). */
+    /** Skill that waits for its lock (observable heartbeats). */
     @ApplicationScoped
     public static class Wait implements SkillHandler {
         static volatile java.util.concurrent.CountDownLatch GATE = new java.util.concurrent.CountDownLatch(0);

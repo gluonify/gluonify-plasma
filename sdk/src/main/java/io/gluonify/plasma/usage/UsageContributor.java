@@ -4,12 +4,12 @@ import io.gluonify.plasma.usage.UsageReport.AppShare;
 import java.util.Collection;
 
 /**
- * Ce qu'un composant sait attribuer à chaque application ({@code usage-mcp.md} § 3.3), à implémenter (bean CDI) par le composant qui le peut.
- * Sans implémentation, {@link UsageResource} répond {@code attribution: none}, état valide : le contrat porte sur {@code process} et sur la forme,
- * pas sur une attribution que le composant ne peut pas tenir. Lecture de compteurs ou de valeurs en cache seulement (jamais de parcours de disque).
+ * What a component can attribute to each application ({@code usage-mcp.md} § 3.3), to be implemented (CDI bean) by the component that can.
+ * Without an implementation, {@link UsageResource} answers {@code attribution: none}, a valid state: the contract covers {@code process} and the shape,
+ * not an attribution the component cannot provide. Reads counters or cached values only (never a disk walk).
  */
 public interface UsageContributor {
-    /** Les parts par application (CPU cumulé en secondes, mémoire en octets) ; vide si rien à attribuer. */
+    /** The shares per application (cumulative CPU in seconds, memory in bytes); empty if nothing to attribute. */
     Collection<AppShare> byApp();
 
     /**
@@ -29,7 +29,7 @@ public interface UsageContributor {
         return null;
     }
 
-    /** {@link UsageReport#MEASURED}, {@link UsageReport#ESTIMATED} ou {@link UsageReport#PRORATA} ; par défaut {@code estimated} (indicatif). */
+    /** {@link UsageReport#MEASURED}, {@link UsageReport#ESTIMATED} or {@link UsageReport#PRORATA}; {@code estimated} by default (indicative). */
     default String attribution() {
         return UsageReport.ESTIMATED;
     }

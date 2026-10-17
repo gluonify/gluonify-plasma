@@ -8,7 +8,7 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.cfg.DateTimeFeature;
 import tools.jackson.databind.json.JsonMapper;
 
-/** {@link PayloadCodec} de Jackson 3 ({@code tools.jackson}) ; Jackson 3 gère les types {@code java.time} sans module. N'est chargé que si Jackson 3 est présent. */
+/** {@link PayloadCodec} for Jackson 3 ({@code tools.jackson}); Jackson 3 handles {@code java.time} types without a module. Loaded only if Jackson 3 is present. */
 public final class Jackson3Codec implements PayloadCodec {
     private final ObjectMapper mapper;
 
@@ -16,7 +16,7 @@ public final class Jackson3Codec implements PayloadCodec {
         this.mapper = mapper;
     }
 
-    /** Un codec sur le mapper de l'application, tel quel (le client n'y change rien). */
+    /** A codec over the application's mapper, as is (the client changes nothing on it). */
     public static PayloadCodec of(final ObjectMapper mapper) {
         return new Jackson3Codec(Objects.requireNonNull(mapper, "mapper"));
     }

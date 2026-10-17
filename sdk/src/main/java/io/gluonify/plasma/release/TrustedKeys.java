@@ -10,27 +10,27 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * Ensemble des clés de publication qu'un nœud (ou sea) accepte, et règles de rotation (voir gluonify-codex/docs/BOOTSTRAP.md §11 ter).
+ * Set of publication keys that a node (or sea) accepts, and rotation rules (see gluonify-codex/docs/BOOTSTRAP.md §11 ter).
  * <ul>
- *   <li>{@code current} : la clé de confiance ; {@code next} : pendant le recouvrement, la clé annoncée par une version signée de {@code current} ;
- *       {@code retireCurrentAfter} : à partir de cette date, {@code current} n'est plus acceptée (anti-retour en arrière) ;</li>
- *   <li>{@code sequence} : séquence de l'annonce qui a produit cet état (0 : état d'origine, un seul fichier {@code release.pub}) ; une nouvelle annonce doit la dépasser.</li>
+ *   <li>{@code current}: the trusted key; {@code next}: during the overlap, the key announced by a release signed by {@code current};
+ *       {@code retireCurrentAfter}: from this date, {@code current} is no longer accepted (anti-rollback);</li>
+ *   <li>{@code sequence}: sequence of the announcement that produced this state (0: original state, a single {@code release.pub} file); a new announcement must exceed it.</li>
  * </ul>
- * Objet immuable : chaque étape rend un nouvel ensemble, que l'appelant écrit atomiquement.
+ * Immutable object: each step returns a new set, which the caller writes atomically.
  */
 public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, long sequence) {
-    /** @param sha256 empreinte SHA-256 du DER (celle de {@code --key-sha256}) ; @param der SubjectPublicKeyInfo en Base64. */
+    /** @param sha256 SHA-256 digest of the DER (that of {@code --key-sha256}); @param der SubjectPublicKeyInfo in Base64. */
     public record Key(String sha256, String der) {
         static final Pattern B64 = Pattern.compile("[A-Za-z0-9+/]{40,120}={0,2}");
 
         public static Key ofDer(String b64) {
-            if (b64 == null || !B64.matcher(b64).matches()) throw new ReleaseManifest.Invalid("clé publique illisible");
+            if (b64 == null || !B64.matcher(b64).matches()) throw new ReleaseManifest.Invalid("unreadable public key");
             byte[] d;
             try {
                 d = Base64.getDecoder().decode(b64);
                 java.security.KeyFactory.getInstance("Ed25519").generatePublic(new java.security.spec.X509EncodedKeySpec(d));
             } catch (java.security.GeneralSecurityException | IllegalArgumentException e) {
-                throw new ReleaseManifest.Invalid("clé publique illisible");
+                throw new ReleaseManifest.Invalid("unreadable public key");
             }
             return new Key(sha(d), b64);
         }
@@ -44,7 +44,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
             try {
                 return java.security.KeyFactory.getInstance("Ed25519").generatePublic(new java.security.spec.X509EncodedKeySpec(Base64.getDecoder().decode(der)));
             } catch (java.security.GeneralSecurityException e) {
-                throw new ReleaseManifest.Invalid("clé publique illisible");
+                throw new ReleaseManifest.Invalid("unreadable public key");
             }
         }
 
@@ -64,17 +64,17 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
     public static final String HEADER = "gluonify-release-keys 1";
     private static final Pattern SHA_P = Pattern.compile("[0-9a-f]{64}");
 
-    /** État d'origine : une seule clé (le fichier {@code release.pub} d'un nœud installé avant la rotation). */
+    /** Original state: a single key (the {@code release.pub} file of a node installed before the rotation). */
     public static TrustedKeys single(Key k) {
         return new TrustedKeys(k, null, null, 0);
     }
 
     public TrustedKeys {
-        if (current == null) throw new ReleaseManifest.Invalid("aucune clé de confiance");
-        if ((next == null) != (retireCurrentAfter == null)) throw new ReleaseManifest.Invalid("clés : recouvrement incohérent");
+        if (current == null) throw new ReleaseManifest.Invalid("no trusted key");
+        if ((next == null) != (retireCurrentAfter == null)) throw new ReleaseManifest.Invalid("keys: inconsistent overlap");
     }
 
-    /** Clés acceptées à {@code now} : {@code current} jusqu'à la date de bascule, {@code next} pendant le recouvrement. */
+    /** Keys accepted at {@code now}: {@code current} until the switch date, {@code next} during the overlap. */
     public List<Key> accepted(Instant now) {
         List<Key> out = new ArrayList<>();
         if (next == null || now.isBefore(retireCurrentAfter)) out.add(current);
@@ -82,7 +82,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
         return out;
     }
 
-    // ------------------------------------------------------------------ fichier
+    // ------------------------------------------------------------------ file
 
     public String toText() {
         StringBuilder sb = new StringBuilder(HEADER).append('\n').append("sequence ").append(sequence).append('\n');
@@ -91,47 +91,47 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
         return sb.toString();
     }
 
-    /** Lecture stricte du fichier {@code release.keys} ; toute ligne inattendue ou empreinte incohérente est refusée. */
+    /** Strict reading of the {@code release.keys} file; any unexpected line or inconsistent digest is refused. */
     public static TrustedKeys parse(String text) {
         String[] lines = text.split("\n", -1);
-        if (lines.length < 4 || !lines[0].equals(HEADER)) throw new ReleaseManifest.Invalid("fichier de clés illisible");
-        if (!lines[1].matches("sequence [0-9]{1,15}")) throw new ReleaseManifest.Invalid("fichier de clés : séquence illisible");
+        if (lines.length < 4 || !lines[0].equals(HEADER)) throw new ReleaseManifest.Invalid("unreadable keys file");
+        if (!lines[1].matches("sequence [0-9]{1,15}")) throw new ReleaseManifest.Invalid("keys file: unreadable sequence");
         long seq = Long.parseLong(lines[1].substring(9));
         Key cur = null, nxt = null;
         Instant retire = null;
         int i = 2;
         String[] p = lines[i++].split(" ");
-        if (p.length != 3 || !p[0].equals("current")) throw new ReleaseManifest.Invalid("fichier de clés : clé courante illisible");
+        if (p.length != 3 || !p[0].equals("current")) throw new ReleaseManifest.Invalid("keys file: unreadable current key");
         cur = checked(p[1], p[2]);
         if (i < lines.length && lines[i].startsWith("next ")) {
             p = lines[i++].split(" ");
-            if (p.length != 4) throw new ReleaseManifest.Invalid("fichier de clés : clé suivante illisible");
+            if (p.length != 4) throw new ReleaseManifest.Invalid("keys file: unreadable next key");
             nxt = checked(p[1], p[2]);
             try {
                 retire = Instant.parse(p[3]);
             } catch (RuntimeException e) {
-                throw new ReleaseManifest.Invalid("fichier de clés : date illisible");
+                throw new ReleaseManifest.Invalid("keys file: unreadable date");
             }
         }
-        if (i != lines.length - 1 || !lines[i].isEmpty()) throw new ReleaseManifest.Invalid("fichier de clés : contenu inattendu");
+        if (i != lines.length - 1 || !lines[i].isEmpty()) throw new ReleaseManifest.Invalid("keys file: unexpected content");
         return new TrustedKeys(cur, nxt, retire, seq);
     }
 
     private static Key checked(String sha, String der) {
-        if (!SHA_P.matcher(sha).matches()) throw new ReleaseManifest.Invalid("fichier de clés : empreinte invalide");
+        if (!SHA_P.matcher(sha).matches()) throw new ReleaseManifest.Invalid("keys file: invalid digest");
         Key k = Key.ofDer(der);
-        if (!k.sha256().equals(sha)) throw new ReleaseManifest.Invalid("fichier de clés : empreinte incohérente");
+        if (!k.sha256().equals(sha)) throw new ReleaseManifest.Invalid("keys file: inconsistent digest");
         return k;
     }
 
-    // ------------------------------------------------------------------ vérification
+    // ------------------------------------------------------------------ verification
 
-    /** Manifeste vérifié et clé qui l'a signé. */
+    /** Verified manifest and the key that signed it. */
     public record Verified(ReleaseManifest manifest, Key signer, boolean viaSig2) {}
 
     /**
-     * Vérifie le manifeste avec les clés acceptées à {@code now} : {@code sig} d'abord, puis {@code sig2} (contresignature de la nouvelle clé, facultative). Structure, expiration et
-     * séquence ({@code >= minSequence}) comme {@link ReleaseVerifier#verify}. Un manifeste signé SEULEMENT par la clé retirée est refusé avec un message explicite.
+     * Verifies the manifest with the keys accepted at {@code now}: {@code sig} first, then {@code sig2} (countersignature by the new key, optional). Structure, expiration and
+     * sequence ({@code >= minSequence}) as in {@link ReleaseVerifier#verify}. A manifest signed ONLY by the retired key is refused with an explicit message.
      */
     public Verified verify(byte[] manifest, byte[] sig, byte[] sig2, java.util.function.Function<byte[], ReleaseManifest> parser, long minSequence, Instant now) {
         List<Key> ok = accepted(now);
@@ -151,48 +151,48 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
         if (next != null && !ok.contains(current)) {
             try {
                 if (sig != null && ReleaseVerifier.signatureValid(manifest, sig, current.publicKey()))
-                    throw new ReleaseManifest.Invalid("clé de publication retirée depuis " + retireCurrentAfter + " : manifeste signé seulement par l'ancienne clé refusé (retour en arrière)");
+                    throw new ReleaseManifest.Invalid("publication key retired since " + retireCurrentAfter + ": manifest signed only by the old key refused (rollback)");
             } catch (ReleaseManifest.Invalid e) {
-                if (e.getMessage().startsWith("clé de publication retirée")) throw e;
+                if (e.getMessage().startsWith("publication key retired")) throw e;
             }
         }
-        throw new ReleaseManifest.Invalid("signature du manifeste invalide");
+        throw new ReleaseManifest.Invalid("invalid manifest signature");
     }
 
-    /** Résultat d'une annonce acceptée : nouvel ensemble, et {@code changed=false} si l'état annonçait déjà cette clé (idempotence). */
+    /** Result of an accepted announcement: new set, and {@code changed=false} if the state already announced this key (idempotence). */
     public record Applied(TrustedKeys keys, boolean changed, ReleaseManifest manifest) {}
 
     /**
-     * Règles d'acceptation d'un changement de clé (TOUTES requises, sinon {@link ReleaseManifest.Invalid}) : (1) le manifeste est valide (signature {@code sig}) sous une clé
-     * actuellement acceptée, non expiré, séquence {@code >= highestSeen} ; (2) l'annonce est signée par CETTE MÊME clé, liée au manifeste (empreinte, version, séquence) ;
-     * (3) la nouvelle clé a contresigné l'annonce ({@code rolloverSig2}) et, si présente, le manifeste ({@code sig2}) ; (4) la séquence dépasse celle du dernier changement de clé ;
-     * (5) la nouvelle clé diffère de la clé qui signe, la date de bascule est dans le futur ; (6) pas de rotation concurrente : si une clé suivante est déjà installée, c'est la même.
+     * Rules for accepting a key change (ALL required, otherwise {@link ReleaseManifest.Invalid}): (1) the manifest is valid (signature {@code sig}) under a key
+     * currently accepted, not expired, sequence {@code >= highestSeen}; (2) the announcement is signed by THAT SAME key, bound to the manifest (digest, version, sequence);
+     * (3) the new key countersigned the announcement ({@code rolloverSig2}) and, if present, the manifest ({@code sig2}); (4) the sequence exceeds that of the last key change;
+     * (5) the new key differs from the signing key, the switch date is in the future; (6) no concurrent rotation: if a next key is already installed, it is the same one.
      */
     public Applied applyRollover(byte[] manifest, byte[] sig, byte[] sig2, byte[] rollover, byte[] rolloverSig, byte[] rolloverSig2, long highestSeen, Instant now) {
-        if (sig == null || rollover == null || rolloverSig == null || rolloverSig2 == null) throw new ReleaseManifest.Invalid("annonce de clé incomplète (manifeste, annonce et contresignature requis)");
-        Verified v = verify(manifest, sig, null, ReleaseManifest::parse, highestSeen, now); // seule la signature principale, jamais sig2, porte l'annonce
-        if (!ReleaseVerifier.signatureValid(rollover, rolloverSig, v.signer().publicKey())) throw new ReleaseManifest.Invalid("annonce de clé : signature invalide (pas celle de la clé qui signe le manifeste)");
+        if (sig == null || rollover == null || rolloverSig == null || rolloverSig2 == null) throw new ReleaseManifest.Invalid("incomplete key announcement (manifest, announcement and countersignature required)");
+        Verified v = verify(manifest, sig, null, ReleaseManifest::parse, highestSeen, now); // only the main signature, never sig2, carries the announcement
+        if (!ReleaseVerifier.signatureValid(rollover, rolloverSig, v.signer().publicKey())) throw new ReleaseManifest.Invalid("key announcement: invalid signature (not that of the key that signs the manifest)");
         KeyRollover r = KeyRollover.parse(rollover);
-        if (!r.version().equals(v.manifest().version()) || r.sequence() != v.manifest().sequence()) throw new ReleaseManifest.Invalid("annonce de clé : version ou séquence différentes du manifeste");
-        if (!r.manifestSha256().equals(sha(manifest))) throw new ReleaseManifest.Invalid("annonce de clé : non liée à ce manifeste");
+        if (!r.version().equals(v.manifest().version()) || r.sequence() != v.manifest().sequence()) throw new ReleaseManifest.Invalid("key announcement: version or sequence differs from the manifest");
+        if (!r.manifestSha256().equals(sha(manifest))) throw new ReleaseManifest.Invalid("key announcement: not bound to this manifest");
         Key nk = r.key();
-        if (nk.sha256().equals(v.signer().sha256())) throw new ReleaseManifest.Invalid("annonce de clé : la nouvelle clé est celle qui signe");
-        if (!ReleaseVerifier.signatureValid(rollover, rolloverSig2, nk.publicKey())) throw new ReleaseManifest.Invalid("annonce de clé : contresignature de la nouvelle clé invalide");
-        if (sig2 != null && !ReleaseVerifier.signatureValid(manifest, sig2, nk.publicKey())) throw new ReleaseManifest.Invalid("manifeste : contresignature de la nouvelle clé invalide");
-        if (next != null && next.sha256().equals(nk.sha256())) return new Applied(this, false, v.manifest()); // déjà installée
+        if (nk.sha256().equals(v.signer().sha256())) throw new ReleaseManifest.Invalid("key announcement: the new key is the signing key");
+        if (!ReleaseVerifier.signatureValid(rollover, rolloverSig2, nk.publicKey())) throw new ReleaseManifest.Invalid("key announcement: invalid countersignature by the new key");
+        if (sig2 != null && !ReleaseVerifier.signatureValid(manifest, sig2, nk.publicKey())) throw new ReleaseManifest.Invalid("manifest: invalid countersignature by the new key");
+        if (next != null && next.sha256().equals(nk.sha256())) return new Applied(this, false, v.manifest()); // already installed
         if (current.sha256().equals(nk.sha256())) return new Applied(this, false, v.manifest());
-        if (next != null) throw new ReleaseManifest.Invalid("rotation déjà en cours vers une autre clé (la terminer d'abord)");
-        if (r.sequence() <= sequence) throw new ReleaseManifest.Invalid("annonce de clé rejouée : séquence " + r.sequence() + " <= " + sequence + " (dernier changement de clé)");
-        if (!r.retireAt().isAfter(now)) throw new ReleaseManifest.Invalid("annonce de clé : la date de bascule est passée");
+        if (next != null) throw new ReleaseManifest.Invalid("rotation already in progress towards another key (finish it first)");
+        if (r.sequence() <= sequence) throw new ReleaseManifest.Invalid("key announcement replayed: sequence " + r.sequence() + " <= " + sequence + " (last key change)");
+        if (!r.retireAt().isAfter(now)) throw new ReleaseManifest.Invalid("key announcement: the switch date has passed");
         return new Applied(new TrustedKeys(current, nk, r.retireAt(), r.sequence()), true, v.manifest());
     }
 
     /**
-     * Termine la rotation : la clé suivante devient la seule clé (l'ancienne est retirée). Exige un manifeste valide signé par la clé SUIVANTE (preuve qu'elle sert en réel),
-     * non expiré, séquence {@code >= highestSeen}.
+     * Finishes the rotation: the next key becomes the only key (the old one is retired). Requires a valid manifest signed by the NEXT key (proof that it works in practice),
+     * not expired, sequence {@code >= highestSeen}.
      */
     public Applied finish(byte[] manifest, byte[] sig, byte[] sig2, long highestSeen, Instant now) {
-        if (next == null) return new Applied(this, false, null); // rien à terminer : déjà seule clé
+        if (next == null) return new Applied(this, false, null); // nothing to finish: already the only key
         TrustedKeys onlyNext = new TrustedKeys(next, null, null, sequence);
         Verified v = onlyNext.verify(manifest, sig, sig2, ReleaseManifest::parse, highestSeen, now);
         return new Applied(new TrustedKeys(next, null, null, sequence), true, v.manifest());

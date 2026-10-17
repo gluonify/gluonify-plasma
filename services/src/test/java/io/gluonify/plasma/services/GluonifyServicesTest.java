@@ -45,7 +45,7 @@ class GluonifyServicesTest {
         return GluonifyServices.builder().environment(env::get).properties(props::get).home(home).clock(clock).build();
     }
 
-    /** Connecte le poste à la zone test.lan du faux cluster (ce que fait gluonify login). */
+    /** Connects the workstation to the test.lan zone of the fake cluster (what gluonify login does). */
     DeveloperTokens.Session login(final long expiresInSeconds) {
         DeveloperConfig.empty().with(new DeveloperConfig.Zone("test.lan", cluster.discoveryUrl(), "SBX", null)).write(home);
         final DeveloperTokens.Session s = new DeveloperTokens.Session("test.lan", FakeCluster.CLIENT_ID, URI.create(cluster.issuer() + "/token"),
@@ -54,13 +54,13 @@ class GluonifyServicesTest {
         return s;
     }
 
-    // ------------------------------------------------------------------------------------------------ 1. surcharge
+    // ------------------------------------------------------------------------------------------------ 1. override
 
     @Test
     void surchargeParProprieteSysteme() {
         props.put("GLUONIFY_SERVICE_CRYSTALLON_URL", "http://127.0.0.1:9999/base/");
         props.put("GLUONIFY_CRYSTALLON_TOKEN", " t1 ");
-        env.put("GLUONIFY_ENVIRONMENT", "PRD"); // même sur la plateforme, la propriété système l'emporte
+        env.put("GLUONIFY_ENVIRONMENT", "PRD"); // even on the platform, the system property wins
         env.put("GLUONIFY_SERVICE_CRYSTALLON_URL", "http://10.0.0.1:8502");
         final Endpoint e = services().resolve("crystallon");
         assertEquals(Endpoint.Source.OVERRIDE, e.source());
@@ -76,7 +76,7 @@ class GluonifyServicesTest {
         env.put("GLUONIFY_CRYSTALLON_TOKEN_FILE", file.toString());
         final Endpoint e = services().resolve("crystallon");
         assertEquals(Endpoint.Source.OVERRIDE, e.source());
-        assertTrue(e.token().isEmpty(), "fichier pas encore là");
+        assertTrue(e.token().isEmpty(), "file not there yet");
         Files.writeString(file, "abc\n");
         assertEquals("abc", e.token().orElseThrow());
     }
@@ -98,7 +98,7 @@ class GluonifyServicesTest {
         assertThrows(IllegalArgumentException.class, () -> services().resolve("../etc"));
     }
 
-    // ------------------------------------------------------------------------------------------------ 2. plateforme
+    // ------------------------------------------------------------------------------------------------ 2. platform
 
     @Test
     void plateformeAdresseInjecteeEtJetonRelu() throws Exception {
@@ -113,13 +113,13 @@ class GluonifyServicesTest {
         Files.writeString(file, "app-1");
         assertEquals("app-1", e.token().orElseThrow());
         Files.writeString(file, "app-2");
-        assertEquals("app-2", e.token().orElseThrow(), "relu à chaque appel (renouvelé par l'agent)");
+        assertEquals("app-2", e.token().orElseThrow(), "reread on every call (renewed by the agent)");
     }
 
     @Test
     void plateformeServiceAbsentDeUses() {
         env.put("GLUONIFY_ENVIRONMENT", "DEV");
-        login(3600); // ignoré sur la plateforme
+        login(3600); // ignored on the platform
         final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> services().resolve("crystallon"));
         assertTrue(e.getMessage().contains("\"crystallon\"") && e.getMessage().contains("uses") && e.getMessage().contains("gluonify.json"), e.getMessage());
         assertTrue(e.getMessage().contains("did not grant") && e.getMessage().contains("Bup") && e.getMessage().contains("GLUONIFY_SERVICE_CRYSTALLON_URL"), e.getMessage());
@@ -127,7 +127,7 @@ class GluonifyServicesTest {
         assertEquals(0, cluster.discoveryHits.get());
     }
 
-    // ------------------------------------------------------------------------------------------------ 3. poste du développeur
+    // ------------------------------------------------------------------------------------------------ 3. developer workstation
 
     @Test
     void developpeurDecouverteEtJeton() {
@@ -155,7 +155,7 @@ class GluonifyServicesTest {
         clock.advance(Duration.ofMinutes(2));
         services.resolve("crystallon");
         assertEquals(2, cluster.discoveryHits.get());
-        // cluster momentanément en panne : la dernière copie sert
+        // cluster momentarily down: the last copy is used
         cluster.discoveryStatus = 503;
         clock.advance(Duration.ofMinutes(6));
         assertEquals(cluster.base() + "/crystallon", services.resolve("crystallon").url().toString());
@@ -166,7 +166,7 @@ class GluonifyServicesTest {
 
     @Test
     void jetonExpireRenouvele() throws Exception {
-        final DeveloperTokens.Session old = login(30); // moins que la marge d'une minute
+        final DeveloperTokens.Session old = login(30); // less than the one-minute margin
         final Endpoint e = services().resolve("crystallon");
         final String t = e.token().orElseThrow();
         assertNotEquals(old.accessToken(), t);
@@ -174,10 +174,10 @@ class GluonifyServicesTest {
         assertEquals("refresh_token", cluster.lastToken.get("grant_type"));
         final DeveloperTokens.Session now = DeveloperTokens.read(home, "test.lan").orElseThrow();
         assertEquals(t, now.accessToken());
-        assertNotEquals(old.refreshToken(), now.refreshToken(), "Charm fait tourner le jeton de rafraîchissement");
+        assertNotEquals(old.refreshToken(), now.refreshToken(), "Charm rotates the refresh token");
         assertEquals(clock.instant().getEpochSecond() + 3600, now.expiresAt());
         assertEquals(t, e.token().orElseThrow());
-        assertEquals(1, cluster.refreshes.get(), "jeton frais : pas de second renouvellement");
+        assertEquals(1, cluster.refreshes.get(), "fresh token: no second renewal");
         final Path file = DeveloperTokens.file(home, "test.lan");
         if (file.getFileSystem().supportedFileAttributeViews().contains("posix")) {
             assertEquals(PosixFilePermissions.fromString("rw-------"), Files.getPosixFilePermissions(file));
@@ -204,7 +204,7 @@ class GluonifyServicesTest {
                 seen.add(f.get());
             }
             assertEquals(1, seen.size());
-            assertEquals(1, cluster.refreshes.get(), "un seul renouvellement : le jeton de rafraîchissement est à usage unique");
+            assertEquals(1, cluster.refreshes.get(), "a single renewal: the refresh token is single use");
         }
         finally {
             pool.shutdownNow();
@@ -214,14 +214,14 @@ class GluonifyServicesTest {
     @Test
     void sessionExpiree() throws Exception {
         final DeveloperTokens.Session s = login(0);
-        // jeton de rafraîchissement déjà utilisé (révoqué chez Charm)
+        // refresh token already used (revoked at Charm)
         DeveloperTokens.write(home, new DeveloperTokens.Session(s.zone(), s.clientId(), s.tokenEndpoint(), s.accessToken(), s.expiresAt(), "rt-unknown", 0,
                 s.audiences(), s.subject(), null));
         final Endpoint e = services().resolve("crystallon");
         final GluonifyServicesException ex = assertThrows(GluonifyServicesException.class, e::token);
         assertTrue(ex.getMessage().contains("expired") && ex.getMessage().contains("gluonify login test.lan"), ex.getMessage());
         assertFalse(ex.getMessage().contains("rt-unknown"));
-        // jeton de rafraîchissement expiré : pas d'appel à Charm
+        // refresh token expired: no call to Charm
         DeveloperTokens.write(home, new DeveloperTokens.Session(s.zone(), s.clientId(), s.tokenEndpoint(), s.accessToken(), s.expiresAt(), "rt-x",
                 clock.instant().getEpochSecond() - 1, s.audiences(), s.subject(), null));
         assertThrows(GluonifyServicesException.class, e::token);
@@ -277,7 +277,7 @@ class GluonifyServicesTest {
         assertTrue(e.getMessage().contains("must be https"), e.getMessage());
     }
 
-    // ------------------------------------------------------------------------------------------------ 4. rien
+    // ------------------------------------------------------------------------------------------------ 4. nothing
 
     @Test
     void rienDeConnu() {

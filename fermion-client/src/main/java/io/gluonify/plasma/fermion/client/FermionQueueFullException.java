@@ -1,6 +1,6 @@
 package io.gluonify.plasma.fermion.client;
 
-/** La file des {@code Start} émis pendant une coupure est pleine : le workflow n'est pas accepté (pas de perte silencieuse). */
+/** The queue of {@code Start} messages emitted during a disconnection is full: the workflow is not accepted (no silent loss). */
 public class FermionQueueFullException extends RuntimeException {
     public FermionQueueFullException(final int capacity) {
         super("fermion is unreachable and the queue of pending workflow starts is full (" + capacity + ")");

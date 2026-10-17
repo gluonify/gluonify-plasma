@@ -8,23 +8,23 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Validateur du contrat d'usage {@code gluonify-usage/1} ({@code usage-mcp.md} § 3.2) : utilisé par les tests de chaque composant et par
- * {@code check-usage-contract.sh}. Renvoie la liste des écarts (vide = conforme), n'écrit rien. Un champ inconnu est toléré (contrat additif).
- * Règles : {@code process} obligatoire ; {@code attribution} connue ; {@code none} sans ligne {@code byApp} ; chaque ligne identifiée avec un
- * {@code basis} parmi {@code measured}, {@code estimated}, {@code prorata} (jamais {@code none} : une ligne est toujours attribuée d'une façon) ; et
- * Σ CPU de {@code byApp} + {@code unattributedShare} = {@code process.cpuSecondsTotal} à l'arrondi près.
- * <p><b>Plafond</b> : au plus {@link UsageReport#MAX_APPS} (500) lignes d'applications réelles (les plus grosses, par mémoire puis CPU), <b>plus une seule</b>
- * ligne {@link UsageReport#OTHER} ({@code _other}) qui regroupe le reste ; {@code _other} ne compte pas dans les 500. Même lecture pour tous les dépôts.
+ * Validator of the usage contract {@code gluonify-usage/1} ({@code usage-mcp.md} § 3.2): used by each component's tests and by
+ * {@code check-usage-contract.sh}. Returns the list of deviations (empty = compliant), writes nothing. An unknown field is tolerated (additive contract).
+ * Rules: {@code process} required; {@code attribution} known; {@code none} with no {@code byApp} row; each row identified with a
+ * {@code basis} among {@code measured}, {@code estimated}, {@code prorata} (never {@code none}: a row is always attributed in some way); and
+ * sum of the CPU of {@code byApp} + {@code unattributedShare} = {@code process.cpuSecondsTotal} up to rounding.
+ * <p><b>Cap</b>: at most {@link UsageReport#MAX_APPS} (500) rows of real applications (the largest, by memory then CPU), <b>plus a single</b>
+ * {@link UsageReport#OTHER} row ({@code _other}) that groups the rest; {@code _other} does not count in the 500. Same reading for all repositories.
  * <p><b>Storage</b> (additive, 2026-10-17): {@code storageBytes} is optional at the top level (bytes stored by the component) and on each row; when present it is an
  * integer ≥ 0, and as soon as a row carries one the top-level total is required and the rows' sum is at most that total. A report without it stays valid.
- * Ne détecte pas un secret : les tests de composant cherchent leurs valeurs de configuration ({@code UsageContractTests.secrets()}).
+ * Does not detect a secret: component tests look for their configuration values ({@code UsageContractTests.secrets()}).
  */
 public final class UsageContract {
-    /** Taille maximale d'une réponse. */
+    /** Maximum size of a response. */
     public static final int MAX_BYTES = 256 * 1024;
 
     private static final Set<String> ATTRIBUTIONS = Set.of(UsageReport.NONE, UsageReport.MEASURED, UsageReport.ESTIMATED, UsageReport.PRORATA);
-    /** {@code basis} d'une ligne {@code byApp} : jamais {@code none}. */
+    /** {@code basis} of a {@code byApp} row: never {@code none}. */
     private static final Set<String> BASES = Set.of(UsageReport.MEASURED, UsageReport.ESTIMATED, UsageReport.PRORATA);
     private static final Set<String> MEMORY_KINDS = Set.of("rss", "pss", "cgroup");
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
@@ -35,31 +35,31 @@ public final class UsageContract {
     private static final String PROCESS_PREFIX = "process.";
     private static final String CGROUP_PREFIX = "cgroup.";
     private static final String BY_APP_PREFIX = "byApp[";
-    private static final String NUMBER_EXPECTED = " : nombre ≥ 0 attendu";
+    private static final String NUMBER_EXPECTED = " : number >= 0 expected";
     private static final String STORAGE_BYTES = "storageBytes";
     private static final String INTEGER_EXPECTED = ": integer >= 0 expected";
 
     private UsageContract() {}
 
-    /** Valide un corps de réponse : taille bornée, JSON valide, puis {@link #check(JsonNode)}. */
+    /** Validates a response body: bounded size, valid JSON, then {@link #check(JsonNode)}. */
     public static List<String> check(final byte[] body) {
         if (body == null) {
-            return List.of("réponse absente");
+            return List.of("response absent");
         }
         if (body.length > MAX_BYTES) {
-            return List.of("réponse de " + body.length + " octets (maximum " + MAX_BYTES + ")");
+            return List.of("response of " + body.length + " bytes (maximum " + MAX_BYTES + ")");
         }
         try {
             return check(MAPPER.readTree(new String(body, StandardCharsets.UTF_8)));
         } catch (RuntimeException e) {
-            return List.of("JSON illisible");
+            return List.of("unreadable JSON");
         }
     }
 
-    /** Les écarts au contrat d'une réponse déjà lue ; vide si elle est conforme. */
+    /** The deviations from the contract of an already-read response; empty if it is compliant. */
     public static List<String> check(final JsonNode root) {
         if (root == null || !root.isObject()) {
-            return List.of("la réponse n'est pas un objet JSON");
+            return List.of("the response is not a JSON object");
         }
         final List<String> errors = new ArrayList<>();
         checkIdentity(root, errors);
@@ -67,15 +67,15 @@ public final class UsageContract {
         checkCgroup(root.get("cgroup"), errors);
         final String attribution = text(root, "attribution");
         if (!known(ATTRIBUTIONS, attribution)) {
-            errors.add("attribution : none, measured, estimated ou prorata attendu");
+            errors.add("attribution : none, measured, estimated or prorata expected");
         }
         final JsonNode byApp = root.path("byApp");
         if (!byApp.isArray()) {
-            errors.add("byApp : tableau attendu (vide si attribution = none)");
+            errors.add("byApp : array expected (empty if attribution = none)");
             return errors;
         }
         if (UsageReport.NONE.equals(attribution) && !byApp.isEmpty()) {
-            errors.add("attribution = none avec des lignes byApp");
+            errors.add("attribution = none with byApp rows");
         }
         final double sum = checkRows(byApp, errors);
         if (known(ATTRIBUTIONS, attribution) && !UsageReport.NONE.equals(attribution)) {
@@ -118,21 +118,21 @@ public final class UsageContract {
     /** {@code contract}, {@code component}, {@code at}. */
     private static void checkIdentity(final JsonNode root, final List<String> errors) {
         if (!UsageReport.CONTRACT_ID.equals(text(root, "contract"))) {
-            errors.add("contract : " + UsageReport.CONTRACT_ID + " attendu");
+            errors.add("contract : " + UsageReport.CONTRACT_ID + " expected");
         }
         final String component = text(root, "component");
         if (component == null || component.isBlank()) {
             errors.add("component absent");
         }
         if (!root.path("at").isIntegralNumber() || root.path("at").asLong() < 0) {
-            errors.add("at : entier ≥ 0 attendu");
+            errors.add("at : integer >= 0 expected");
         }
     }
 
-    /** {@code process} obligatoire ; rend {@code cpuSecondsTotal} s'il est lisible. */
+    /** {@code process} required; returns {@code cpuSecondsTotal} if it is readable. */
     private static Double checkProcess(final JsonNode process, final List<String> errors) {
         if (!process.isObject()) {
-            errors.add("process obligatoire");
+            errors.add("process required");
             return null;
         }
         Double cpuTotal = null;
@@ -142,10 +142,10 @@ public final class UsageContract {
             cpuTotal = process.get(CPU_SECONDS_TOTAL).asDouble();
         }
         if (!isInteger(process, MEMORY_BYTES)) {
-            errors.add(PROCESS_PREFIX + MEMORY_BYTES + " : entier ≥ 0 attendu");
+            errors.add(PROCESS_PREFIX + MEMORY_BYTES + " : integer >= 0 expected");
         }
         if (!known(MEMORY_KINDS, text(process, "memoryKind"))) {
-            errors.add(PROCESS_PREFIX + "memoryKind : rss, pss ou cgroup attendu");
+            errors.add(PROCESS_PREFIX + "memoryKind : rss, pss or cgroup expected");
         }
         optionalInteger(process, "heapBytes", PROCESS_PREFIX, errors);
         optionalInteger(process, "threads", PROCESS_PREFIX, errors);
@@ -153,13 +153,13 @@ public final class UsageContract {
         return cpuTotal;
     }
 
-    /** {@code cgroup} facultatif ; s'il est là, un objet aux champs numériques. */
+    /** {@code cgroup} optional; if present, an object with numeric fields. */
     private static void checkCgroup(final JsonNode cgroup, final List<String> errors) {
         if (cgroup == null || cgroup.isNull()) {
             return;
         }
         if (!cgroup.isObject()) {
-            errors.add("cgroup : objet attendu");
+            errors.add("cgroup : object expected");
             return;
         }
         if (cgroup.has(CPU_SECONDS_TOTAL) && !isNumber(cgroup, CPU_SECONDS_TOTAL)) {
@@ -169,14 +169,14 @@ public final class UsageContract {
         optionalInteger(cgroup, "memoryLimitBytes", CGROUP_PREFIX, errors);
     }
 
-    /** Chaque ligne {@code byApp}, le plafond et l'unicité de {@code _other} ; rend la somme des CPU des lignes. */
+    /** Each {@code byApp} row, the cap and the uniqueness of {@code _other}; returns the sum of the rows' CPU. */
     private static double checkRows(final JsonNode byApp, final List<String> errors) {
         int apps = 0;
         int others = 0;
         double cpu = 0;
         for (final JsonNode row : byApp) {
             if (!row.isObject()) {
-                errors.add("byApp : objet attendu");
+                errors.add("byApp : object expected");
                 continue;
             }
             final String app = text(row, "app");
@@ -190,15 +190,15 @@ public final class UsageContract {
             cpu += checkRow(row, app, errors);
         }
         if (apps > UsageReport.MAX_APPS) {
-            errors.add("byApp : " + apps + " lignes (maximum " + UsageReport.MAX_APPS + ", puis une ligne " + UsageReport.OTHER + ")");
+            errors.add("byApp : " + apps + " rows (maximum " + UsageReport.MAX_APPS + ", then one " + UsageReport.OTHER + " row)");
         }
         if (others > 1) {
-            errors.add("byApp : une seule ligne " + UsageReport.OTHER);
+            errors.add("byApp : a single " + UsageReport.OTHER + " row");
         }
         return cpu;
     }
 
-    /** Les champs d'une ligne ; rend son CPU (0 s'il est illisible). */
+    /** The fields of a row; returns its CPU (0 if unreadable). */
     private static double checkRow(final JsonNode row, final String app, final List<String> errors) {
         double cpu = 0;
         if (!isNumber(row, CPU_SECONDS)) {
@@ -207,18 +207,18 @@ public final class UsageContract {
             cpu = row.get(CPU_SECONDS).asDouble();
         }
         if (!isInteger(row, MEMORY_BYTES)) {
-            errors.add(BY_APP_PREFIX + app + "]." + MEMORY_BYTES + " : entier ≥ 0 attendu");
+            errors.add(BY_APP_PREFIX + app + "]." + MEMORY_BYTES + " : integer >= 0 expected");
         }
         if (!known(BASES, text(row, "basis"))) {
-            errors.add(BY_APP_PREFIX + app + "].basis : measured, estimated ou prorata attendu");
+            errors.add(BY_APP_PREFIX + app + "].basis : measured, estimated or prorata expected");
         }
         return cpu;
     }
 
-    /** {@code unattributedShare} exigé dès qu'il y a une attribution, et Σ parts + reste = total à l'arrondi près. */
+    /** {@code unattributedShare} required as soon as there is an attribution, and sum of shares + rest = total up to rounding. */
     private static void checkUnattributed(final JsonNode rest, final double sum, final Double cpuTotal, final int lines, final List<String> errors) {
         if (!rest.isObject() || !isNumber(rest, CPU_SECONDS) || !isInteger(rest, MEMORY_BYTES)) {
-            errors.add("unattributedShare : {cpuSeconds, memoryBytes} attendu");
+            errors.add("unattributedShare : {cpuSeconds, memoryBytes} expected");
             return;
         }
         if (cpuTotal != null) {
@@ -251,7 +251,7 @@ public final class UsageContract {
     private static void optionalInteger(final JsonNode node, final String field, final String prefix, final List<String> errors) {
         final JsonNode v = node.get(field);
         if (v != null && !v.isNull() && !isInteger(node, field)) {
-            errors.add(prefix + field + " : entier ≥ 0 attendu");
+            errors.add(prefix + field + " : integer >= 0 expected");
         }
     }
 }

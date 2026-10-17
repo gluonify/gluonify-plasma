@@ -15,11 +15,11 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 
-/** Faux Crystallon : un {@link HttpServer} du JDK qui enregistre les appels et répond ce qu'on lui a programmé. */
+/** Fake Crystallon: a JDK {@link HttpServer} that records the calls and answers what it was programmed to. */
 final class FakeCrystallon implements AutoCloseable {
     static final byte[] PDF = "%PDF-1.4\n%fake document\n%%EOF\n".getBytes(StandardCharsets.ISO_8859_1);
 
-    /** Un appel reçu ; les noms d'en-têtes sont en minuscules. */
+    /** A received call; header names are lowercase. */
     record Call(String method, String rawPath, String rawQuery, Map<String, String> headers, byte[] body) {
         String header(final String name) {
             return headers.get(name.toLowerCase(Locale.ROOT));
@@ -29,13 +29,13 @@ final class FakeCrystallon implements AutoCloseable {
             return new String(body, StandardCharsets.UTF_8);
         }
 
-        /** Chemin et requête tels qu'envoyés. */
+        /** Path and query as sent. */
         String target() {
             return rawPath + (rawQuery == null ? "" : "?" + rawQuery);
         }
     }
 
-    /** Une réponse programmée. {@code chunked} : pas de {@code Content-Length}. */
+    /** A programmed response. {@code chunked}: no {@code Content-Length}. */
     record Reply(int status, Map<String, String> headers, byte[] body, long delayMillis, boolean chunked) {
         static Reply pdf() {
             return new Reply(200, Map.of("Content-Type", "application/pdf", "X-Crystallon-Pages", "2", "X-Crystallon-Warnings", "1", "X-Crystallon-PDFA", "valid"), PDF, 0, false);
@@ -151,7 +151,7 @@ final class FakeCrystallon implements AutoCloseable {
             }
         }
         catch (final IOException | InterruptedException e) {
-            // le client a raccroché (corps trop grand, délai) : normal dans ces tests
+            // the client hung up (body too large, timeout): normal in these tests
         }
         finally {
             ex.close();

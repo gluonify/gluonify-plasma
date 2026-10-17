@@ -12,7 +12,7 @@ class ServiceTokenTest {
     private final JsonMapper json = JsonMapper.builder().build();
 
     @Test
-    void conventionsDeNoms() {
+    void namingConventions() {
         assertEquals("GLUONIFY_CRYSTALLON_TOKEN_FILE", ServiceToken.envName("crystallon"));
         assertEquals("GLUONIFY_MY_SVC_TOKEN_FILE", ServiceToken.envName("my-svc"));
         assertEquals("crystallon.token", ServiceToken.fileName("crystallon"));
@@ -23,29 +23,29 @@ class ServiceTokenTest {
     }
 
     @Test
-    void leJetonNApparaitJamaisDansToString() {
+    void theTokenNeverAppearsInToString() {
         String s = new ServiceToken("crystallon", "gluonify-crystallon", "eyJ.secret.sig", 42L).toString();
         assertFalse(s.contains("eyJ"), s);
         assertTrue(s.contains("crystallon") && s.contains("42"), s);
     }
 
     @Test
-    void messagesAllerRetour() {
+    void messagesRoundTrip() {
         Msg req = json.readValue(json.writeValueAsString(new Msg.ServiceTokensRequest(7, List.of("shop"))), Msg.class);
         assertEquals(new Msg.ServiceTokensRequest(7, List.of("shop")), req);
         assertTrue(json.writeValueAsString(req).contains("\"t\":\"service-tokens-request\""));
         var tok = new ServiceToken("crystallon", "gluonify-crystallon", "jwt", 1700000900000L);
         Msg res = json.readValue(json.writeValueAsString(new Msg.ServiceTokens(7, 200, Map.of("shop", List.of(tok)), null)), Msg.class);
         assertEquals(new Msg.ServiceTokens(7, 200, Map.of("shop", List.of(tok)), null), res);
-        assertTrue(new Msg.ServiceTokens(8, 501, null, "charm non configuré").tokens().isEmpty(), "tokens null devient une carte vide");
+        assertTrue(new Msg.ServiceTokens(8, 501, null, "charm not configured").tokens().isEmpty(), "null tokens becomes an empty map");
     }
 
     @Test
-    void empreinteDeLaPolitiqueFacultative() {
+    void policyFingerprintOptional() {
         var tok = new ServiceToken("crystallon", "gluonify-crystallon", "jwt", 1700000900000L);
         var avec = new Msg.ServiceTokens(7, 200, Map.of("shop", List.of(tok)), null, "a1b2c3d4e5f60718");
         assertEquals(avec, json.readValue(json.writeValueAsString((Msg) avec), Msg.class));
-        // control-plane plus ancien : champ absent du JSON, lu comme null
+        // older control-plane: field absent from the JSON, read as null
         Msg ancien = json.readValue("{\"t\":\"service-tokens\",\"id\":7,\"status\":200,\"tokens\":{},\"error\":null}", Msg.class);
         assertEquals(null, ((Msg.ServiceTokens) ancien).policy());
         var d = new Msg.Desired(List.of(), List.of(), null, Map.of(), Map.of(), null, List.of(), null, List.of(), null, Map.of(), Map.of(), "a1b2c3d4e5f60718");

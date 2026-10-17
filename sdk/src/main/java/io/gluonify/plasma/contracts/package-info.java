@@ -1,8 +1,8 @@
 /**
- * Contrats des organisations ({@code gluonify-codex/contracts.md}) : organisation, versions de contrat immuables, termes (services, quotas, répartition,
- * tarification, budget), listes de prix, violations, et les fonctions pures partagées par Higgs, le calorimètre et Prism : version effective
- * ({@link io.gluonify.plasma.contracts.Contracts#effective}), empreinte canonique ({@link io.gluonify.plasma.contracts.Contracts#fingerprint}), validation
- * ({@link io.gluonify.plasma.contracts.TermsValidator}) et valorisation ({@link io.gluonify.plasma.contracts.Pricing}).
- * Les types lus ignorent les propriétés inconnues ; les booléens sont des {@code Boolean} (un instantané Raft qui les omet se relit).
+ * Organization contracts ({@code gluonify-codex/contracts.md}): organization, immutable contract versions, terms (services, quotas, spread,
+ * pricing, budget), price lists, violations, and the pure functions shared by Higgs, the calorimeter and Prism: effective version
+ * ({@link io.gluonify.plasma.contracts.Contracts#effective}), canonical fingerprint ({@link io.gluonify.plasma.contracts.Contracts#fingerprint}), validation
+ * ({@link io.gluonify.plasma.contracts.TermsValidator}) and pricing ({@link io.gluonify.plasma.contracts.Pricing}).
+ * Types that are read ignore unknown properties; booleans are {@code Boolean} (a Raft snapshot that omits them can still be read back).
  */
 package io.gluonify.plasma.contracts;

@@ -7,8 +7,8 @@ import java.util.HexFormat;
 import java.util.List;
 
 /**
- * Fonctions pures des contrats ({@code contracts.md} § 2.3) : version effective, état calculé d'une version, empreinte des termes.
- * Déterministes : l'instant est toujours fourni par l'appelant (l'horloge de l'API, ou le {@code now} d'une commande Raft), jamais lu ici.
+ * Pure contract functions ({@code contracts.md} § 2.3): effective version, computed state of a version, terms fingerprint.
+ * Deterministic: the instant is always supplied by the caller (the API clock, or the {@code now} of a Raft command), never read here.
  */
 public final class Contracts {
     private Contracts() {}
@@ -20,8 +20,8 @@ public final class Contracts {
     public static final String PENDING = "pending";
 
     /**
-     * Version effective à {@code t} : la version non annulée (et approuvée si elle devait l'être) de plus grand {@code effectiveFrom ≤ t} ; à égalité, le plus
-     * grand numéro. Null si aucune.
+     * Effective version at {@code t}: the non-cancelled version (and approved if it had to be) with the greatest {@code effectiveFrom <= t}; on a tie, the
+     * greatest number. Null if none.
      */
     public static ContractVersion effective(List<ContractVersion> versions, long t) {
         ContractVersion best = null;
@@ -33,7 +33,7 @@ public final class Contracts {
         return best;
     }
 
-    /** État calculé de {@code v} parmi {@code versions} à l'instant {@code t}. */
+    /** Computed state of {@code v} among {@code versions} at instant {@code t}. */
     public static String state(ContractVersion v, List<ContractVersion> versions, long t) {
         if (v.cancelled()) return CANCELLED;
         if (v.awaitingApproval()) return PENDING;
@@ -43,7 +43,7 @@ public final class Contracts {
         return SUPERSEDED;
     }
 
-    /** Prochaine version à venir (la plus proche date d'effet après {@code t}), ou null. */
+    /** Next upcoming version (the nearest effective date after {@code t}), or null. */
     public static ContractVersion next(List<ContractVersion> versions, long t) {
         ContractVersion best = null;
         for (ContractVersion v : versions) {
@@ -53,12 +53,12 @@ public final class Contracts {
         return best;
     }
 
-    /** JSON canonique des termes ({@link Canonical}). */
+    /** Canonical JSON of the terms ({@link Canonical}). */
     public static String canonical(ContractTerms terms) {
         return Canonical.json(terms);
     }
 
-    /** {@code sha256:<hex>} du JSON canonique des termes (ni numéro, ni dates, ni auteur, ni raison : comparable d'un cluster à l'autre). */
+    /** {@code sha256:<hex>} of the canonical JSON of the terms (no number, no dates, no author, no reason: comparable from one cluster to another). */
     public static String fingerprint(ContractTerms terms) {
         try {
             byte[] d = MessageDigest.getInstance("SHA-256").digest(canonical(terms).getBytes(StandardCharsets.UTF_8));

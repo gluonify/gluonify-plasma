@@ -7,19 +7,19 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Termes d'une version de contrat d'organisation ({@code gluonify-codex/contracts.md} § 2.2) : tout ce qui est couvert par l'empreinte.
- * <strong>Un champ absent veut dire « pas de plafond »</strong> pour un quota et « tout est permis » pour un service ; une liste vide, « rien ».
+ * Terms of an organization contract version ({@code gluonify-codex/contracts.md} § 2.2): everything covered by the fingerprint.
+ * <strong>A missing field means "no cap"</strong> for a quota and "everything is allowed" for a service; an empty list means "nothing".
  *
- * @param validity     durée commerciale (dates civiles, affichées ; n'arrête rien)
- * @param enforcement  {@value #ENFORCE} (refus 422) ou {@value #WARN} (accepté avec un avertissement) ; absent : {@value #ENFORCE}
- * @param environments environnements ({@code gluonify.higgs.env-name}) où l'organisation peut déployer ; absent : tous
- * @param services     services et options permis
+ * @param validity     commercial duration (calendar dates, displayed; stops nothing)
+ * @param enforcement  {@value #ENFORCE} (refused with 422) or {@value #WARN} (accepted with a warning); absent: {@value #ENFORCE}
+ * @param environments environnements ({@code gluonify.higgs.env-name}) where the organization may deploy; absent: all
+ * @param services     allowed services and options
  * @param quotas       quotas
- * @param quotasByEnv  surcharges des quotas, clé par clé, par environnement
- * @param ha           répartition des répliques ({@code contracts.md} § 4) ; absent : placement historique (au mieux)
- * @param apps         surcharges par nom d'application
- * @param pricing      tarification
- * @param budget       budget mensuel et seuils d'alerte
+ * @param quotasByEnv  quota overrides, key by key, per environment
+ * @param ha           replica spread ({@code contracts.md} § 4); absent: legacy placement (best effort)
+ * @param apps         overrides per application name
+ * @param pricing      pricing
+ * @param budget       monthly budget and alert thresholds
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -34,20 +34,20 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
         apps = apps == null ? null : java.util.Collections.unmodifiableMap(new TreeMap<>(apps));
     }
 
-    /** Vrai si les violations sont refusées (422) ; {@code warn} les accepte. */
+    /** True if violations are refused (422); {@code warn} accepts them. */
     public boolean enforcing() { return !WARN.equals(enforcement); }
 
-    /** Copie avec un autre mode d'application. */
+    /** Copy with another enforcement mode. */
     public ContractTerms withEnforcement(String e) {
         return new ContractTerms(validity, e, environments, services, quotas, quotasByEnv, ha, apps, pricing, budget);
     }
 
-    /** Copie avec d'autres surcharges par application. */
+    /** Copy with other per-application overrides. */
     public ContractTerms withApps(Map<String, AppOverride> a) {
         return new ContractTerms(validity, enforcement, environments, services, quotas, quotasByEnv, ha, a, pricing, budget);
     }
 
-    /** Quotas effectifs d'une application {@code app} sur un cluster d'environnement {@code env} : {@code quotas} ⊕ {@code quotasByEnv[env]} ⊕ {@code apps[app]}. */
+    /** Effective quotas of an application {@code app} on a cluster of environment {@code env}: {@code quotas} + {@code quotasByEnv[env]} + {@code apps[app]}. */
     public Quotas quotasFor(String env, String app) {
         Quotas q = quotas == null ? Quotas.NONE : quotas;
         if (env != null && quotasByEnv != null && quotasByEnv.get(env) != null) q = q.merge(quotasByEnv.get(env));
@@ -56,21 +56,21 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
         return q;
     }
 
-    /** Répartition voulue pour {@code app} : celle de sa surcharge, sinon celle du contrat ; null : placement historique. */
+    /** Wanted spread for {@code app}: that of its override, otherwise that of the contract; null: legacy placement. */
     public Ha haFor(String app) {
         AppOverride o = app == null || apps == null ? null : apps.get(app);
         if (o != null && o.ha() != null) return o.ha().over(ha);
         return ha;
     }
 
-    /** Dates civiles {@code aaaa-mm-jj}. */
+    /** Calendar dates {@code yyyy-mm-dd}. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Validity(String from, String until) {}
 
     /**
-     * Services permis. {@code uses} : noms de {@code AppSpec.uses} (sans le « ? ») ; {@code distributed} : genres {@code std}, {@code tmp}, {@code gdown} ;
-     * {@code routeKinds} : {@code app}, {@code gdown}, {@code upstream} ; {@code memory} : la base gDown de mémoire des assistants IA de l'organisation. Un booléen absent : permis.
+     * Allowed services. {@code uses}: names of {@code AppSpec.uses} (without the "?"); {@code distributed}: kinds {@code std}, {@code tmp}, {@code gdown};
+     * {@code routeKinds}: {@code app}, {@code gdown}, {@code upstream}; {@code memory}: the gDown memory database of the organization's AI assistants. A missing boolean: allowed.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -83,14 +83,14 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
         }
     }
 
-    /** Quotas (absent : pas de plafond). Mémoire en Mo, la mémoire réservée compte {@code memoryMb + scratchMb} par réplique. */
+    /** Quotas (absent: no cap). Memory in MB, reserved memory counts {@code memoryMb + scratchMb} per replica. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Quotas(Long apps, Long reservedMemoryMb, Long replicasPerApp, Long memoryMbPerReplica, Long scratchMbPerReplica, Long distributedQuotaMbPerApp,
                          Long defaultDistributedQuotaMb, Long storageMb, Long domains) {
         public static final Quotas NONE = new Quotas(null, null, null, null, null, null, null, null, null);
 
-        /** Clé par clé : une valeur de {@code o} remplace celle-ci. */
+        /** Key by key: a value of {@code o} replaces this one. */
         public Quotas merge(Quotas o) {
             if (o == null) return this;
             return new Quotas(o.apps != null ? o.apps : apps, o.reservedMemoryMb != null ? o.reservedMemoryMb : reservedMemoryMb,
@@ -103,8 +103,8 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
     }
 
     /**
-     * Répartition : les {@code min(replicas, spreadNodes, nœuds éligibles)} premières répliques sur des nœuds deux à deux distincts.
-     * {@code antiAffinity} : {@value #PREFERRED} (repli sur un nœud qui a déjà une réplique) ou {@value #REQUIRED} (réplique non placée plutôt que de partager une panne).
+     * Spread: the first {@code min(replicas, spreadNodes, eligible nodes)} replicas on pairwise distinct nodes.
+     * {@code antiAffinity} : {@value #PREFERRED} (falls back to a node that already has a replica) or {@value #REQUIRED} (replica left unplaced rather than sharing a failure).
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -112,12 +112,12 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
         public static final String PREFERRED = "preferred";
         public static final String REQUIRED = "required";
 
-        /** Nombre de nœuds distincts voulu (défaut 1). */
+        /** Wanted number of distinct nodes (default 1). */
         public int spread() { return spreadNodes == null ? 1 : spreadNodes; }
 
         public boolean required() { return REQUIRED.equals(antiAffinity); }
 
-        /** Champ par champ, celle-ci l'emporte sur {@code base}. */
+        /** Field by field, this one wins over {@code base}. */
         public Ha over(Ha base) {
             if (base == null) return this;
             return new Ha(spreadNodes != null ? spreadNodes : base.spreadNodes, antiAffinity != null ? antiAffinity : base.antiAffinity);
@@ -125,13 +125,13 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
     }
 
     /**
-     * Surcharge pour une application nommée. {@code memoryMbPerReplica}, {@code replicasPerApp} et {@code ha} peuvent élargir le contrat ; les autres ne peuvent que le resserrer.
+     * Override for a named application. {@code memoryMbPerReplica}, {@code replicasPerApp} and {@code ha} may widen the contract; the others can only tighten it.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record AppOverride(Long memoryMbPerReplica, Long replicasPerApp, Long scratchMbPerReplica, Long distributedQuotaMbPerApp, Ha ha) {}
 
-    /** Tarification : devise ISO 4217, liste de prix épinglée, part fixe, remise, minimum, surcharges. Montants en chaînes décimales. */
+    /** Pricing: ISO 4217 currency, pinned price list, fixed part, discount, minimum, overrides. Amounts as decimal strings. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record PricingTerms(String currency, PriceListRef priceList, Subscription subscription, String discountPct, String minimumMonthly, List<PriceOverride> overrides) {
@@ -140,19 +140,19 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
         }
     }
 
-    /** Liste de prix : {@code version} épinglée, ou {@code follow: true} (version effective de la liste à chaque heure). */
+    /** Price list: pinned {@code version}, or {@code follow: true} (the list's effective version each hour). */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record PriceListRef(String id, Integer version, Boolean follow) {}
 
-    /** Part fixe mensuelle : par organisation, par application, par application répartie (≥ 2 nœuds). */
+    /** Fixed monthly part: per organization, per application, per spread application (>= 2 nodes). */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Subscription(String monthly, String perApp, String perHaApp) {}
 
     /**
-     * Surcharge d'une ligne de prix : prix ({@code price}) ou paliers ({@code tiers}), quantité incluse par mois ({@code included}, dans la grandeur {@code per}),
-     * remise propre ({@code discountPct}), restreinte à des dimensions ({@code dims}) et à un environnement ({@code env}). {@code per} : absent, celle de la ligne de liste.
+     * Override of a price line: price ({@code price}) or tiers ({@code tiers}), quantity included per month ({@code included}, in the unit {@code per}),
+     * own discount ({@code discountPct}), restricted to dimensions ({@code dims}) and to an environment ({@code env}). {@code per}: absent, that of the list line.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -163,12 +163,12 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
         }
     }
 
-    /** Palier : jusqu'à {@code upTo} (quantité facturée cumulée, absent pour le dernier) au prix {@code price}. */
+    /** Tier: up to {@code upTo} (cumulative billed quantity, absent for the last one) at price {@code price}. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Tier(Long upTo, String price) {}
 
-    /** Budget mensuel et seuils d'alerte (en % du budget, 1 à 500, 5 au plus) ; {@code forecast} : prévision linéaire de fin de mois. */
+    /** Monthly budget and alert thresholds (in % of the budget, 1 to 500, at most 5); {@code forecast}: linear end-of-month forecast. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Budget(String monthly, List<Integer> thresholdsPct, Boolean forecast) {

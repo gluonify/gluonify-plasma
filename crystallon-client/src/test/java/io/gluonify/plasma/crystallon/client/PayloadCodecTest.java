@@ -19,8 +19,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * La passerelle JSON, avec le Jackson du chemin de classes de l'exécution surefire en cours (Jackson 2 et 3, 3 seul, 2 seul) : le même payload doit
- * donner le même JSON dans les trois cas.
+ * The JSON gateway, with the Jackson of the current surefire execution's classpath (Jackson 2 and 3, 3 only, 2 only): the same payload must
+ * give the same JSON in all three cases.
  */
 class PayloadCodecTest {
     private final PayloadCodec codec = PayloadCodec.detect();
@@ -110,7 +110,7 @@ class PayloadCodecTest {
         assertNull(withoutPath.path());
     }
 
-    /** Un bean dont l'accesseur échoue : ni Jackson 2 ni Jackson 3 ne peuvent l'écrire. */
+    /** A bean whose accessor fails: neither Jackson 2 nor Jackson 3 can write it. */
     public static final class Broken {
         public String getValue() {
             throw new IllegalStateException("boom");

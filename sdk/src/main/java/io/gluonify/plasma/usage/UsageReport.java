@@ -6,9 +6,9 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Réponse du contrat d'usage {@code gluonify-usage/1} ({@code usage-mcp.md} § 3.2), servie par {@code GET /q/usage} de chaque composant.
- * Additif : un lecteur ignore les champs inconnus ; {@link #CONTRACT_ID} ne change que pour une rupture. Les champs absents ne sont pas écrits
- * (jamais de valeur inventée). Le CPU est un compteur CUMULÉ en secondes, jamais un pourcentage.
+ * Response of the usage contract {@code gluonify-usage/1} ({@code usage-mcp.md} § 3.2), served by each component's {@code GET /q/usage}.
+ * Additive: a reader ignores unknown fields; {@link #CONTRACT_ID} changes only for a breaking change. Absent fields are not written
+ * (never an invented value). CPU is a CUMULATIVE counter in seconds, never a percentage.
  * <p>{@code storageBytes} (optional, additive since 2026-10-17, still {@code gluonify-usage/1}): the bytes stored by the component (on its disk, measured or
  * from its last snapshot), absent when the component stores nothing. A {@code byApp} row may carry its own {@code storageBytes}; the rows' sum is at most this total
  * (the remainder is stored but attributed to nobody, e.g. platform objects without an application). Storage is a quantity of its own: it never enters the CPU or
@@ -24,34 +24,34 @@ public record UsageReport(String contract, String component, String version, Str
         this(contract, component, version, instance, node, at, process, cgroup, attribution, byApp, unattributedShare, null);
     }
 
-    /** La valeur du champ {@code contract} : nom et version du contrat. */
+    /** The value of the {@code contract} field: name and version of the contract. */
     public static final String CONTRACT_ID = "gluonify-usage/1";
 
-    /** {@code attribution} : rien à attribuer. */
+    /** {@code attribution}: nothing to attribute. */
     public static final String NONE = "none";
-    /** {@code attribution} ou {@code basis} : compté à la source, sans estimation. */
+    /** {@code attribution} or {@code basis}: counted at the source, without estimation. */
     public static final String MEASURED = "measured";
-    /** {@code attribution} ou {@code basis} : au prorata d'une grandeur mesurée (indicatif). */
+    /** {@code attribution} or {@code basis}: pro rata of a measured quantity (indicative). */
     public static final String ESTIMATED = "estimated";
-    /** {@code attribution} ou {@code basis} : au prorata du temps ou des requêtes (indicatif). */
+    /** {@code attribution} or {@code basis}: pro rata of time or requests (indicative). */
     public static final String PRORATA = "prorata";
 
-    /** Nombre maximal de lignes {@code byApp} d'applications réelles (la ligne {@link #OTHER} ne compte pas). */
+    /** Maximum number of {@code byApp} rows of real applications (the {@link #OTHER} row does not count). */
     public static final int MAX_APPS = 500;
 
-    /** Application fictive, une seule ligne, qui regroupe les lignes au-delà de {@link #MAX_APPS}. */
+    /** Fictitious application, a single row, that groups the rows beyond {@link #MAX_APPS}. */
     public static final String OTHER = "_other";
 
-    /** Le processus du composant : obligatoire. {@code memoryKind} : {@code rss}, {@code pss} ou {@code cgroup}. */
+    /** The component's process: required. {@code memoryKind}: {@code rss}, {@code pss} or {@code cgroup}. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Process(Double cpuSecondsTotal, Long memoryBytes, String memoryKind, Long heapBytes, Integer threads, Long uptimeSeconds) {}
 
-    /** Le cgroup v2 du processus, quand il existe ; {@code memoryLimitBytes} absent si la limite est {@code max}. */
+    /** The process's cgroup v2, when it exists; {@code memoryLimitBytes} absent if the limit is {@code max}. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Cgroup(Double cpuSecondsTotal, Long memoryBytes, Long memoryLimitBytes) {}
 
     /**
-     * Part attribuable à une application (identifiée par son UUID, le nom sert à l'affichage). {@code storageBytes} (optional, additive): the bytes the component
+     * Share attributable to an application (identified by its UUID, the name is for display). {@code storageBytes} (optional, additive): the bytes the component
      * stores for this application, null when it stores nothing for it or does not know; never part of the CPU or memory split.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -65,13 +65,13 @@ public record UsageReport(String contract, String component, String version, Str
         }
     }
 
-    /** Ce qui n'est attribué à aucune application (la part fixe du composant). */
+    /** What is attributed to no application (the component's fixed share). */
     public record Share(double cpuSeconds, long memoryBytes) {}
 
     /**
-     * Assemble une réponse valide : ramène les parts à {@link #MAX_APPS} lignes (les plus grosses en mémoire, le reste dans {@link #OTHER}), les réduit
-     * proportionnellement si leur somme dépasse le total du processus (ce sont des estimations), et calcule la part non attribuée pour que
-     * {@code Σ byApp + unattributedShare = process} (CPU et mémoire). Sans part ({@code shares} vide ou {@code null}), l'attribution est {@link #NONE}.
+     * Assembles a valid response: brings the shares down to {@link #MAX_APPS} rows (the largest in memory, the rest in {@link #OTHER}), scales them down
+     * proportionally if their sum exceeds the process total (they are estimates), and computes the unattributed share so that
+     * {@code sum of byApp + unattributedShare = process} (CPU and memory). Without a share ({@code shares} empty or {@code null}), the attribution is {@link #NONE}.
      */
     public static UsageReport of(final String component, final String version, final String instance, final String node, final long at, final Process process,
             final Cgroup cgroup, final String attribution, final List<AppShare> shares) {
@@ -98,7 +98,7 @@ public record UsageReport(String contract, String component, String version, Str
                 List.copyOf(rows), rest, storage);
     }
 
-    /** Les parts, les plus grosses d'abord (mémoire, puis CPU, puis nom). */
+    /** The shares, largest first (memory, then CPU, then name). */
     private static List<AppShare> sorted(final List<AppShare> shares) {
         final List<AppShare> rows = new ArrayList<>(shares);
         rows.sort(Comparator.comparingLong(AppShare::memoryBytes).reversed().thenComparing(Comparator.comparingDouble(AppShare::cpuSeconds).reversed())
@@ -107,7 +107,7 @@ public record UsageReport(String contract, String component, String version, Str
     }
 
     /**
-     * Au-delà de {@link #MAX_APPS} lignes, le reste est fondu dans une ligne {@link #OTHER} ({@code basis} commun, sinon {@link #ESTIMATED}). A row named
+     * Beyond {@link #MAX_APPS} rows, the rest is merged into one {@link #OTHER} row (common {@code basis}, otherwise {@link #ESTIMATED}). A row named
      * {@link #OTHER} given by a contributor (its own overflow) joins that line, so there is never more than one.
      */
     private static List<AppShare> fold(final List<AppShare> all) {
@@ -132,7 +132,7 @@ public record UsageReport(String contract, String component, String version, Str
         return kept;
     }
 
-    /** Des parts dont la somme dépasse le processus sont des estimations : réduites au prorata pour tenir dans le total. */
+    /** Shares whose sum exceeds the process are estimates: scaled down pro rata to fit in the total. */
     private static List<AppShare> fitToTotal(final List<AppShare> rows, final double totalCpu, final long totalMemory) {
         final double sumCpu = sumCpu(rows);
         final long sumMemory = sumMemory(rows);

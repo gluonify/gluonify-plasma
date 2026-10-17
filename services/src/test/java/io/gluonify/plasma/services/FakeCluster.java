@@ -21,8 +21,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Faux cluster pour les tests (publié dans le test-jar, utilisé aussi par la CLI) : document de découverte de Higgs et Charm minimal (configuration
- * OpenID, {@code /authorize} avec PKCE S256, {@code /token} : code et rafraîchissement à usage unique, comme Charm).
+ * Fake cluster for tests (published in the test-jar, also used by the CLI): Higgs discovery document and a minimal Charm (OpenID
+ * configuration, {@code /authorize} with PKCE S256, {@code /token}: single-use code and refresh, like Charm).
  */
 public final class FakeCluster implements AutoCloseable {
     public static final String CLIENT_ID = "gluonify-cli";
@@ -32,19 +32,19 @@ public final class FakeCluster implements AutoCloseable {
     public final AtomicInteger refreshes = new AtomicInteger();
     public final AtomicInteger codeExchanges = new AtomicInteger();
     public volatile int discoveryStatus = 200;
-    /** Durée de vie des jetons d'accès émis (secondes). */
+    /** Lifetime of the issued access tokens (seconds). */
     public volatile long accessTtl = 3600;
-    /** Audiences portées par les jetons émis. */
+    /** Audiences carried by the issued tokens. */
     public volatile List<String> audiences = List.of("gluonify-crystallon", "gluonify-fermion");
-    /** Services publiés par la découverte : nom -> chemin sur ce serveur. */
+    /** Services published by discovery: name -> path on this server. */
     public final Map<String, String> services = new ConcurrentHashMap<>(Map.of("crystallon", "/crystallon", "fermion", "/fermion"));
-    /** Dernière demande reçue par /authorize (paramètres). */
+    /** Last request received by /authorize (parameters). */
     public volatile Map<String, String> lastAuthorize;
-    /** Dernier formulaire reçu par /token. */
+    /** Last form received by /token. */
     public volatile Map<String, String> lastToken;
 
     private final Map<String, String[]> codes = new ConcurrentHashMap<>(); // code -> {challenge, redirect}
-    private final Map<String, Boolean> refreshTokens = new ConcurrentHashMap<>(); // jeton -> utilisé
+    private final Map<String, Boolean> refreshTokens = new ConcurrentHashMap<>(); // token -> used
     private final AtomicInteger seq = new AtomicInteger();
 
     public FakeCluster() throws IOException {
@@ -70,14 +70,14 @@ public final class FakeCluster implements AutoCloseable {
         return base() + "/realms/gluonify";
     }
 
-    /** Un refresh token valide (non utilisé) émis par ce faux Charm. */
+    /** A valid (unused) refresh token issued by this fake Charm. */
     public String newRefreshToken() {
         final String rt = "rt-" + seq.incrementAndGet();
         refreshTokens.put(rt, Boolean.FALSE);
         return rt;
     }
 
-    /** Un faux JWT (signature factice) avec ces audiences. */
+    /** A fake JWT (dummy signature) with these audiences. */
     public String jwt(final List<String> aud) {
         final Base64.Encoder b = Base64.getUrlEncoder().withoutPadding();
         final Map<String, Object> claims = new LinkedHashMap<>();

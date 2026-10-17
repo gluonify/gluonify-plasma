@@ -18,12 +18,12 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Le test commun du contrat appliqué à la ressource du SDK, puis ses comportements propres (sans conteneur CDI : constructeur de test). */
+/** The common contract test applied to the SDK resource, then its own behaviours (without a CDI container: test constructor). */
 class UsageResourceTest extends UsageContractTests {
     static final JsonMapper JSON = JsonMapper.builder().build();
     static final String SECRET = "s3cret-value";
 
-    /** Un contributeur qui garde un secret en mémoire : la réponse n'en sait rien. */
+    /** A contributor that keeps a secret in memory: the response knows nothing about it. */
     static final UsageContributor CONTRIBUTOR = new UsageContributor() {
         @SuppressWarnings("unused")
         private final String password = SECRET;
@@ -63,7 +63,7 @@ class UsageResourceTest extends UsageContractTests {
         };
     }
 
-    /** Un faux {@code /proc} : 12 s de CPU (1 200 ticks), 8 Mio résidents. */
+    /** A fake {@code /proc}: 12 s of CPU (1,200 ticks), 8 MiB resident. */
     static Path fakeProc() {
         try {
             final Path proc = Files.createTempDirectory("usage-proc");
@@ -114,7 +114,7 @@ class UsageResourceTest extends UsageContractTests {
     }
 
     @Test
-    void roleDuProduitSuffitEtReponseNonMiseEnCache() {
+    void productRoleSufficesAndResponseNotCached() {
         final Response r = resource().usage(caller(Set.of("gluonify:gdown:usage:read")));
         assertEquals(200, r.getStatus());
         assertEquals("no-store", r.getHeaderString("Cache-Control"));
@@ -122,7 +122,7 @@ class UsageResourceTest extends UsageContractTests {
     }
 
     @Test
-    void sansContributeurAttributionNoneEtProcessSeul() {
+    void withoutContributorAttributionNoneAndProcessOnly() {
         final UsageReport r = resource().report();
         assertEquals(UsageReport.NONE, r.attribution());
         assertTrue(r.byApp().isEmpty());
@@ -135,7 +135,7 @@ class UsageResourceTest extends UsageContractTests {
     }
 
     @Test
-    void contributeurEnPanneNeFaitPasEchouerLeContrat() {
+    void failingContributorDoesNotFailTheContract() {
         final UsageContributor broken = () -> {
             throw new IllegalStateException("boom " + SECRET);
         };
@@ -145,7 +145,7 @@ class UsageResourceTest extends UsageContractTests {
     }
 
     @Test
-    void attributionLaPlusFaibleGagne() {
+    void weakestAttributionWins() {
         final UsageContributor measured = new UsageContributor() {
             @Override
             public List<AppShare> byApp() {
@@ -161,9 +161,9 @@ class UsageResourceTest extends UsageContractTests {
         assertEquals(UsageReport.ESTIMATED, resource(measured, CONTRIBUTOR).report().attribution());
     }
 
-    /** Le contrôle hérité {@code aucunSecret} n'est pas tautologique : une valeur de {@link #secrets()} qui fuirait dans le corps serait bien vue. */
+    /** The inherited {@code noSecret} check is not tautological: a value of {@link #secrets()} that leaked into the body would be caught. */
     @Test
-    void unSecretQuiFuiraitSeraitDetecte() {
+    void aLeakingSecretWouldBeDetected() {
         final UsageContributor leaking = () -> List.of(new AppShare("shop", "u1", 0.001, 1024, "estimated", "db " + SECRET));
         final Response r = resource(leaking).usage(caller(Set.of(UsageResource.ROLE)));
         final String body = new String(JSON.writeValueAsBytes(r.getEntity()), java.nio.charset.StandardCharsets.UTF_8);

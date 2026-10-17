@@ -7,9 +7,9 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Catalogue FERMÉ des tâches qu'un nœud accepte du control-plane (voir gluonify-codex/docs/BOOTSTRAP.md). Un type absent d'ici est refusé ; chaque paramètre a un motif
- * strict, et aucun paramètre inconnu n'est toléré. Un paramètre n'est JAMAIS une commande, un chemin ou une URL : seulement un nom, une adresse, une version ou un booléen.
- * Le même catalogue sert au control-plane (avant d'envoyer) et au nœud (avant d'exécuter) : le nœud ne fait pas confiance à l'émetteur.
+ * CLOSED catalogue of the tasks a node accepts from the control-plane (see gluonify-codex/docs/BOOTSTRAP.md). A type absent from here is refused; each parameter has a strict
+ * pattern, and no unknown parameter is tolerated. A parameter is NEVER a command, a path or a URL: only a name, an address, a version or a boolean.
+ * The same catalogue serves the control-plane (before sending) and the node (before executing): the node does not trust the sender.
  */
 public final class TaskCatalogue {
     private TaskCatalogue() {}
@@ -17,10 +17,10 @@ public final class TaskCatalogue {
     public static final String BOOTSTRAP = "bootstrap";
     public static final String AGENT = "agent";
 
-    /** @param secret true : la valeur n'est jamais écrite dans les journaux ni les évènements. */
+    /** @param secret true: the value is never written to logs or events. */
     public record Param(String name, Pattern pattern, boolean required, boolean secret) {}
 
-    /** @param modes « bootstrap » (agent d'installation) et/ou « agent » (nœud installé). */
+    /** @param modes "bootstrap" (installation agent) and/or "agent" (installed node). */
     public record Type(String name, Set<String> modes, List<Param> params, int timeoutSec) {
         public Param param(String n) {
             return params.stream().filter(p -> p.name().equals(n)).findFirst().orElse(null);
@@ -70,7 +70,7 @@ public final class TaskCatalogue {
         t.put("install-higgs", new Type("install-higgs", boot, List.of(req("version", VERSION), req("zone", HOST), req("publicIp", IPS), req("httpUrl", URL),
                 req("nodeId", NAME), req("advertise", HOST), req("seed", HOSTPORT), new Param("seedToken", TOKEN, true, true), opt("mode", CP_MODE),
                 opt("dnsMode", DNS_MODE), opt("acmeEmail", EMAIL), opt("wireguard", BOOL)), 900));
-        // la nouvelle clé vient de l'annonce signée de la version (rollover.json), JAMAIS d'un paramètre : seulement la version à lire et « finalize »
+        // the new key comes from the version's signed announcement (rollover.json), NEVER from a parameter: only the version to read and "finalize"
         t.put("rotate-release-key", new Type("rotate-release-key", both, List.of(req("version", VERSION), opt("finalize", BOOL)), 120));
         t.put("update", new Type("update", agent, List.of(req("component", COMPONENT), req("version", VERSION)), 900));
         t.put("rollback", new Type("rollback", agent, List.of(req("component", COMPONENT)), 300));
@@ -79,31 +79,31 @@ public final class TaskCatalogue {
     }
 
     /**
-     * Valide une tâche pour un mode d'exécution ; retourne les paramètres (copie). Rejette : type inconnu ou non permis dans ce mode, paramètre inconnu, absent, trop long
-     * ou hors motif, trop de paramètres.
+     * Validates a task for an execution mode; returns the parameters (copy). Rejects: unknown type or type not allowed in this mode, unknown or missing parameter, too long
+     * or outside the pattern, too many parameters.
      */
     public static Map<String, String> validate(String type, Map<String, String> params, String mode) {
         Type t = type == null ? null : TYPES.get(type);
-        if (t == null) throw new Invalid("type de tâche inconnu");
-        if (!t.modes().contains(mode)) throw new Invalid("tâche « " + type + " » non permise en mode " + mode);
+        if (t == null) throw new Invalid("unknown task type");
+        if (!t.modes().contains(mode)) throw new Invalid("task \"" + type + "\" not allowed in mode " + mode);
         Map<String, String> p = params == null ? Map.of() : params;
-        if (p.size() > MAX_PARAMS) throw new Invalid("trop de paramètres");
+        if (p.size() > MAX_PARAMS) throw new Invalid("too many parameters");
         int total = 0;
         Map<String, String> out = new LinkedHashMap<>();
         for (var e : p.entrySet()) {
             Param spec = t.param(e.getKey());
-            if (spec == null) throw new Invalid("paramètre inconnu : " + e.getKey());
+            if (spec == null) throw new Invalid("unknown parameter: " + e.getKey());
             String v = e.getValue();
-            if (v == null || v.length() > MAX_VALUE || !spec.pattern().matcher(v).matches()) throw new Invalid("valeur invalide pour « " + e.getKey() + " »");
+            if (v == null || v.length() > MAX_VALUE || !spec.pattern().matcher(v).matches()) throw new Invalid("invalid value for \"" + e.getKey() + "\"");
             total += v.length();
             out.put(e.getKey(), v);
         }
-        if (total > MAX_TOTAL) throw new Invalid("paramètres trop volumineux");
-        for (Param spec : t.params()) if (spec.required() && !out.containsKey(spec.name())) throw new Invalid("paramètre obligatoire absent : " + spec.name());
+        if (total > MAX_TOTAL) throw new Invalid("parameters too large");
+        for (Param spec : t.params()) if (spec.required() && !out.containsKey(spec.name())) throw new Invalid("missing mandatory parameter: " + spec.name());
         return out;
     }
 
-    /** Paramètres sans les valeurs secrètes (journal, évènements, résultats). */
+    /** Parameters without the secret values (log, events, results). */
     public static Map<String, String> masked(String type, Map<String, String> params) {
         Type t = TYPES.get(type);
         Map<String, String> out = new LinkedHashMap<>();

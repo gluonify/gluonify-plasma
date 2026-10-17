@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-/** {@link Jackson2Codec#of} garde le mapper de l'application tel quel. Ne tourne que si Jackson 2 est présent. */
+/** {@link Jackson2Codec#of} keeps the application's mapper as is. Runs only if Jackson 2 is present. */
 class Jackson2CodecOfTest {
     @Test
     void usesTheMapperOfTheApplication() {
@@ -15,7 +15,7 @@ class Jackson2CodecOfTest {
         Holder.check();
     }
 
-    /** Isolé : le test ne référence Jackson 2 que dans cette classe. */
+    /** Isolated: the test references Jackson 2 only in this class. */
     private static final class Holder {
         static void check() {
             final com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper()

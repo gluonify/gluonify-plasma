@@ -10,7 +10,7 @@ import java.time.LocalDate;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-/** Jackson 2 sans {@code jackson-datatype-jsr310} (exécution {@code jackson2-without-jsr310}) : le codec marche, et refuse une date avec le bon conseil. */
+/** Jackson 2 without {@code jackson-datatype-jsr310} (execution {@code jackson2-without-jsr310}): the codec works, and rejects a date with the right advice. */
 class Jackson2NoJavaTimeTest {
     @Test
     void theClasspathHasJackson2OnlyAndNoJavaTimeModule() {

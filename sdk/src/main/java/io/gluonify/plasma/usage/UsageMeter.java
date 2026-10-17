@@ -11,10 +11,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
 /**
- * Compteurs d'usage d'un émetteur, par fenêtre d'une minute alignée sur l'horloge ({@code metering.md} § 4.2) et par clé {@code (env, org, app, appUuid, kind, unit, dims)}.
- * {@link #add} ne bloque jamais (une table concurrente par fenêtre) ; {@link #drain} rend les fenêtres closes en enregistrements, numérotés par un {@code seq} croissant.
- * Une unité hors du catalogue de CE service, ou une dimension non énumérée, est refusée ({@link #invalid()} la compte, jamais d'exception).
- * Au-delà de {@code maxKeysPerWindow} clés dans une fenêtre, les suivantes sont fusionnées dans {@code app = _overflow} de la même organisation (§ 4.4) : jamais abandonnées.
+ * Usage counters of an emitter, per one-minute window aligned on the clock ({@code metering.md} § 4.2) and per key {@code (env, org, app, appUuid, kind, unit, dims)}.
+ * {@link #add} never blocks (one concurrent table per window); {@link #drain} returns the closed windows as records, numbered by an increasing {@code seq}.
+ * A unit outside THIS service's catalog, or a non-enumerated dimension, is refused ({@link #invalid()} counts it, never an exception).
+ * Beyond {@code maxKeysPerWindow} keys in a window, the following ones are merged into {@code app = _overflow} of the same organization (§ 4.4): never dropped.
  */
 public final class UsageMeter {
     public static final String OVERFLOW = "_overflow";
@@ -26,14 +26,14 @@ public final class UsageMeter {
     private final ConcurrentHashMap<Long, ConcurrentHashMap<String, Cell>> windows = new ConcurrentHashMap<>();
     private final AtomicLong invalid = new AtomicLong(), overflowed = new AtomicLong();
 
-    /** Source des numéros de séquence (persistée par {@link UsageSpool}, en mémoire sinon). */
+    /** Source of sequence numbers (persisted by {@link UsageSpool}, in memory otherwise). */
     public interface SeqSource {
         long next();
 
         long epoch();
     }
 
-    /** Suite en mémoire, qui repart de 1 à chaque démarrage (époque = date de création). */
+    /** In-memory sequence, restarting from 1 at each startup (epoch = creation date). */
     public static SeqSource memorySeq(long epoch) {
         AtomicLong n = new AtomicLong();
         return new SeqSource() {
@@ -80,23 +80,23 @@ public final class UsageMeter {
     private static final BigDecimal GB_HOUR_BYTE_SECONDS = BigDecimal.valueOf(1L << 30).multiply(BigDecimal.valueOf(3600));
     private static final BigDecimal MB = BigDecimal.valueOf(1L << 20);
 
-    /** Go × h d'un volume de {@code bytes} gardé {@code seconds} s (Go = 2³⁰ octets), 9 décimales, arrondi vers le bas. */
+    /** GB x h of a volume of {@code bytes} kept for {@code seconds} s (GB = 2^30 bytes), 9 decimal places, rounded down. */
     public static BigDecimal gbHours(long bytes, long seconds) {
         return BigDecimal.valueOf(bytes).multiply(BigDecimal.valueOf(seconds)).divide(GB_HOUR_BYTE_SECONDS, 9, java.math.RoundingMode.DOWN);
     }
 
-    /** Mo × s de {@code bytes} gardés {@code seconds} s (Mo = 2²⁰ octets), 9 décimales, arrondi vers le bas. */
+    /** MB x s of {@code bytes} kept for {@code seconds} s (MB = 2^20 bytes), 9 decimal places, rounded down. */
     public static BigDecimal mbSeconds(long bytes, double seconds) {
         return BigDecimal.valueOf(bytes).multiply(BigDecimal.valueOf(seconds)).divide(MB, 9, java.math.RoundingMode.DOWN);
     }
 
-    /** Unités refusées (hors catalogue du service, dimension inconnue, quantité négative). */
+    /** Refused units (not in the service's catalog, unknown dimension, negative quantity). */
     public long invalid() { return invalid.get(); }
 
-    /** Clés fusionnées dans {@code _overflow}. */
+    /** Keys merged into {@code _overflow}. */
     public long overflowed() { return overflowed.get(); }
 
-    /** Ajoute {@code quantity} à la fenêtre courante. */
+    /** Adds {@code quantity} to the current window. */
     public boolean add(UsageRecord.Subject subject, String unit, Map<String, String> dims, BigDecimal quantity) {
         return add(clock.getAsLong(), subject, unit, dims, quantity, false, null);
     }
@@ -106,8 +106,8 @@ public final class UsageMeter {
     }
 
     /**
-     * Ajoute {@code quantity} à la fenêtre qui contient {@code at} (ms). {@code internal}/{@code onBehalfOf} : usage d'un service de la plateforme (§ 3.5).
-     * Faux si l'unité est refusée.
+     * Adds {@code quantity} to the window that contains {@code at} (ms). {@code internal}/{@code onBehalfOf}: usage by a platform service (§ 3.5).
+     * False if the unit is refused.
      */
     public boolean add(long at, UsageRecord.Subject subject, String unit, Map<String, String> dims, BigDecimal quantity, boolean internal, String onBehalfOf) {
         UsageUnit u = UsageCatalog.get(unit);
@@ -148,12 +148,12 @@ public final class UsageMeter {
         return true;
     }
 
-    /** Enregistrements des fenêtres closes (fin ≤ maintenant), retirés des compteurs. */
+    /** Records of the closed windows (end <= now), removed from the counters. */
     public List<UsageRecord> drain() {
         return drain(clock.getAsLong());
     }
 
-    /** Toutes les fenêtres closes à {@code now} ; avec {@code now = Long.MAX_VALUE}, aussi la fenêtre en cours (arrêt du service). */
+    /** All the windows closed at {@code now}; with {@code now = Long.MAX_VALUE}, the current window too (service shutdown). */
     public synchronized List<UsageRecord> drain(long now) {
         List<UsageRecord> out = new ArrayList<>();
         List<Long> closed = new ArrayList<>();

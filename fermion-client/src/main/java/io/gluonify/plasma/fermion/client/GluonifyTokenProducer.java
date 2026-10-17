@@ -6,8 +6,8 @@ import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
 
 /**
- * Le {@link FermionTokenProvider} par défaut : {@link FermionTokenProvider#gluonify()} (jeton d'application sur la plateforme, jeton du
- * développeur sur le poste). Un bean {@code FermionTokenProvider} de l'application le remplace ({@link DefaultBean}).
+ * The default {@link FermionTokenProvider}: {@link FermionTokenProvider#gluonify()} (application token on the platform, developer token
+ * on the workstation). An application {@code FermionTokenProvider} bean replaces it ({@link DefaultBean}).
  */
 @ApplicationScoped
 public class GluonifyTokenProducer {

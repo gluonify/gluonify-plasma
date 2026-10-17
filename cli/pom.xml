@@ -10,7 +10,7 @@
   </parent>
   <artifactId>gluonify-plasma-cli</artifactId>
   <name>Gluonify Plasma CLI</name>
-  <description>La commande gluonify du poste du développeur : login (PKCE dans le navigateur), logout, status, token. Jar exécutable, Java 17.</description>
+  <description>The gluonify command for the developer's workstation: login (PKCE in the browser), logout, status, token. Executable jar, Java 17.</description>
 
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
@@ -24,7 +24,7 @@
 
   <build>
     <plugins>
-      <!-- Jar exécutable autonome : java -jar gluonify-plasma-cli-<version>.jar login gluonify.lan -->
+      <!-- Standalone executable jar: java -jar gluonify-plasma-cli-<version>.jar login gluonify.lan -->
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.6.0</version>
