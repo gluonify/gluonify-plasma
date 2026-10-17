@@ -49,6 +49,12 @@
       </dependency>
       <dependency>
         <groupId>io.gluonify.plasma</groupId>
+        <artifactId>gluonify-plasma-sdk</artifactId>
+        <version>${project.version}</version>
+        <type>test-jar</type>
+      </dependency>
+      <dependency>
+        <groupId>io.gluonify.plasma</groupId>
         <artifactId>gluonify-plasma-fermion-client</artifactId>
         <version>${project.version}</version>
       </dependency>

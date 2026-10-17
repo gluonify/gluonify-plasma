@@ -223,6 +223,36 @@
       "allDeclaredFields": true
     },
     {
+      "type": "io.gluonify.plasma.usage.UsageReport",
+      "allDeclaredConstructors": true,
+      "allDeclaredMethods": true,
+      "allDeclaredFields": true
+    },
+    {
+      "type": "io.gluonify.plasma.usage.UsageReport$Process",
+      "allDeclaredConstructors": true,
+      "allDeclaredMethods": true,
+      "allDeclaredFields": true
+    },
+    {
+      "type": "io.gluonify.plasma.usage.UsageReport$Cgroup",
+      "allDeclaredConstructors": true,
+      "allDeclaredMethods": true,
+      "allDeclaredFields": true
+    },
+    {
+      "type": "io.gluonify.plasma.usage.UsageReport$AppShare",
+      "allDeclaredConstructors": true,
+      "allDeclaredMethods": true,
+      "allDeclaredFields": true
+    },
+    {
+      "type": "io.gluonify.plasma.usage.UsageReport$Share",
+      "allDeclaredConstructors": true,
+      "allDeclaredMethods": true,
+      "allDeclaredFields": true
+    },
+    {
       "type": "io.gluonify.plasma.usage.UsageUnit",
       "allDeclaredConstructors": true,
       "allDeclaredMethods": true,
@@ -272,6 +302,9 @@
     },
     {
       "type": "io.gluonify.plasma.contracts.Violation[]"
+    },
+    {
+      "type": "io.gluonify.plasma.usage.UsageReport$AppShare[]"
     },
     {
       "type": "java.lang.Integer[]"
