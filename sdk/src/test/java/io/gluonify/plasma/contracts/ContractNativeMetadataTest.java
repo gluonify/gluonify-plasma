@@ -31,7 +31,7 @@ class ContractNativeMetadataTest {
     static final String METADATA = "/META-INF/native-image/io.gluonify.plasma/gluonify-plasma-sdk/reachability-metadata.json";
 
     static final Class<?>[] ROOTS = {Organization.class, PriceList.class, ContractVersion.class, Violation.class, Pricing.Section.class,
-            Pricing.Statement.class, AnalysisReport.class, UsageUnit.class, io.gluonify.plasma.usage.UsageReport.class};
+            Pricing.Statement.class, AnalysisReport.class, UsageUnit.class, io.gluonify.plasma.usage.UsageReport.class, io.gluonify.plasma.ws.Msg.UsageReport.class};
 
     @Test
     void tableauxDesListesEnregistres() throws Exception {
@@ -56,7 +56,7 @@ class ContractNativeMetadataTest {
         for (final Class<?> c : listElements()) {
             names.add(c.getSimpleName());
         }
-        assertTrue(names.containsAll(Set.of("ContractVersion", "PriceListVersion", "PriceLine", "PriceOverride", "Tier", "Finding", "Integer", "String")),
+        assertTrue(names.containsAll(Set.of("ContractVersion", "PriceListVersion", "PriceLine", "PriceOverride", "Tier", "Finding", "Integer", "String", "UsageInstance", "AppShare")),
                 names.toString());
     }
 

@@ -14,8 +14,8 @@ import java.util.Map;
  * <ul>
  *   <li>nœud -> CP : {@link Hello} (identité connue) ou {@link Enroll} (premier démarrage, jeton à usage unique), puis {@link Ready} (une instance devient prête, ou ne l'est plus : tout de suite) et {@link State}
  *       toutes les 5 s, {@link TokensRequest}, {@link ServiceTokensRequest} et {@link Redeploy} (le top a redéployé un namespace) à la demande ;</li>
- *   <li>CP -> nœud : {@link Welcome} ou {@link Enrolled}, puis {@link Desired} (état désiré) dès qu'il change, {@link Tokens} et {@link ServiceTokens} en réponse
- *       et {@link Error} (suivie de la fermeture) en cas de refus.</li>
+ *   <li>CP -> node: {@link Welcome} or {@link Enrolled}, then {@link Desired} (desired state) whenever it changes, {@link Tokens} and {@link ServiceTokens} as replies,
+ *       {@link InstanceReportRequest} and {@link UsageRequest} on demand (report and usage, never waking an application), and {@link Error} (followed by the close) on refusal.</li>
  * </ul>
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "t")
@@ -40,6 +40,8 @@ import java.util.Map;
         @JsonSubTypes.Type(value = Msg.LogsStop.class, name = "logs-stop"),
         @JsonSubTypes.Type(value = Msg.InstanceReportRequest.class, name = "instance-report-request"),
         @JsonSubTypes.Type(value = Msg.InstanceReport.class, name = "instance-report"),
+        @JsonSubTypes.Type(value = Msg.UsageRequest.class, name = "usage-request"),
+        @JsonSubTypes.Type(value = Msg.UsageReport.class, name = "usage-report"),
         @JsonSubTypes.Type(value = Msg.BootstrapHello.class, name = "bootstrap-hello"),
         @JsonSubTypes.Type(value = Msg.BootstrapAccepted.class, name = "bootstrap-accepted"),
         @JsonSubTypes.Type(value = Msg.BootstrapDone.class, name = "bootstrap-done"),
@@ -196,6 +198,48 @@ public sealed interface Msg {
      */
     record InstanceReport(long id, int status, String error, String instance, String state, long since, boolean running, Double cpuSeconds, Double memoryBytes, boolean lastKnown,
                           long measuredAt, Startup startup, long starts, List<String> logs, long at) implements Msg {}
+
+    /**
+     * Usage of the node, requested by the control-plane (control-plane -> node) for the aggregation behind Higgs' {@code GET /usage} (gluonify-codex/plans/usage-mcp.md
+     * § 5.1 and § 5.2): the {@code gluonify-usage/1} usage contract of the agent's own process, plus the cgroup counters of EVERY instance of the node, asleep ones included
+     * (frozen or stopped: last known values). Like {@link InstanceReportRequest}, it NEVER touches an application (neither its port nor {@code /q/metrics}): no wake-up.
+     * {@code apps}: application names wanted; empty or absent = every instance of the node. Reply: {@link UsageReport} with the same {@code id}. Additive message of the
+     * {@link #FEATURE_USAGE} family: only a control-plane announcing that feature knows it, and an older agent ignores it without replying (the control-plane applies a
+     * timeout and reports the node as {@code reachable: false}, never a global error).
+     */
+    record UsageRequest(long id, List<String> apps) implements Msg {
+        public UsageRequest {
+            apps = apps == null ? List.of() : List.copyOf(apps);
+        }
+
+        /** Every instance of the node. */
+        public UsageRequest(long id) {
+            this(id, null);
+        }
+    }
+
+    /**
+     * Reply to {@link UsageRequest}: {@code status} 200 (500: failure, short {@code error}, never a secret); {@code node}: node id; {@code at}: epoch ms of the reply;
+     * {@code agent}: the {@code gluonify-usage/1} contract of the agent's process ({@code process}, {@code cgroup}, per-application shares of what the agent can attribute:
+     * the {@code /distributed/*} gateway pro rata of relayed bytes, indicative), {@code null} when the agent could not read it; {@code instances}: one line per instance
+     * desired on this node ({@link UsageInstance}), never an unknown instance. The "billable" CPU and memory of an instance are those lines (cgroup read by the agent), not
+     * the instance's own {@code /q/usage}.
+     */
+    record UsageReport(long id, int status, String error, String node, long at, io.gluonify.plasma.usage.UsageReport agent, List<UsageInstance> instances) implements Msg {
+        public UsageReport {
+            instances = instances == null ? List.of() : List.copyOf(instances);
+        }
+    }
+
+    /**
+     * Usage of one instance in {@link UsageReport}: {@code app} and {@code uuid} (the platform's attribution key; null with an older control-plane that does not send it);
+     * {@code state}: active | frozen | stopped | absent (desired but without a unit, outside sleep); {@code running}: the unit exists (a frozen one is still running);
+     * {@code reservedMb}: reserved memory (memoryMb + scratchMb); {@code cpuSeconds} (CUMULATIVE counter, never a percentage; null with the {@code nerdctl} runtime) and
+     * {@code memoryBytes}: read from the cgroup of a running instance (frozen included) or, for a stopped one, last known values ({@code lastKnown} true, measured at
+     * {@code measuredAt}, epoch ms); null if never measured; {@code tasks}: cgroup threads (null if unknown). Same source and same rules as {@link InstanceReport}.
+     */
+    record UsageInstance(String instance, String app, String uuid, String state, boolean running, int reservedMb, Double cpuSeconds, Double memoryBytes, Double tasks, boolean lastKnown,
+                         long measuredAt) {}
 
     /**
      * Suivi du journal en continu (control-plane -> nœud) : le nœud répond par une suite de {@link LogsChunk} d'identifiant {@code id} (les {@code tail} dernières lignes, puis les

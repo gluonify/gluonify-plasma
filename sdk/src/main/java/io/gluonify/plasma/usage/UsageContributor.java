@@ -12,6 +12,14 @@ public interface UsageContributor {
     /** Les parts par application (CPU cumulé en secondes, mémoire en octets) ; vide si rien à attribuer. */
     Collection<AppShare> byApp();
 
+    /**
+     * Same thing, given the process as {@link UsageResource} has just measured it: for a component that splits its own totals pro rata of some measured quantity
+     * (bytes, requests) without reading {@code /proc} again. Defaults to {@link #byApp()}.
+     */
+    default Collection<AppShare> byApp(final UsageReport.Process process) {
+        return byApp();
+    }
+
     /** {@link UsageReport#MEASURED}, {@link UsageReport#ESTIMATED} ou {@link UsageReport#PRORATA} ; par défaut {@code estimated} (indicatif). */
     default String attribution() {
         return UsageReport.ESTIMATED;

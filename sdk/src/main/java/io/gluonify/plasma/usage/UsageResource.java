@@ -64,7 +64,11 @@ public class UsageResource {
         }, component.orElse(name.startsWith(BRAND_PREFIX) ? name.substring(BRAND_PREFIX.length()) : name), version, instance.orElse(null), node.orElse(null));
     }
 
-    UsageResource(final ProcessUsage usage, final LongSupplier clock, final Supplier<List<UsageContributor>> contributors,
+    /**
+     * Explicit constructor (component tests: a fake {@code /proc} on a workstation without one, fixed clock and contributors; install it with
+     * {@code QuarkusMock.installMockForType(..., UsageResource.class)} in a Quarkus test).
+     */
+    public UsageResource(final ProcessUsage usage, final LongSupplier clock, final Supplier<List<UsageContributor>> contributors,
             final String component, final String version, final String instance, final String node) {
         this.usage = usage;
         this.clock = clock;
@@ -87,12 +91,14 @@ public class UsageResource {
         return Response.ok(report()).header(CACHE_CONTROL, NO_STORE).build();
     }
 
-    UsageReport report() {
+    /** The component's contract as {@code GET /q/usage} returns it; public for a component that also sends it over another channel (Strange: {@code Msg.UsageReport}). */
+    public UsageReport report() {
         final List<AppShare> shares = new ArrayList<>();
         String attribution = UsageReport.NONE;
+        final UsageReport.Process process = usage.process();
         try {
             for (final UsageContributor c : contributors.get()) {
-                final var rows = c.byApp();
+                final var rows = c.byApp(process);
                 if (rows != null && !rows.isEmpty()) {
                     shares.addAll(rows);
                     attribution = weakest(attribution, c.attribution());
@@ -104,7 +110,7 @@ public class UsageResource {
             shares.clear();
             attribution = UsageReport.NONE;
         }
-        return UsageReport.of(component, version, instance, node, clock.getAsLong(), usage.process(), usage.cgroup(), attribution, shares);
+        return UsageReport.of(component, version, instance, node, clock.getAsLong(), process, usage.cgroup(), attribution, shares);
     }
 
     /** La confiance la plus faible gagne : {@code measured} > {@code prorata} > {@code estimated} ; {@code none} cède devant toute attribution. */

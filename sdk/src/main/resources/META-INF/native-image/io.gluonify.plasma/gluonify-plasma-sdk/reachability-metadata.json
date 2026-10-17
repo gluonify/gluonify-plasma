@@ -307,6 +307,9 @@
       "type": "io.gluonify.plasma.usage.UsageReport$AppShare[]"
     },
     {
+      "type": "io.gluonify.plasma.ws.Msg$UsageInstance[]"
+    },
+    {
       "type": "java.lang.Integer[]"
     },
     {
