@@ -35,7 +35,14 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
                               + "The scheduler never places the application on an amd64 node of a lower level (a v3 executable does not start on a v2 processor). Written by Bup, which knows the level of its build; "
                               + "absent: v1, the executable runs everywhere (compatibility).", example = "amd64:v3") String artifactLevel,
                       @Schema(description = "Python application (Bup python framework, gluonify-codex/python.md § 3 bis): targeted python3 minor version, \"3.13\". "
-                              + "The scheduler places it only on a node that advertises the same version (Msg.Host.pythonVersion). Written by Bup; absent: not a Python application.", example = "3.13") String pythonVersion) {
+                              + "The scheduler places it only on a node that advertises the same version (Msg.Host.pythonVersion). Written by Bup; absent: not a Python application.", example = "3.13") String pythonVersion,
+                      @Schema(description = "true: the application exposes MCP tools on POST /mcp (SDK module gluonify-plasma-mcp or gluonify.fastapi.mcp, gluonify-codex/app-mcp.md): "
+                              + "Prism discovers and relays them to the organization's AI assistants; the public ingress never serves /mcp in PRD. Written by Bup from the SDK marker; absent or false: no MCP tools, Prism relays nothing.", example = "true") Boolean mcp) {
+    /** Compatibility: no MCP tools. */
+    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, String organization, String provenance, String artifactLevel, String pythonVersion) {
+        this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, null);
+    }
+
     /** Compatibility: not a Python application. */
     public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, String organization, String provenance, String artifactLevel) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, null);
@@ -113,28 +120,36 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
 
     /** Copy of the specification attached to another organization (null: to none). */
     public AppSpec withOrganization(String org) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, org, provenance, artifactLevel, pythonVersion);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, org, provenance, artifactLevel, pythonVersion, mcp);
     }
 
     /** Copy with another quota per distributed file system (MB; null: none). Higgs writes the default quota of the organization's contract into it. */
     public AppSpec withDistributedQuotaMb(Integer mb) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, mb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, mb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, mcp);
     }
 
     /** Copy with another provenance token (null: none). */
     public AppSpec withProvenance(String token) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, token, artifactLevel, pythonVersion);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, token, artifactLevel, pythonVersion, mcp);
     }
 
     /** Copy with another executable level (null: v1). */
     public AppSpec withArtifactLevel(String level) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, level, pythonVersion);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, level, pythonVersion, mcp);
     }
 
     /** Copy with another Python version (null: not a Python application). */
     public AppSpec withPythonVersion(String version) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, version);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, version, mcp);
     }
+
+    /** Copy with the MCP flag set or cleared (false or null: no MCP tools). */
+    public AppSpec withMcp(Boolean value) {
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, value);
+    }
+
+    /** True if the application declares MCP tools ({@code mcp: true}): only then does Prism discover and relay them. */
+    public boolean mcpEnabled() { return Boolean.TRUE.equals(mcp); }
 
     /** x86-64 level required on a node of architecture {@code arch}: that of {@link #artifactLevel} for amd64, otherwise 1 (no requirement). */
     public int requiredX86Level(String arch) {
@@ -235,6 +250,7 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
             if (!artifactLevel.matches("amd64:v[1-4]")) throw new IllegalArgumentException("artifactLevel: \"amd64:v1\" to \"amd64:v4\" expected");
         }
         pythonVersion = PythonVersions.normalize(pythonVersion);
+        mcp = Boolean.TRUE.equals(mcp) ? Boolean.TRUE : null; // false and absent are the same: stable equality and JSON of the stored specification
         if (provenance != null && !io.gluonify.plasma.provenance.Provenance.wellFormed(provenance)) throw new IllegalArgumentException("provenance: unreadable token (base64url.base64url expected)");
         if (replicas < 0 || replicas > 100) throw new IllegalArgumentException("replicas out of range");
         if (port < 1 || port > 65535) throw new IllegalArgumentException("invalid port");

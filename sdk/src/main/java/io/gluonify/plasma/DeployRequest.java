@@ -24,7 +24,15 @@ public record DeployRequest(@Schema(description = "OCI image of the native Quark
                             @Schema(description = "Provenance token (gluonify-codex/provenance.md), signed by a trusted key (Bup attaches it to every deployment): base64url(statement).base64url(signature). "
                                     + "Without it, changing the executable or the image requires gluonify:higgs:deploy:binary or gluonify:higgs:deploy:image, roles granted to nobody.") String provenance,
         @Schema(description = "Instruction-set level required by the executable: \"amd64:v1\" to \"amd64:v4\" (Bup sends it with the build); absent: v1, placed everywhere", example = "amd64:v3") String artifactLevel,
-        @Schema(description = "Python application: targeted python3 minor version, \"3.13\" (Bup sends it with a python framework archive); placed only on nodes that advertise the same version. Absent: not a Python application", example = "3.13") String pythonVersion) {
+        @Schema(description = "Python application: targeted python3 minor version, \"3.13\" (Bup sends it with a python framework archive); placed only on nodes that advertise the same version. Absent: not a Python application", example = "3.13") String pythonVersion,
+        @Schema(description = "true: the application exposes MCP tools on POST /mcp, relayed by Prism to the organization's AI assistants (gluonify-codex/app-mcp.md); Bup sends it when the SDK marker is present. Absent or false: no MCP tools", example = "true") Boolean mcp) {
+    /** Compatibility: no MCP tools. */
+    public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
+                         Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
+                         java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, Boolean gdownDatabase, String organization, String provenance, String artifactLevel, String pythonVersion) {
+        this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, gdownDatabase, organization, provenance, artifactLevel, pythonVersion, null);
+    }
+
     /** Compatibility: not a Python application. */
     public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
                          Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
@@ -115,7 +123,7 @@ public record DeployRequest(@Schema(description = "OCI image of the native Quark
             u = new java.util.ArrayList<>(uses == null ? java.util.List.of() : uses);
             if (!u.contains("gdown")) u.add("gdown");
         }
-        return new AppSpec(name, image, replicas, port, memoryMb, ns, artifacts, uuid, scratchMb, nas, e, g, u, pin, internal, ports, null, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, Organizations.UNASSIGNED.equals(organization) ? null : organization, provenance, artifactLevel, pythonVersion);
+        return new AppSpec(name, image, replicas, port, memoryMb, ns, artifacts, uuid, scratchMb, nas, e, g, u, pin, internal, ports, null, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, Organizations.UNASSIGNED.equals(organization) ? null : organization, provenance, artifactLevel, pythonVersion, mcp);
     }
 
     /** Name of the startup secret that carries the password of the dedicated database: specific to the application, value generated and kept by the control-plane. */
