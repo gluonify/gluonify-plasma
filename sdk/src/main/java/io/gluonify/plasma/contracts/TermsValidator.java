@@ -46,6 +46,7 @@ public final class TermsValidator {
         }
         if (t.environments() != null) for (String env : t.environments()) if (env == null || !ENV.matcher(env).matches()) e.add("environments : invalid name (" + env + ")");
         if (t.services() != null) services(t.services(), e);
+        planRef(t.plan(), e);
         if (t.quotas() != null) quotas(t.quotas(), "quotas", e);
         if (t.quotasByEnv() != null) t.quotasByEnv().forEach((env, q) -> {
             if (!ENV.matcher(env).matches()) e.add("quotasByEnv : invalid environment (" + env + ")");
@@ -131,6 +132,26 @@ public final class TermsValidator {
         }
         if (s.distributed() != null) for (String d : s.distributed()) if (!DISTRIBUTED.contains(d)) e.add("services.distributed : std, tmp or gdown (" + d + ")");
         if (s.routeKinds() != null) for (String k : s.routeKinds()) if (!ROUTE_KINDS.contains(k)) e.add("services.routeKinds : app, gdown or upstream (" + k + ")");
+        if (s.consoles() != null) for (String c : s.consoles()) {
+            if (c == null || !NAME.matcher(c).matches()) e.add("services.consoles : invalid name (" + c + ")");
+            else if (s.uses() != null && !s.uses().contains(c)) e.add("services.consoles : " + c + " is not in services.uses (a console is never broader than uses)");
+        }
+    }
+
+    /** Errors of a plan reference: identifier and version >= 1 (null: valid, no plan). */
+    static void planRef(ContractTerms.PlanRef r, List<String> e) {
+        if (r == null) return;
+        if (r.id() == null || !Plan.ID.matcher(r.id()).matches()) e.add("plan.id : invalid identifier (" + r.id() + ")");
+        if (r.version() == null || r.version() < 1) e.add("plan.version : integer >= 1 required");
+    }
+
+    /** Errors of a plan version's terms: the terms of a contract, without a plan of their own; {@code billing} none or usage. */
+    public static List<String> validatePlan(String billing, ContractTerms t) {
+        List<String> e = validate(t);
+        if (t != null && t.plan() != null) e.add("plan : the terms of a plan follow no plan");
+        if (!PlanVersion.BILLING_NONE.equals(billing) && !PlanVersion.BILLING_USAGE.equals(billing)) e.add("billing : none or usage");
+        if (PlanVersion.BILLING_NONE.equals(billing) && t != null && t.pricing() != null) e.add("pricing : a plan with billing none has no pricing");
+        return e;
     }
 
     private static void quotas(ContractTerms.Quotas q, String p, List<String> e) {

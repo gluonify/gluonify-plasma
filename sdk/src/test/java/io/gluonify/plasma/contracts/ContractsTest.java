@@ -215,7 +215,7 @@ class ContractsTest {
         }
         Set<String> declared = new HashSet<>();
         meta.get("reflection").forEach(e -> declared.add(e.get("type").asString()));
-        for (Class<?> c : List.of(ContractTerms.class, ContractVersion.class, Organization.class, PriceList.class, PriceListVersion.class, PriceLine.class, Violation.class,
+        for (Class<?> c : List.of(ContractTerms.class, ContractVersion.class, Organization.class, PriceList.class, PriceListVersion.class, PriceLine.class, Plan.class, PlanVersion.class, Violation.class,
                 io.gluonify.plasma.usage.UsageUnit.class, Quantity.class)) assertTrue(declared.contains(c.getName()), c.getName());
         for (Class<?> outer : List.of(ContractTerms.class, Pricing.class))
             for (Class<?> c : outer.getDeclaredClasses()) if (Modifier.isPublic(c.getModifiers())) assertTrue(declared.contains(c.getName()), c.getName());

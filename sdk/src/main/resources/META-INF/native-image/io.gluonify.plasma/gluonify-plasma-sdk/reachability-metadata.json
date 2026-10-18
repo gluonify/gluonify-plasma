@@ -175,6 +175,24 @@
       "allDeclaredFields": true
     },
     {
+      "type": "io.gluonify.plasma.contracts.Plan",
+      "allDeclaredConstructors": true,
+      "allDeclaredMethods": true,
+      "allDeclaredFields": true
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.PlanVersion",
+      "allDeclaredConstructors": true,
+      "allDeclaredMethods": true,
+      "allDeclaredFields": true
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.ContractTerms$PlanRef",
+      "allDeclaredConstructors": true,
+      "allDeclaredMethods": true,
+      "allDeclaredFields": true
+    },
+    {
       "type": "io.gluonify.plasma.contracts.PriceLine",
       "allDeclaredConstructors": true,
       "allDeclaredMethods": true,
@@ -287,6 +305,12 @@
     },
     {
       "type": "io.gluonify.plasma.contracts.PriceList[]"
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.PlanVersion[]"
+    },
+    {
+      "type": "io.gluonify.plasma.contracts.Plan[]"
     },
     {
       "type": "io.gluonify.plasma.contracts.Pricing$Line[]"

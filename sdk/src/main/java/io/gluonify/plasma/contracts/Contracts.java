@@ -53,6 +53,45 @@ public final class Contracts {
         return best;
     }
 
+    /**
+     * Terms in force for a contract that follows a plan ({@code subscriptions.md} § 2.2): each key of {@code contract} that is present wins, an absent key takes
+     * the plan's value; {@code services} and {@code quotas} are merged field by field. {@code plan} keeps the contract's reference. A null {@code planTerms} (no plan,
+     * or an unknown one): the contract as it is.
+     */
+    public static ContractTerms resolve(ContractTerms contract, ContractTerms planTerms) {
+        if (contract == null || planTerms == null) return contract;
+        ContractTerms c = contract, p = planTerms;
+        ContractTerms.Quotas q = p.quotas() == null ? c.quotas() : c.quotas() == null ? p.quotas() : p.quotas().merge(c.quotas());
+        java.util.Map<String, ContractTerms.Quotas> byEnv = p.quotasByEnv();
+        if (c.quotasByEnv() != null) {
+            java.util.Map<String, ContractTerms.Quotas> m = new java.util.TreeMap<>(byEnv == null ? java.util.Map.of() : byEnv);
+            c.quotasByEnv().forEach((env, x) -> m.merge(env, x, ContractTerms.Quotas::merge));
+            byEnv = m;
+        }
+        return new ContractTerms(or(c.validity(), p.validity()), or(c.enforcement(), p.enforcement()), or(c.environments(), p.environments()),
+                services(c.services(), p.services()), q, byEnv, or(c.ha(), p.ha()), or(c.apps(), p.apps()), or(c.pricing(), p.pricing()), or(c.budget(), p.budget()), c.plan());
+    }
+
+    private static ContractTerms.Services services(ContractTerms.Services c, ContractTerms.Services p) {
+        if (c == null) return p;
+        if (p == null) return c;
+        return new ContractTerms.Services(or(c.uses(), p.uses()), or(c.gdownDatabase(), p.gdownDatabase()), or(c.distributed(), p.distributed()),
+                or(c.distributedLocks(), p.distributedLocks()), or(c.sleep(), p.sleep()), or(c.extraPorts(), p.extraPorts()), or(c.nas(), p.nas()),
+                or(c.routeKinds(), p.routeKinds()), or(c.memory(), p.memory()), or(c.consoles(), p.consoles()));
+    }
+
+    private static <T> T or(T own, T fromPlan) {
+        return own != null ? own : fromPlan;
+    }
+
+    /** Consoles the terms open: {@code services.consoles} restricted to {@code services.uses} (absent uses: all of them); absent consoles: none. Sorted. */
+    public static java.util.List<String> consoles(ContractTerms t) {
+        if (t == null || t.services() == null || t.services().consoles() == null) return java.util.List.of();
+        java.util.TreeSet<String> out = new java.util.TreeSet<>(t.services().consoles());
+        if (t.services().uses() != null) out.retainAll(t.services().uses());
+        return java.util.List.copyOf(out);
+    }
+
     /** Canonical JSON of the terms ({@link Canonical}). */
     public static String canonical(ContractTerms terms) {
         return Canonical.json(terms);

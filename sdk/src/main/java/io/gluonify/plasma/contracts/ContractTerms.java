@@ -20,11 +20,12 @@ import java.util.TreeMap;
  * @param apps         overrides per application name
  * @param pricing      pricing
  * @param budget       monthly budget and alert thresholds
+ * @param plan         the plan these terms follow ({@code subscriptions.md} § 2.2): its terms apply for every key these terms leave absent; absent: no plan
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ContractTerms(Validity validity, String enforcement, List<String> environments, Services services, Quotas quotas, Map<String, Quotas> quotasByEnv,
-                            Ha ha, Map<String, AppOverride> apps, PricingTerms pricing, Budget budget) {
+                            Ha ha, Map<String, AppOverride> apps, PricingTerms pricing, Budget budget, PlanRef plan) {
     public static final String ENFORCE = "enforce";
     public static final String WARN = "warn";
 
@@ -34,17 +35,28 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
         apps = apps == null ? null : java.util.Collections.unmodifiableMap(new TreeMap<>(apps));
     }
 
+    /** Terms without a plan (the form before {@code subscriptions.md}). */
+    public ContractTerms(Validity validity, String enforcement, List<String> environments, Services services, Quotas quotas, Map<String, Quotas> quotasByEnv,
+                         Ha ha, Map<String, AppOverride> apps, PricingTerms pricing, Budget budget) {
+        this(validity, enforcement, environments, services, quotas, quotasByEnv, ha, apps, pricing, budget, null);
+    }
+
     /** True if violations are refused (422); {@code warn} accepts them. */
     public boolean enforcing() { return !WARN.equals(enforcement); }
 
     /** Copy with another enforcement mode. */
     public ContractTerms withEnforcement(String e) {
-        return new ContractTerms(validity, e, environments, services, quotas, quotasByEnv, ha, apps, pricing, budget);
+        return new ContractTerms(validity, e, environments, services, quotas, quotasByEnv, ha, apps, pricing, budget, plan);
     }
 
     /** Copy with other per-application overrides. */
     public ContractTerms withApps(Map<String, AppOverride> a) {
-        return new ContractTerms(validity, enforcement, environments, services, quotas, quotasByEnv, ha, a, pricing, budget);
+        return new ContractTerms(validity, enforcement, environments, services, quotas, quotasByEnv, ha, a, pricing, budget, plan);
+    }
+
+    /** Copy following another plan. */
+    public ContractTerms withPlan(PlanRef p) {
+        return new ContractTerms(validity, enforcement, environments, services, quotas, quotasByEnv, ha, apps, pricing, budget, p);
     }
 
     /** Effective quotas of an application {@code app} on a cluster of environment {@code env}: {@code quotas} + {@code quotasByEnv[env]} + {@code apps[app]}. */
@@ -63,6 +75,11 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
         return ha;
     }
 
+    /** The plan followed: its identifier and the pinned version ({@code subscriptions.md} § 2.2). */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record PlanRef(String id, Integer version) {}
+
     /** Calendar dates {@code yyyy-mm-dd}. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -70,16 +87,24 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
 
     /**
      * Allowed services. {@code uses}: names of {@code AppSpec.uses} (without the "?"); {@code distributed}: kinds {@code std}, {@code tmp}, {@code gdown};
-     * {@code routeKinds}: {@code app}, {@code gdown}, {@code upstream}; {@code memory}: the gDown memory database of the organization's AI assistants. A missing boolean: allowed.
+     * {@code routeKinds}: {@code app}, {@code gdown}, {@code upstream}; {@code memory}: the gDown memory database of the organization's AI assistants; {@code consoles}: the services whose console the organization's members may open
+     * on the customer origin ({@code subscriptions.md} § 3; absent: none, never broader than {@code uses}). A missing boolean: allowed.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Services(List<String> uses, Boolean gdownDatabase, List<String> distributed, Boolean distributedLocks, Boolean sleep, Boolean extraPorts, Boolean nas,
-                           List<String> routeKinds, Boolean memory) {
+                           List<String> routeKinds, Boolean memory, List<String> consoles) {
         public Services {
+            consoles = consoles == null ? null : List.copyOf(consoles);
             uses = uses == null ? null : List.copyOf(uses);
             distributed = distributed == null ? null : List.copyOf(distributed);
             routeKinds = routeKinds == null ? null : List.copyOf(routeKinds);
+        }
+
+        /** Services without consoles (the form before {@code subscriptions.md}). */
+        public Services(List<String> uses, Boolean gdownDatabase, List<String> distributed, Boolean distributedLocks, Boolean sleep, Boolean extraPorts, Boolean nas,
+                        List<String> routeKinds, Boolean memory) {
+            this(uses, gdownDatabase, distributed, distributedLocks, sleep, extraPorts, nas, routeKinds, memory, null);
         }
     }
 
