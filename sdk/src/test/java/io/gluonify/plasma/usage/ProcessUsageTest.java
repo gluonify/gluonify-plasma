@@ -124,4 +124,13 @@ class ProcessUsageTest {
             assertEquals(true, p.memoryBytes() > 0);
         }
     }
+
+    @Test
+    void anImplausibleProcessStartFallsBackToTheLoadTime() {
+        long now = 1_792_300_000_000L, loaded = now - 60_000;
+        assertEquals(now - 5_000, ProcessUsage.plausibleStart(now - 5_000, now, loaded), "a real start is kept");
+        assertEquals(loaded, ProcessUsage.plausibleStart(835_000L, now, loaded), "an instant near the epoch (native image) is refused");
+        assertEquals(loaded, ProcessUsage.plausibleStart(0, now, loaded), "unknown");
+        assertEquals(loaded, ProcessUsage.plausibleStart(now + 10_000, now, loaded), "in the future");
+    }
 }
