@@ -1,18 +1,19 @@
 # Gluonify Plasma — parent POM, SDK and clients
 
-Maven parent POM of the Gluonify components (`io.gluonify.plasma:gluonify-plasma`: Quarkus platform, versions) and shared libraries, seven modules:
+Maven parent POM of the Gluonify components (`io.gluonify.plasma:gluonify-plasma`: Quarkus platform, versions) and shared libraries, eight modules:
 
 | Module (`io.gluonify.plasma:…`) | Content | Java |
 |---|---|---|
-| `gluonify-plasma-sdk` (`sdk/`) | JSON contracts: `AppSpec`, `Instance`, WebSocket messages between nodes and the control plane, rendezvous hashing, storage capabilities, signed manifest, fermion protocol, Crystallon records (`io.gluonify.plasma.crystallon`), common format of analysis findings (`io.gluonify.plasma.analysis`), organization contracts and usage unit catalogue (`io.gluonify.plasma.contracts`, `io.gluonify.plasma.usage`), the components' `/q/usage` usage contract (`ProcessUsage`, `UsageReport`, `UsageContract`, `UsageContributor`, `UsageResource`) | 17 |
+| `gluonify-plasma-sdk` (`sdk/`) | JSON contracts: `AppSpec`, `Instance`, WebSocket messages between nodes and the control plane, rendezvous hashing, storage capabilities, signed manifest, fermion protocol, Crystallon records (`io.gluonify.plasma.crystallon`), common format of analysis findings (`io.gluonify.plasma.analysis`), organization contracts and usage unit catalogue (`io.gluonify.plasma.contracts`, `io.gluonify.plasma.usage`), the components' `/q/usage` usage contract (`ProcessUsage`, `UsageReport`, `UsageContract`, `UsageContributor`, `UsageResource`), the limits of an application's MCP tools (`io.gluonify.plasma.mcp.McpContract`) | 17 |
 | `gluonify-plasma-fermion-client` (`fermion-client/`) | WebSocket client of gluonify-fermion (Quarkus, CDI); commands run in parallel | 26 |
 | `gluonify-plasma-services` (`services/`) | **zero-configuration resolution** of a service (address and token): override, platform, developer workstation (zone discovery, token from `gluonify login`); no dependencies; [README](services/README.md) | 17 |
 | `gluonify-plasma-crystallon-client` (`crystallon-client/`) | HTTP client of gluonify-crystallon: render a template to PDF by name or identifier, or a template sent with the request (`inline`); `CrystallonClient.create()` without configuration; no CDI, Jackson 2 or 3 detected at run time; [README](crystallon-client/README.md) | 17 |
 | `gluonify-plasma-testing` (`testing/`) | `GluonifyTestServices`: in-memory fake Crystallon for application tests; [README](testing/README.md) | 17 |
 | `gluonify-plasma-quarkus` (`quarkus/`) | `@DefaultBean` CDI producers (`CrystallonClient`): nothing to write in a Quarkus application; [README](quarkus/README.md) | 21 |
+| `gluonify-plasma-mcp` (`mcp/`) | **MCP tools of a Quarkus application** (`@McpTool`, `McpToolbox`, `POST /mcp` relayed by Prism; marker `META-INF/gluonify/mcp` read by Bup); [README](mcp/README.md) | 21 |
 | `gluonify-plasma-cli` (`cli/`) | the `gluonify` command (executable jar): `login <zone>` in the browser (PKCE), `logout`, `status`, `token <service>`; [README](cli/README.md) | 17 |
 
-`sdk`, `services`, `crystallon-client`, `testing`, `quarkus` and `cli` are the modules published for customer applications (Maven repository `https://images.gluonify.io/maven`): they compile for Java 17 (`maven.compiler.release` 17; `quarkus`: 21, the minimum of Quarkus 4), the parent and `fermion-client` for Java 25. The repository version `0.1.0-SNAPSHOT` is set at publication (it follows the platform version). The `gluonify.code-workspace` file opens all Gluonify repositories in VS Code (assumed to sit side by side).
+`sdk`, `services`, `crystallon-client`, `testing`, `quarkus`, `mcp` and `cli` are the modules published for customer applications (Maven repository `https://images.gluonify.io/maven`): they compile for Java 17 (`maven.compiler.release` 17; `quarkus` and `mcp`: 21, the minimum of Quarkus 4), the parent and `fermion-client` for Java 25. The repository version `0.1.0-SNAPSHOT` is set at publication (it follows the platform version). The `gluonify.code-workspace` file opens all Gluonify repositories in VS Code (assumed to sit side by side).
 
 ```
 mvn install      # installs the parent, the SDK and the clients into ~/.m2: prerequisite of gluonify-higgs, -strange, -rup
@@ -42,8 +43,13 @@ An application no longer writes `uses` by hand for the services it reaches throu
 | `gluonify-plasma-services` | none | generic resolution, reaches no service by itself |
 | `gluonify-plasma-testing` | **none, never** | test dependency: a service is never inferred from tests (and Bup only reads the runtime scope) |
 | `gluonify-plasma-sdk`, `gluonify-plasma-cli` | none | JSON contracts; developer workstation tool |
+| `gluonify-plasma-mcp` | none in `services/`; **`META-INF/gluonify/mcp`** | not a service: the capability "serves MCP tools", read by Bup to set `mcp: true` (never a `uses` entry), see below |
 
 A new service client adds its marker (`src/main/resources/META-INF/gluonify/services/<service>`) and a `ServiceMarkerTest` that checks it; each module has its own (5 tests: the two clients have exactly their marker, `services`, `quarkus` and `testing` have none). An explicit `uses` remains necessary for a service reached outside the SDK (direct HTTP call to another application, Charm or Gdown by URL).
+
+## MCP tools of an application (since 2026-10-18, app-mcp.md phase 1)
+
+A customer's Quarkus application declares business tools that its organization's AI assistant calls through **Prism** (`app.<application>.<tool>`): dependency `gluonify-plasma-mcp`, `@McpTool(name, description, write)` on the public methods of a bean implementing `McpToolbox`, input schema derived from an arguments record (or given), `POST /mcp` in hand-written JSON-RPC 2.0 (`initialize`, `tools/list`, `tools/call`), the same wire as the Python SDK (`gluonify.fastapi.mcp`). Caller: the application-to-service Charm token verified by the application's `quarkus-oidc` plus an audience check (401 with `WWW-Authenticate: Bearer`), and only Prism's service token (`gluonify_kind=service`, `gluonify_app=prism`, property `gluonify.mcp.relay-app`; 403 otherwise); a `write` tool needs the role `gluonify:mcp:write` (403 before the tool runs). Limits and names shared with Prism in the SDK: `io.gluonify.plasma.mcp.McpContract` (tool name `[a-z][a-z0-9_]{0,40}`, 50 tools, schema 16 KiB, arguments 64 KiB, response 256 KiB, body 68 KiB, protocol versions, write role, marker). The SDK adds no endpoint (platform components that index it for `/q/usage`, Prism and Gauge with their own `/mcp`, are unaffected). Marker read by Bup: `META-INF/gluonify/mcp`, a capability distinct from the service markers. Responses are not marked `untrusted` by the application: Prism marks them. Details, properties and tests: [mcp/README.md](mcp/README.md).
 
 ## Provenance of executables and images (since 2026-10-11)
 

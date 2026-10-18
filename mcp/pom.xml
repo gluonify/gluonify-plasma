@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.gluonify.plasma</groupId>
+    <artifactId>gluonify-plasma</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>..</relativePath>
+  </parent>
+  <artifactId>gluonify-plasma-mcp</artifactId>
+  <name>Gluonify Plasma MCP</name>
+  <description>MCP tools of a Quarkus application (@McpTool, POST /mcp), relayed by Prism to the customers' AI assistants. Adding this dependency serves /mcp and announces it to Bup (marker META-INF/gluonify/mcp).</description>
+
+  <properties>
+    <!-- Published for the clients' Quarkus 4 applications: Java 21, the minimum of Quarkus 4. -->
+    <maven.compiler.release>21</maven.compiler.release>
+  </properties>
+
+  <dependencies>
+    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-sdk</artifactId></dependency>
+    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-arc</artifactId></dependency>
+    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-rest</artifactId></dependency>
+    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-jackson</artifactId></dependency>
+    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-security</artifactId></dependency>
+    <!-- The verified Charm token as a principal (quarkus-oidc or quarkus-smallrye-jwt of the application provides the implementation). -->
+    <dependency><groupId>org.eclipse.microprofile.jwt</groupId><artifactId>microprofile-jwt-auth-api</artifactId></dependency>
+    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-junit</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-test-security-jwt</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>io.rest-assured</groupId><artifactId>rest-assured</artifactId><scope>test</scope></dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${surefire.version}</version>
+        <configuration>
+          <systemPropertyVariables>
+            <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+            <maven.home>${maven.home}</maven.home>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
