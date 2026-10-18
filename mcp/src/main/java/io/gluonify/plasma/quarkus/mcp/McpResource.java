@@ -63,7 +63,7 @@ public class McpResource {
     Optional<List<String>> oidcAudience;
     @ConfigProperty(name = "quarkus.application.name", defaultValue = "unknown")
     String applicationName;
-    @ConfigProperty(name = "quarkus.application.version", defaultValue = "0.0.0")
+    @ConfigProperty(name = "quarkus.application.version", defaultValue = "unknown")
     String applicationVersion;
 
     private volatile McpServer server;

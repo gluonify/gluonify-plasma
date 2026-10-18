@@ -83,7 +83,7 @@ The jar carries **`META-INF/gluonify/mcp`** (`McpContract.MARKER`; content `mcp`
 |---|---|---|
 | `gluonify.mcp.audience` | `quarkus.oidc.token.audience`, else `gluonify-<quarkus.application.name>` | audience required in the `aud` claim of the caller's token |
 | `gluonify.mcp.relay-app` | `prism` | the only application (`gluonify_app` claim of a `gluonify_kind=service` token) allowed to call `/mcp`; change it for tests or development only |
-| `quarkus.application.version` | `0.0.0` | `serverInfo.version` of `initialize` |
+| `quarkus.application.version` | `unknown` | `serverInfo.version` of `initialize` |
 
 The limits are constants of `io.gluonify.plasma.mcp.McpContract` (SDK, Java 17, shared with Prism): `TOOL_NAME`, `MAX_TOOLS` 50, `MAX_SCHEMA_BYTES` 16 KiB, `MAX_ARGUMENTS_BYTES` 64 KiB, `MAX_RESPONSE_BYTES` 256 KiB, `MAX_BODY_BYTES` 68 KiB, `WRITE_ROLE`, `PROTOCOL_VERSIONS`, `MARKER`.
 
