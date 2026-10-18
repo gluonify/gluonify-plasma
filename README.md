@@ -89,6 +89,15 @@ Python versions (`PythonVersions`, gluonify-codex/python.md § 3 bis.2): additiv
 | `org:viewer` | read-only |
 | `org:billing` | consumption and invoices |
 
+### Customer tokens in the platform services: `CustomerAccess` (since 2026-10-18)
+
+`io.gluonify.plasma.access.CustomerAccess` is the one rule by which a platform service accepts a **customer token** in addition to its platform tokens, so that a customer reaches the service's console on the customer origin (`app.<zone>`) within its organization ([gluonify-codex/subscriptions.md](https://github.com/gluonify/gluonify-codex/blob/main/subscriptions.md) § 3.2). Plain Java, no framework.
+
+- **Customer token**: the `org` claim holds one valid organization identifier (a string, or a list of exactly one) **and** no role starts with `gluonify:`. A token with any `gluonify:` role is a platform token: the service treats it as before, and its `org:*` roles grant nothing through this rule.
+- **Rights**: the service maps the customer roles to its own rights with a fixed `CustomerAccess.Table` written in its code (`Table.builder().grant("org:owner", ...)`), never with configuration; the builder refuses an unknown customer role and a right that is itself an `org:` role. Roles other than the four customer roles are ignored (a service right carried by a customer token is not taken from the token). A customer role the table does not grant (typically `org:billing`) gives an empty set: bounded to the organization, allowed nothing.
+- **Organization**: `Customer.organization()`, the token's, never the request's; the service bounds every read and write to it (another organization's object is a 404).
+- API: `recognise(orgClaim, roles, table)` → `Optional<Customer(organization, customerRoles, rights)>`, `organization(claim)`, `hasPlatformRole(roles)`, `PLATFORM_ROLE_PREFIX`. First user: gluonify-crystallon (`CustomerTokens`, a `SecurityIdentityAugmentor`).
+
 ## Common format of analysis findings
 
 Package `io.gluonify.plasma.analysis` (SDK, Java 17; specification `gluonify-codex/analysis.md` § 3.6), shared by Bup, the future tracker and Prism. A finding contains **no sentence**: a stable rule code and arguments, which the interface translates (`analysis.rules.<code>.title|why|fix`).
