@@ -246,5 +246,44 @@
         </plugins>
       </build>
     </profile>
+    <!-- Coverage of @QuarkusTest (README, "Quality gates"): Quarkus transforms the bean classes, so the JaCoCo agent data no longer matches
+         target/classes and a class reached only through a @QuarkusTest reads 0 %. quarkus-jacoco instruments them at test build time and appends
+         to the agent's file, which the report and the check above read. Active in every Quarkus application (src/main/resources/application.properties);
+         -Dgluonify.quarkus-coverage.skip turns it off. -->
+    <profile>
+      <id>gluonify-quarkus-coverage</id>
+      <activation>
+        <file>
+          <exists>${basedir}/src/main/resources/application.properties</exists>
+        </file>
+        <property>
+          <name>!gluonify.quarkus-coverage.skip</name>
+        </property>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>io.quarkus</groupId>
+          <artifactId>quarkus-jacoco</artifactId>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <systemPropertyVariables>
+                <!-- Absolute path: a relative one resolves against the module root, not target/. -->
+                <quarkus.jacoco.data-file>${project.build.directory}/jacoco.exec</quarkus.jacoco.data-file>
+                <quarkus.jacoco.reuse-data-file>true</quarkus.jacoco.reuse-data-file>
+                <!-- The build's JaCoCo report is the only one. -->
+                <quarkus.jacoco.report>false</quarkus.jacoco.report>
+              </systemPropertyVariables>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 </project>
