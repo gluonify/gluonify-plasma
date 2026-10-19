@@ -12,6 +12,11 @@
   <name>Gluonify Plasma Fermion client</name>
   <description>WebSocket client for gluonify-fermion: skills, workflow submission, reconnection.</description>
 
+  <properties>
+    <!-- Quality ratchets (gluonify-plasma README, "Quality gates"): current coverage rounded down, raised with the tests, never lowered. -->
+    <gluonify.coverage.minimum>0.22</gluonify.coverage.minimum>
+    <gluonify.coverage.branch.minimum>0.18</gluonify.coverage.branch.minimum>
+  </properties>
   <dependencies>
     <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-sdk</artifactId></dependency>
     <!-- Resolution without configuration (address and token): dependency-free jar, Java 17. -->

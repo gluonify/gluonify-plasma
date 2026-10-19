@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Gluonify PMD 7 ruleset, version 1 (2026-10-19). Shared by every Java repository through gluonify-plasma-build-rules (classpath resource
+     gluonify/pmd/ruleset.xml); repositories without the plasma parent use the same artifact. Each rule mirrors a SonarQube rule that our code
+     breaks most (open issues on quark on 2026-10-19) or a rule of gluonify-horizon/context/coding-standards.md; the Sonar key is in each comment.
+     A rule is added here, never disabled in a repository: existing debt goes to the repository's pmd-baseline.properties, which only shrinks. -->
+<ruleset name="Gluonify"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+  <description>Gluonify code rules checked by every build (mvn verify), aligned with the Gluonify way SonarQube profile.</description>
+
+  <!-- S1192: a string literal used three times or more becomes a constant -->
+  <rule ref="category/java/errorprone.xml/AvoidDuplicateLiterals">
+    <properties>
+      <property name="maxDuplicateLiterals" value="3"/>
+      <property name="minimumLength" value="3"/>
+      <property name="skipAnnotations" value="true"/>
+    </properties>
+  </rule>
+
+  <!-- S3776: cognitive complexity at most 15 (PMD reports at the level and above) -->
+  <rule ref="category/java/design.xml/CognitiveComplexity">
+    <properties>
+      <property name="reportLevel" value="16"/>
+    </properties>
+  </rule>
+
+  <!-- S107: at most 7 parameters -->
+  <rule ref="category/java/design.xml/ExcessiveParameterList">
+    <properties>
+      <property name="minimum" value="8"/>
+    </properties>
+  </rule>
+
+  <!-- S1186: an empty method says why in a comment -->
+  <rule ref="category/java/documentation.xml/UncommentedEmptyMethodBody"/>
+
+  <!-- S108: no empty block; an empty catch carries a comment (and coding standards: never an empty catch that hides a bug) -->
+  <rule ref="category/java/errorprone.xml/EmptyCatchBlock">
+    <properties>
+      <property name="allowCommentedBlocks" value="true"/>
+    </properties>
+  </rule>
+  <rule ref="category/java/codestyle.xml/EmptyControlStatement"/>
+
+  <!-- S2095, S2093: every Closeable in try-with-resources -->
+  <rule ref="category/java/errorprone.xml/CloseResource"/>
+  <rule ref="category/java/bestpractices.xml/UseTryWithResources"/>
+
+  <!-- S1068, S1144, S1481, S1172, S1128: no unused field, private method, local variable, parameter or import -->
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateField"/>
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateMethod"/>
+  <rule ref="category/java/bestpractices.xml/UnusedLocalVariable"/>
+  <rule ref="category/java/bestpractices.xml/UnusedFormalParameter"/>
+  <rule ref="category/java/codestyle.xml/UnnecessaryImport"/>
+
+  <!-- S1659: one declaration per line -->
+  <rule ref="category/java/bestpractices.xml/OneDeclarationPerLine"/>
+
+  <!-- S1168: an empty collection, never null -->
+  <rule ref="category/java/errorprone.xml/ReturnEmptyCollectionRatherThanNull"/>
+
+  <!-- S112: specific exception types -->
+  <rule ref="category/java/design.xml/AvoidThrowingRawExceptionTypes"/>
+
+  <!-- S106: logging, not System.out / System.err -->
+  <rule ref="category/java/bestpractices.xml/SystemPrintln"/>
+
+  <!-- S127: a loop counter is not assigned in the body -->
+  <rule ref="category/java/bestpractices.xml/AvoidReassigningLoopVariables"/>
+
+  <!-- S1612: a method reference instead of a lambda that only calls a method -->
+  <rule ref="category/java/codestyle.xml/LambdaCanBeMethodReference"/>
+
+  <!-- S3358: no nested ternary operator (a lambda or an anonymous class in between starts a new scope) -->
+  <rule name="NestedTernary"
+        language="java"
+        message="Extract this nested ternary operation into an independent statement or method (Sonar S3358)"
+        class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+    <description>A ternary operator nested in another one is hard to read: use if/else, a switch expression or a method.</description>
+    <priority>3</priority>
+    <properties>
+      <property name="xpath">
+        <value><![CDATA[
+//ConditionalExpression[ancestor::*[self::ConditionalExpression or self::LambdaExpression or self::ClassBody][1][self::ConditionalExpression]]
+]]></value>
+      </property>
+    </properties>
+  </rule>
+
+  <!-- S1845: no two members whose names differ only by case -->
+  <rule name="MembersDifferOnlyByCase"
+        language="java"
+        message="Rename this member: another member of the type has the same name except for case (Sonar S1845)"
+        class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+    <description>Two fields or methods whose names differ only by capitalisation are confusing (a constant FOO beside a field foo, a method value() beside a field Value).</description>
+    <priority>3</priority>
+    <properties>
+      <property name="xpath">
+        <value><![CDATA[
+//*[self::ClassBody or self::EnumBody or self::RecordBody]/FieldDeclaration/VariableDeclarator/VariableId
+  [let $n := @Name, $b := ../../.. return
+     ($b/FieldDeclaration/VariableDeclarator/VariableId | $b/MethodDeclaration)[@Name != $n and lower-case(@Name) = lower-case($n)]]
+|
+//*[self::ClassBody or self::EnumBody or self::RecordBody]/MethodDeclaration
+  [let $n := @Name, $b := .. return $b/MethodDeclaration[@Name != $n and lower-case(@Name) = lower-case($n)]]
+]]></value>
+      </property>
+    </properties>
+  </rule>
+
+  <!-- S7467: an unused exception or lambda parameter is the unnamed variable _ (Java 22 and later) -->
+  <rule name="UnusedParameterNotUnnamed"
+        language="java"
+        minimumLanguageVersion="22"
+        message="Replace this unused parameter with the unnamed variable _ (Sonar S7467)"
+        class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+    <description>Since Java 22 an unused catch or lambda parameter is written _ so that the reader knows it is ignored on purpose.</description>
+    <priority>3</priority>
+    <properties>
+      <property name="xpath">
+        <value><![CDATA[
+//CatchClause/CatchParameter/VariableId[@Name != '_'][let $n := @Name return not(../../Block//VariableAccess[@Name = $n])]
+|
+//LambdaExpression/LambdaParameterList/LambdaParameter/VariableId[@Name != '_']
+  [let $n := @Name return not(ancestor::LambdaExpression[1]/*[last()]/descendant-or-self::VariableAccess[@Name = $n])]
+]]></value>
+      </property>
+    </properties>
+  </rule>
+</ruleset>

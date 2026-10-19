@@ -13,6 +13,9 @@
   <description>MCP tools of a Quarkus application (@McpTool, POST /mcp), relayed by Prism to the customers' AI assistants. Adding this dependency serves /mcp and announces it to Bup (marker META-INF/gluonify/mcp).</description>
 
   <properties>
+    <!-- Quality ratchets (gluonify-plasma README, "Quality gates"): current coverage rounded down, raised with the tests, never lowered. -->
+    <gluonify.coverage.minimum>0.94</gluonify.coverage.minimum>
+    <gluonify.coverage.branch.minimum>0.78</gluonify.coverage.branch.minimum>
     <!-- Published for the clients' Quarkus 4 applications: Java 21, the minimum of Quarkus 4. -->
     <maven.compiler.release>21</maven.compiler.release>
   </properties>

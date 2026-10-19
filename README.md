@@ -1,6 +1,6 @@
 # Gluonify Plasma — parent POM, SDK and clients
 
-Maven parent POM of the Gluonify components (`io.gluonify.plasma:gluonify-plasma`: Quarkus platform, versions) and shared libraries, eight modules:
+Maven parent POM of the Gluonify components (`io.gluonify.plasma:gluonify-plasma`: Quarkus platform, versions) and shared libraries, nine modules:
 
 | Module (`io.gluonify.plasma:…`) | Content | Java |
 |---|---|---|
@@ -11,6 +11,7 @@ Maven parent POM of the Gluonify components (`io.gluonify.plasma:gluonify-plasma
 | `gluonify-plasma-testing` (`testing/`) | `GluonifyTestServices`: in-memory fake Crystallon for application tests; [README](testing/README.md) | 17 |
 | `gluonify-plasma-quarkus` (`quarkus/`) | `@DefaultBean` CDI producers (`CrystallonClient`): nothing to write in a Quarkus application; [README](quarkus/README.md) | 21 |
 | `gluonify-plasma-mcp` (`mcp/`) | **MCP tools of a Quarkus application** (`@McpTool`, `McpToolbox`, `POST /mcp` relayed by Prism; marker `META-INF/gluonify/mcp` read by Bup); [README](mcp/README.md) | 21 |
+| `gluonify-plasma-build-rules` (`build-rules/`) | the PMD ruleset checked by every Gluonify build (`gluonify/pmd/ruleset.xml`) and `quality_ratchet.py` (coverage and baseline ratchets): see [Quality gates](#quality-gates) | — |
 | `gluonify-plasma-cli` (`cli/`) | the `gluonify` command (executable jar): `login <zone>` in the browser (PKCE), `logout`, `status`, `token <service>`; [README](cli/README.md) | 17 |
 
 `sdk`, `services`, `crystallon-client`, `testing`, `quarkus`, `mcp` and `cli` are the modules published for customer applications (Maven repository `https://images.gluonify.io/maven`): they compile for Java 17 (`maven.compiler.release` 17; `quarkus` and `mcp`: 21, the minimum of Quarkus 4), the parent and `fermion-client` for Java 25. The repository version `0.1.0-SNAPSHOT` is set at publication (it follows the platform version). The `gluonify.code-workspace` file opens all Gluonify repositories in VS Code (assumed to sit side by side).
@@ -18,6 +19,31 @@ Maven parent POM of the Gluonify components (`io.gluonify.plasma:gluonify-plasma
 ```
 mvn install      # installs the parent, the SDK and the clients into ~/.m2: prerequisite of gluonify-higgs, -strange, -rup
 ```
+
+## Quality gates
+
+Every repository that inherits this POM (and the ones that copy its configuration: gdown, calorimeter, synchrotron, source, gauge, sonar-rules, prism) fails `mvn verify` like a red test when its code breaks a rule or its coverage drops (decision of the user, 2026-10-19: 0 SonarQube issue, coverage above 95 %; rules in `gluonify-horizon/context/coding-standards.md`). The profile `gluonify-quality` is active in every module that has `src/main/java`:
+
+| Check | Tool | Fails `mvn verify` when | Ratchet |
+|---|---|---|---|
+| Coverage | JaCoCo 0.8.14 (`prepare-agent`, `report` and `check` in `verify`, whole module) | line coverage < `gluonify.coverage.minimum` or branch coverage < `gluonify.coverage.branch.minimum` | each module sets its current level rounded down (default 0.95; the branch minimum defaults to the line minimum), raises it as tests are added, never lowers it |
+| Code rules | PMD 7.28.0 through maven-pmd-plugin 3.28.0, ruleset `gluonify/pmd/ruleset.xml` of `gluonify-plasma-build-rules`, main sources | any violation (all priorities) not listed in the module's `pmd-baseline.properties` | the baseline holds the debt of 2026-10-19 (`class=Rule,Rule`); a line is removed when the class is fixed, never added |
+
+Rules (Sonar key → PMD rule): S1192 `AvoidDuplicateLiterals` (3 occurrences), S3776 `CognitiveComplexity` (above 15), S107 `ExcessiveParameterList` (above 7), S1186 `UncommentedEmptyMethodBody`, S108 `EmptyCatchBlock` (a comment allowed) and `EmptyControlStatement`, S2095/S2093 `CloseResource` and `UseTryWithResources`, unused code (`UnusedPrivateField`, `UnusedPrivateMethod`, `UnusedLocalVariable`, `UnusedFormalParameter`, `UnnecessaryImport`), S1659 `OneDeclarationPerLine`, S1168 `ReturnEmptyCollectionRatherThanNull`, S112 `AvoidThrowingRawExceptionTypes`, S106 `SystemPrintln`, S127 `AvoidReassigningLoopVariables`, S1612 `LambdaCanBeMethodReference`, and three XPath rules of ours: S3358 `NestedTernary`, S1845 `MembersDifferOnlyByCase`, S7467 `UnusedParameterNotUnnamed` (Java 22 and later). They are the rules our code broke most on quark's SonarQube on 2026-10-19 (11,742 Java issues: S1192 1,934, S3776 1,034, S1659 981, S3358 522, S1845 166…) that a local analyser can check; S6813 (field injection, allowed by the coding standards for Quarkus) and the rules without a PMD equivalent stay with SonarQube and the pre-push gate.
+
+**Why PMD rather than Checkstyle**: the rules we break are semantic (cognitive complexity, unclosed resources, unused private members and parameters, duplicated literals per file) and PMD 7 has them with the same thresholds as Sonar, plus XPath rules on the typed AST for the ones it lacks; Checkstyle is a style checker (formatting, naming, Javadoc) without type resolution, and our formatting is not where the debt is. One analyser, one ruleset, one baseline format.
+
+```
+mvn verify                                            # tests, coverage check, PMD check
+mvn verify -Djacoco.skip -Dpmd.skip                   # a scoped run (-Dtest=...) that cannot reach the module's coverage
+# measure a module and regenerate its baseline (only to remove paid debt; the baseline never grows):
+mvn verify -Dgluonify.coverage.minimum=0 -Dpmd.failOnViolation=false -Dgluonify.pmd.baseline=none
+python3 build-rules/quality_ratchet.py coverage <module>   # current line and branch coverage, rounded down
+python3 build-rules/quality_ratchet.py check <module>      # lists the baseline lines whose debt is paid
+python3 -m unittest discover -s build-rules                # tests of the script
+```
+
+A new rule goes into the ruleset (a new version of `gluonify-plasma-build-rules`), never a per-repository exclusion; a repository that adds the rule regenerates its baseline in the same change.
 
 Overall documentation: [gluonify-codex](https://github.com/gluonify/gluonify-codex).
 
