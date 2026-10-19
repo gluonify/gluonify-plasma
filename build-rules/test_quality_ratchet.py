@@ -1,5 +1,7 @@
 """Tests of quality_ratchet.py (python3 -m unittest discover -s build-rules)."""
 
+import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -74,6 +76,15 @@ class QualityRatchetTest(unittest.TestCase):
         self.write("target/pmd.xml", PMD_XML)
         self.assertEqual(quality_ratchet.main(["coverage", str(self.module)]), 0)
         self.assertEqual(quality_ratchet.main(["baseline", str(self.module)]), 0)
+
+
+class RuffTest(unittest.TestCase):
+    def test_ruff_finds_no_violation(self) -> None:
+        ruff = shutil.which("ruff")
+        self.assertIsNotNone(ruff, "ruff is missing (brew install ruff, or pip install ruff): the quality gate cannot run")
+        root = Path(__file__).resolve().parent.parent
+        result = subprocess.run([str(ruff), "check", "--no-cache", str(root)], capture_output=True, text=True, check=False, cwd=root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
 if __name__ == "__main__":

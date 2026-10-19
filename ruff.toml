@@ -1,0 +1,18 @@
+# ruff configuration of gluonify-plasma's Python (build-rules/quality_ratchet.py), the same rules as gluonify-horizon's ruff.toml without its debt
+# (README, "Quality gates"); build-rules/test_quality_ratchet.py runs it: a violation fails the tests.
+required-version = ">=0.17"
+target-version = "py312"
+line-length = 200
+
+[lint]
+select = ["E", "F", "W", "B", "UP", "SIM", "C90", "S", "RUF", "PLE", "PLW"]
+# an argument list without a shell is the form the coding standards require (section 5), not a hotspot
+ignore = ["S603", "S607"]
+
+[lint.mccabe]
+max-complexity = 15
+
+[lint.per-file-ignores]
+# unittest assertions are not production asserts; the XML parsed is PMD's own report of the build
+"build-rules/test_*.py" = ["S101"]
+"build-rules/quality_ratchet.py" = ["S314"]
