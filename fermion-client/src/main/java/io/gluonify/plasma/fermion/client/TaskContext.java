@@ -44,25 +44,6 @@ public record TaskContext(String globalTransactionId, String correlationId, Stri
     }
 
     /**
-     * Context whose progress events go nowhere.
-     *
-     * @param globalTransactionId business transaction, or {@code null}
-     * @param correlationId       instance of the task
-     * @param action              skill of the task
-     * @param payload             input variables
-     * @param mapper              JSON mapper
-     * @param stepId              step of the task, or {@code null}
-     * @deprecated kept for the SDK clients built before the event sink; use {@link #TaskContext(String, String, String, Map, ObjectMapper)}
-     *             then {@link #withStepId(String)}
-     */
-    @Deprecated(since = "0.8.0")
-    @SuppressWarnings("gluonify-native:GN13") // public SDK signature kept for compatibility, replaced by withStepId
-    public TaskContext(final String globalTransactionId, final String correlationId, final String action, final Map<String, Object> payload,
-                       final ObjectMapper mapper, final String stepId) {
-        this(globalTransactionId, correlationId, action, payload, mapper, stepId, null);
-    }
-
-    /**
      * Context without step, whose progress events go nowhere.
      *
      * @param globalTransactionId business transaction, or {@code null}

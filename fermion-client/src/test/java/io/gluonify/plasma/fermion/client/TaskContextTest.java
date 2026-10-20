@@ -64,9 +64,8 @@ class TaskContextTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
     void progressWithoutSinkGoesNowhere() {
-        final TaskContext c = new TaskContext("g", "c", "ACT", Map.of(), mapper, "Task_A");
+        final TaskContext c = new TaskContext("g", "c", "ACT", Map.of(), mapper).withStepId("Task_A");
         c.progress(Map.of("phase", "build"));
         assertNotNull(c.events());
         assertEquals("Task_A", c.stepId());
