@@ -29,6 +29,8 @@
   </modules>
 
   <properties>
+    <!-- Default of -DskipTests, read by the coverage check (skipped when the tests are). -->
+    <skipTests>false</skipTests>
     <maven.compiler.release>25</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <quarkus.platform.version>4.0.0.Beta1</quarkus.platform.version>
@@ -202,6 +204,10 @@
                 <goals>
                   <goal>report</goal>
                 </goals>
+                <configuration>
+                  <!-- As the check below: no report from a stale target/jacoco.exec when the tests are skipped. -->
+                  <skip>${skipTests}</skip>
+                </configuration>
               </execution>
               <execution>
                 <id>gluonify-coverage-check</id>
@@ -210,6 +216,9 @@
                   <goal>check</goal>
                 </goals>
                 <configuration>
+                  <!-- No tests run, no coverage to check: with -DskipTests (a native build's "mvn -DskipTests install") the check would read
+                       a stale target/jacoco.exec left in the build context and fail on code it never measured (quark, 2026-10-20). -->
+                  <skip>${skipTests}</skip>
                   <rules>
                     <rule>
                       <element>BUNDLE</element>
