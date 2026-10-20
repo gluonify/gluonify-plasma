@@ -14,6 +14,11 @@ import java.util.Map;
 public final class UsageCatalog {
     private UsageCatalog() {}
 
+    private static final String KIND = "kind";
+
+    /** Models of gluonify-superposition's engines (dimension {@code model} of its units). */
+    private static final List<String> SUPERPOSITION_MODELS = List.of("qwen3-coder", "haiku", "sonnet", "opus", "fable");
+
     private static final Map<String, UsageUnit> UNITS = new LinkedHashMap<>();
 
     private static void unit(String name, Quantity q, boolean billable, boolean internal, Map<String, List<String>> dims) {
@@ -76,6 +81,11 @@ public final class UsageCatalog {
         unit("bup.build.seconds", Quantity.SECONDS, true, false, Map.of("arch", List.of("amd64", "arm64"), "mode", List.of("native", "jvm")));
         unit("bup.builds", Quantity.COUNT, "result", List.of("success", "failure"));
         unit("gauge.mcp.calls", Quantity.COUNT, "result", List.of("ok", "proposed"));
+        // gluonify-superposition (architecture § 11): indicative, never a billing basis; cost in USD (decimal), as reported by the engine
+        unit("superposition.tokens", Quantity.COUNT, false, false, Map.of("model", SUPERPOSITION_MODELS, KIND, List.of("input", "output", "cache_read", "cache_write")));
+        unit("superposition.runs", Quantity.COUNT, false, false, Map.of("level", List.of("L0", "L1", "L2", "L3"), "engine", List.of("edge", "claude"),
+                "outcome", List.of("success", "failure", "interrupted", "timeout")));
+        unit("superposition.cost.usd", Quantity.COUNT, false, false, Map.of("model", SUPERPOSITION_MODELS));
         // analyses (analysis.md § 10)
         unit(AnalysisUnits.BUP_ANALYSIS_RUNS, Quantity.COUNT, AnalysisUnits.DIM_KIND, AnalysisUnits.ANALYSIS_KINDS);
         unit(AnalysisUnits.BUP_ANALYSIS_SECONDS, Quantity.SECONDS);
