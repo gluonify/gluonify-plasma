@@ -178,7 +178,7 @@ class InlineTemplateTest {
     @Test
     void aTemplateThatIsAJsonNodeOfTheCodecIsSent() {
         assumeTrue(JacksonClasspath.jackson3() || JacksonClasspath.jackson2());
-        if (codec.getClass().getSimpleName().equals("Jackson3Codec")) {
+        if (JacksonClasspath.jackson3()) { // PayloadCodec.detect() takes Jackson 3 whenever it is present
             Jackson3Node.check(this);
         }
         else {

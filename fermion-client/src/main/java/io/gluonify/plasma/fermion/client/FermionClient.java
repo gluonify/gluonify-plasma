@@ -22,6 +22,8 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import tools.jackson.databind.ObjectMapper;
 
@@ -63,11 +65,11 @@ public class FermionClient {
     private final Object lock = new Object();
     private final Object urlLock = new Object();
     private final Deque<FermionMsg.Start> pending = new ArrayDeque<>();
-    private volatile WebSocketClientConnection connection;
-    private volatile BiConsumer<String, String> errorSink;
-    private volatile BiConsumer<String, Map<String, Object>> doneSink;
-    private volatile int connectorsCreated;
-    private volatile Optional<String> resolvedUrl;
+    private final AtomicReference<WebSocketClientConnection> connection = new AtomicReference<>();
+    private final AtomicReference<BiConsumer<String, String>> errorSink = new AtomicReference<>();
+    private final AtomicReference<BiConsumer<String, Map<String, Object>>> doneSink = new AtomicReference<>();
+    private final AtomicInteger connectorsCreated = new AtomicInteger();
+    private final AtomicReference<Optional<String>> resolvedUrl = new AtomicReference<>();
 
     /** Active client: enabled and fermion URL known (configured, or resolved by {@code GluonifyServices}). */
     public boolean isActive() {
@@ -79,10 +81,10 @@ public class FermionClient {
      * {@link GluonifyServices#optional(String)}, done once. A resolution failure is logged and leaves the client inactive.
      */
     Optional<String> url() {
-        Optional<String> u = resolvedUrl;
+        Optional<String> u = resolvedUrl.get();
         if (u == null) {
             synchronized (urlLock) {
-                u = resolvedUrl;
+                u = resolvedUrl.get();
                 if (u == null) {
                     u = config.url().map(String::strip).filter(s -> !s.isEmpty());
                     if (u.isEmpty() && config.discover()) {
@@ -95,7 +97,7 @@ public class FermionClient {
                             u = Optional.empty();
                         }
                     }
-                    resolvedUrl = u;
+                    resolvedUrl.set(u);
                 }
             }
         }
@@ -103,7 +105,7 @@ public class FermionClient {
     }
 
     public boolean isConnected() {
-        final WebSocketClientConnection current = connection;
+        final WebSocketClientConnection current = connection.get();
         return current != null && current.isOpen();
     }
 
@@ -116,16 +118,16 @@ public class FermionClient {
 
     /** Number of connectors created since startup (one per connection attempt). */
     int connectorsCreated() {
-        return connectorsCreated;
+        return connectorsCreated.get();
     }
 
     /** Callback invoked when fermion refuses or abandons a submitted workflow (correlationId, message). Only one: the last replaces the previous. */
     public void onWorkflowError(final BiConsumer<String, String> sink) {
-        this.errorSink = sink;
+        errorSink.set(sink);
     }
 
     void fireWorkflowError(final String correlationId, final String message) {
-        final BiConsumer<String, String> sink = errorSink;
+        final BiConsumer<String, String> sink = errorSink.get();
         Log.warnv("fermion-client=workflow-error correlationId={0} message={1} handled={2}", correlationId, message, sink != null);
         if (sink != null) {
             try {
@@ -144,11 +146,11 @@ public class FermionClient {
      * @param sink the callback, or {@code null} to remove it
      */
     public void onWorkflowDone(final BiConsumer<String, Map<String, Object>> sink) {
-        this.doneSink = sink;
+        doneSink.set(sink);
     }
 
     void fireWorkflowDone(final FermionMsg.Done done) {
-        final BiConsumer<String, Map<String, Object>> sink = doneSink;
+        final BiConsumer<String, Map<String, Object>> sink = doneSink.get();
         Log.infov("fermion-client=workflow-done correlationId={0} workflow={1} handled={2}", done.correlationId(), done.workflow(), sink != null);
         if (sink != null) {
             try {
@@ -173,7 +175,7 @@ public class FermionClient {
         if (!isActive()) {
             return;
         }
-        final WebSocketClientConnection current = connection;
+        final WebSocketClientConnection current = connection.get();
         // isOpen() can stay true on a half-dead TCP connection: probe with a BOUNDED ping and reconnect if it fails.
         if (current != null && current.isOpen()) {
             try {
@@ -188,7 +190,7 @@ public class FermionClient {
                 catch (final Exception ignored) {
                     // already dead
                 }
-                connection = null;
+                connection.set(null);
             }
         }
         connect();
@@ -196,9 +198,9 @@ public class FermionClient {
 
     /** Called when the channel closes: forgets the connection (compared by identifier, so as not to overwrite a more recent connection). */
     void connectionLost(final WebSocketClientConnection closed) {
-        final WebSocketClientConnection current = connection;
+        final WebSocketClientConnection current = connection.get();
         if (current != null && closed != null && current.id().equals(closed.id())) {
-            connection = null;
+            connection.compareAndSet(current, null);
             Log.infov("fermion-client=connection-lost node={0}", identity.id());
         }
     }
@@ -219,13 +221,13 @@ public class FermionClient {
             }
             final String url = url().orElseThrow();
             final WebSocketConnector<FermionClientEndpoint> connector = connectorFactory.get();
-            connectorsCreated++;
+            connectorsCreated.incrementAndGet();
             try {
                 connector.baseUri(url).pathParam("nodeId", identity.id());
                 final WebSocketClientConnection opened = connector.connect().await().atMost(CONNECT_TIMEOUT);
                 opened.sendTextAndAwait(mapper.writeValueAsString(new FermionMsg.Auth(token)));
                 opened.sendTextAndAwait(mapper.writeValueAsString(hello()));
-                connection = opened;
+                connection.set(opened);
                 Log.infov("fermion-client=connected node={0} url={1}", identity.id(), url);
                 replay(opened);
             }
@@ -286,7 +288,7 @@ public class FermionClient {
         synchronized (lock) {
             if (pending.isEmpty() && isConnected()) {
                 try {
-                    connection.sendTextAndAwait(mapper.writeValueAsString(start));
+                    connection.get().sendTextAndAwait(mapper.writeValueAsString(start));
                     return;
                 }
                 catch (final Exception e) {
@@ -309,7 +311,7 @@ public class FermionClient {
                 return;
             }
             try {
-                connection.sendTextAndAwait(mapper.writeValueAsString(hello()));
+                connection.get().sendTextAndAwait(mapper.writeValueAsString(hello()));
             }
             catch (final Exception e) {
                 Log.errorv("fermion-client=announce-usage node={0} error={1}", identity.id(), e.getMessage());

@@ -49,6 +49,17 @@ class ProvenanceTest {
         assertEquals("bup-2026", Provenance.claimedKeyId(token));
     }
 
+    @Test void signedTokensCompareByContent() {
+        var a = Provenance.verify(VECTOR, vectorPublic());
+        var b = Provenance.verify(VECTOR, vectorPublic());
+        assertNotSame(a.signature(), b.signature());
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
+        assertNotEquals(a, new Provenance.Signed(a.statement(), a.statementBytes(), new byte[64]));
+        assertNotEquals(a, "token");
+        assertTrue(a.toString().startsWith("Signed[statement="));
+    }
+
     /** Vector also checked with openssl pkeyutl -sign -rawin (same signature). */
     static final String VECTOR = "Z2x1b25pZnktcHJvdmVuYW5jZSAxCmFwcCBzaG9wCmFydGlmYWN0IGFtZDY0IGFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWEKYXJ0aWZhY3QgYXJtNjQgYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYgprZXkgYnVwLTIwMjYKc2lnbmVkLWF0IDIwMjYtMTAtMTFUMjA6MDA6MDBaCg._7kIBsZDPJQkTHA0QUa7Wi3IWPyNTsoWWTJtun8tgL_F9Vb-PovIZmhreB7wAo_DmEiTZhLCxZ4qJdQw8vMABA";
 

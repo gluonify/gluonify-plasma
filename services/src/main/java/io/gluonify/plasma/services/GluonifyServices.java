@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -56,7 +57,7 @@ public final class GluonifyServices {
 
     private static final Pattern SERVICE = Pattern.compile("[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?");
     private static final Object DEFAULTS_LOCK = new Object();
-    private static volatile GluonifyServices defaults;
+    private static final AtomicReference<GluonifyServices> DEFAULT_INSTANCE = new AtomicReference<>();
 
     private final Function<String, String> environment;
     private final Function<String, String> properties;
@@ -81,13 +82,13 @@ public final class GluonifyServices {
 
     /** The process instance: real environment and system properties, folder {@code ~/.gluonify} (or {@code GLUONIFY_HOME}). Created on the first call. */
     public static GluonifyServices defaults() {
-        GluonifyServices d = defaults;
+        GluonifyServices d = DEFAULT_INSTANCE.get();
         if (d == null) {
             synchronized (DEFAULTS_LOCK) {
-                d = defaults;
+                d = DEFAULT_INSTANCE.get();
                 if (d == null) {
                     d = builder().build();
-                    defaults = d;
+                    DEFAULT_INSTANCE.set(d);
                 }
             }
         }

@@ -33,7 +33,7 @@ public record Finding(Integer v, String id, FindingKind kind, String rule, Sever
                       Map<String, String> args, String ref, FindingStatus status) {
     public static final int VERSION = 1;
     /** Rule code: uppercase letters, digits and hyphens, with an optional {@code repository:} prefix (Sonar rules). */
-    public static final Pattern RULE = Pattern.compile("(?:[a-z][a-z0-9-]{0,39}:)?[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*");
+    public static final Pattern RULE = Pattern.compile("(?:[a-z][a-z0-9-]{0,39}:)?[A-Z][A-Z0-9]*+(?:-[A-Z0-9]++)*+");
     /** Argument name: simple identifier, usable as is in a translated string ({@code {type}}). */
     public static final Pattern ARG = Pattern.compile("[a-zA-Z][a-zA-Z0-9_]{0,63}");
     /** Maximum length of an argument value. */

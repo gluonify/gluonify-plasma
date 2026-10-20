@@ -52,7 +52,11 @@ public record TaskContext(String globalTransactionId, String correlationId, Stri
      * @param payload             input variables
      * @param mapper              JSON mapper
      * @param stepId              step of the task, or {@code null}
+     * @deprecated kept for the SDK clients built before the event sink; use {@link #TaskContext(String, String, String, Map, ObjectMapper)}
+     *             then {@link #withStepId(String)}
      */
+    @Deprecated(since = "0.8.0")
+    @SuppressWarnings("gluonify-native:GN13") // public SDK signature kept for compatibility, replaced by withStepId
     public TaskContext(final String globalTransactionId, final String correlationId, final String action, final Map<String, Object> payload,
                        final ObjectMapper mapper, final String stepId) {
         this(globalTransactionId, correlationId, action, payload, mapper, stepId, null);
@@ -69,6 +73,17 @@ public record TaskContext(String globalTransactionId, String correlationId, Stri
      */
     public TaskContext(final String globalTransactionId, final String correlationId, final String action, final Map<String, Object> payload, final ObjectMapper mapper) {
         this(globalTransactionId, correlationId, action, payload, mapper, null, null);
+    }
+
+    /**
+     * The same context for another step.
+     *
+     * @param step step of the task, or {@code null}
+     * @return a copy of this context whose {@link #stepId()} is {@code step}
+     */
+    public TaskContext withStepId(final String step) {
+
+        return new TaskContext(globalTransactionId, correlationId, action, payload, mapper, step, events);
     }
 
     /**

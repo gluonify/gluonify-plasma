@@ -29,9 +29,6 @@ public final class ProcessUsage {
     private final long startMs;
     private final LongSupplier heapBytes;
 
-    /** The current process: {@code /proc/self}, {@code /sys/fs/cgroup}, 100 ticks per second (value of all common Linux kernels). */
-    /** When this class was loaded: the fallback start of the process (the SDK is loaded at startup). */
-    static final long LOADED_AT = System.currentTimeMillis();
     /** Ten years: an older start is not a real process start (seen in native images: an instant near the epoch, uptime of 1.79e9 s). */
     static final long MAX_PLAUSIBLE_AGE_MS = 10L * 365 * 24 * 3600 * 1000;
 
@@ -40,9 +37,18 @@ public final class ProcessUsage {
         return candidate > 0 && candidate <= nowMs && nowMs - candidate < MAX_PLAUSIBLE_AGE_MS ? candidate : fallback;
     }
 
+    /**
+     * The current process: {@code /proc/self}, {@code /sys/fs/cgroup}, 100 ticks per second (value of all common Linux kernels). When the start of the
+     * process is unknown or implausible, the creation of this object stands for it (the SDK creates it at startup); the clock is read here, at run
+     * time, never in a static initializer that a native image would run at build time.
+     */
     public ProcessUsage() {
+        this(System.currentTimeMillis());
+    }
+
+    private ProcessUsage(final long createdMs) {
         this(Path.of("/proc/self"), Path.of("/sys/fs/cgroup"), 100, System::currentTimeMillis,
-                plausibleStart(ProcessHandle.current().info().startInstant().map(java.time.Instant::toEpochMilli).orElse(0L), System.currentTimeMillis(), LOADED_AT),
+                plausibleStart(ProcessHandle.current().info().startInstant().map(java.time.Instant::toEpochMilli).orElse(0L), createdMs, createdMs),
                 () -> {
                     final Runtime rt = Runtime.getRuntime();
                     return rt.totalMemory() - rt.freeMemory();

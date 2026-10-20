@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.jwt.JsonWebToken;
@@ -66,7 +67,7 @@ public class McpResource {
     @ConfigProperty(name = "quarkus.application.version", defaultValue = "unknown")
     String applicationVersion;
 
-    private volatile McpServer server;
+    private final AtomicReference<McpServer> server = new AtomicReference<>();
 
     /** Reads and checks the tools at startup: an invalid declaration stops the application. */
     void onStart(@Observes final StartupEvent ignored) {
@@ -74,10 +75,10 @@ public class McpResource {
     }
 
     McpServer server() {
-        McpServer s = server;
+        McpServer s = server.get();
         if (s == null) {
             synchronized (this) {
-                s = server;
+                s = server.get();
                 if (s == null) {
                     final List<Object> beans = new ArrayList<>();
                     toolboxes.forEach(b -> beans.add(b));
@@ -89,7 +90,7 @@ public class McpResource {
                     s = new McpServer(McpRegistry.of(targets, mapper, LOG::warning), mapper, applicationVersion);
                     final int count = s.registry().size();
                     LOG.info(() -> "MCP: " + count + " tool(s) at " + McpContract.PATH);
-                    server = s;
+                    server.set(s);
                 }
             }
         }

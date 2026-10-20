@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
@@ -36,7 +37,7 @@ public final class UsageEmitter {
     private final LongSupplier clock;
     private long nextTry, backoff;
     private volatile int lastStatus;
-    private volatile long sent;
+    private final AtomicLong sent = new AtomicLong();
 
     public UsageEmitter(UsageMeter meter, UsageSpool spool, Supplier<Transport> transport, LongSupplier clock) {
         this.meter = meter;
@@ -53,7 +54,7 @@ public final class UsageEmitter {
     public int lastStatus() { return lastStatus; }
 
     /** Records acknowledged since startup. */
-    public long sent() { return sent; }
+    public long sent() { return sent.get(); }
 
     /** Moves the closed windows into the spool, then tries to send. */
     public synchronized void tick() {
@@ -97,7 +98,7 @@ public final class UsageEmitter {
             lastStatus = status;
             if (status >= 200 && status < 300) {
                 spool.remove(b);
-                sent += b.lines().size();
+                sent.addAndGet(b.lines().size());
                 backoff = 0;
                 continue;
             }

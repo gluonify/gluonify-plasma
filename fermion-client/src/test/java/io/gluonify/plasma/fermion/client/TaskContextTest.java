@@ -55,6 +55,16 @@ class TaskContextTest {
     }
 
     @Test
+    void withStepIdCopiesTheContextForAnotherStep() {
+        final TaskContext c = ctx(Map.of("k", 1)).withStepId("Task_B");
+        assertEquals("Task_B", c.stepId());
+        assertEquals("c", c.correlationId());
+        assertEquals(1, c.get("k"));
+        assertNotNull(c.events());
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
     void progressWithoutSinkGoesNowhere() {
         final TaskContext c = new TaskContext("g", "c", "ACT", Map.of(), mapper, "Task_A");
         c.progress(Map.of("phase", "build"));

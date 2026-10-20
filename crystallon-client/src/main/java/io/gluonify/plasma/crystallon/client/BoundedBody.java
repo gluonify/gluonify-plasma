@@ -3,6 +3,7 @@ package io.gluonify.plasma.crystallon.client;
 import java.io.ByteArrayOutputStream;
 import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -14,12 +15,30 @@ import java.util.concurrent.Flow;
  */
 final class BoundedBody {
     /** An error body larger than this is ignored (it is not an {@code ErrorBody}). */
-    static final long ERROR_LIMIT = 64 * 1024;
+    static final long ERROR_LIMIT = 64L * 1024;
 
     private static final byte[] EMPTY = new byte[0];
 
     /** @param bytes the body (empty if {@code tooLarge}) @param tooLarge the body exceeded the limit */
     record Body(byte[] bytes, boolean tooLarge) {
+
+        @Override
+        public boolean equals(final Object other) {
+
+            return other instanceof final Body body && tooLarge == body.tooLarge && Arrays.equals(bytes, body.bytes);
+        }
+
+        @Override
+        public int hashCode() {
+
+            return 31 * Arrays.hashCode(bytes) + Boolean.hashCode(tooLarge);
+        }
+
+        @Override
+        public String toString() {
+
+            return "Body[bytes=" + bytes.length + " bytes, tooLarge=" + tooLarge + "]";
+        }
     }
 
     private BoundedBody() {

@@ -88,8 +88,33 @@ public final class GzipSignature {
         }
     }
 
-    /** Header read: the 10 fixed bytes, the FEXTRA subfields, and the rest of the stream (name, deflate, footer). */
-    private record Header(byte[] fixed, List<byte[]> subfields, byte[] gl) {}
+    /**
+     * Header read: the 10 fixed bytes, the FEXTRA subfields, and the GL subfield (signature) if present. A class rather than a record: its
+     * arrays are compared by identity, and a header is never compared.
+     */
+    private static final class Header {
+        private final byte[] fixed;
+        private final List<byte[]> subfields;
+        private final byte[] gl;
+
+        Header(byte[] fixed, List<byte[]> subfields, byte[] gl) {
+            this.fixed = fixed;
+            this.subfields = subfields;
+            this.gl = gl;
+        }
+
+        byte[] fixed() {
+            return fixed;
+        }
+
+        List<byte[]> subfields() {
+            return subfields;
+        }
+
+        byte[] gl() {
+            return gl;
+        }
+    }
 
     private static Header header(InputStream in) throws IOException {
         byte[] h = in.readNBytes(10);

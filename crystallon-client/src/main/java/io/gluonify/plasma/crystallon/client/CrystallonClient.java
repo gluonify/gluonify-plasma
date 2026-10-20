@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 /**
@@ -51,7 +52,7 @@ public final class CrystallonClient {
     private final long maxPdfBytes;
     private final HttpClient configuredHttp;
     private final Object httpLock = new Object();
-    private volatile HttpClient http;
+    private final AtomicReference<HttpClient> http = new AtomicReference<>();
 
     private CrystallonClient(final Builder b) {
         this.base = b.baseUrl.toString().replaceAll("/+$", "");
@@ -302,14 +303,14 @@ public final class CrystallonClient {
     }
 
     private HttpClient http() {
-        HttpClient h = http;
+        HttpClient h = http.get();
         if (h == null) {
             synchronized (httpLock) {
-                h = http;
+                h = http.get();
                 if (h == null) {
                     h = configuredHttp != null ? configuredHttp : HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1)
                             .connectTimeout(timeout.compareTo(Duration.ofSeconds(10)) < 0 ? timeout : Duration.ofSeconds(10)).build();
-                    http = h;
+                    http.set(h);
                 }
             }
         }

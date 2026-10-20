@@ -11,6 +11,7 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
@@ -32,7 +33,23 @@ public final class Provenance {
     private static final Pattern IMAGE_DIGEST = Pattern.compile("@(sha256:[0-9a-f]{64})$");
 
     /** Decoded token: statement (read only after verification, see {@link #verify}), signed bytes and signature. */
-    public record Signed(ProvenanceStatement statement, byte[] statementBytes, byte[] signature) {}
+    public record Signed(ProvenanceStatement statement, byte[] statementBytes, byte[] signature) {
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof Signed s && Objects.equals(statement, s.statement) && Arrays.equals(statementBytes, s.statementBytes)
+                    && Arrays.equals(signature, s.signature);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(statement, Arrays.hashCode(statementBytes), Arrays.hashCode(signature));
+        }
+
+        @Override
+        public String toString() {
+            return "Signed[statement=" + statement + ", statementBytes=" + Arrays.toString(statementBytes) + ", signature=" + Arrays.toString(signature) + "]";
+        }
+    }
 
     /** Valid shape of a token (without verifying the signature): this is what {@code AppSpec} checks. */
     public static boolean wellFormed(String token) {

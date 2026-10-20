@@ -28,7 +28,7 @@ public final class Gzip {
     /** Decompressed / compressed ratio beyond which we refuse (a native binary compresses at 2-4; gzip never exceeds ~1030). */
     public static final long MAX_RATIO = 100;
     /** Below this decompressed size, the ratio is not checked (small test files). */
-    public static final long RATIO_FLOOR = 1024 * 1024;
+    public static final long RATIO_FLOOR = 1024L * 1024;
 
     /** Single compressed file: ends with {@code .gz} without being a {@code .tar.gz}. */
     public static boolean isSingleFile(String file) {
