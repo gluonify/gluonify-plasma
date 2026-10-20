@@ -13,10 +13,12 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 /**
  * PER-FILE signature, in the gzip header (RFC 1952, {@code FEXTRA} field), in the manner of a signed token: the file carries its own claims (component, architecture,
@@ -88,31 +90,26 @@ public final class GzipSignature {
         }
     }
 
-    /**
-     * Header read: the 10 fixed bytes, the FEXTRA subfields, and the GL subfield (signature) if present. A class rather than a record: its
-     * arrays are compared by identity, and a header is never compared.
-     */
-    private static final class Header {
-        private final byte[] fixed;
-        private final List<byte[]> subfields;
-        private final byte[] gl;
-
-        Header(byte[] fixed, List<byte[]> subfields, byte[] gl) {
-            this.fixed = fixed;
-            this.subfields = subfields;
-            this.gl = gl;
+    /** Header read: the 10 fixed bytes, the FEXTRA subfields, and the GL subfield (signature) if present; compared by the content of its arrays. */
+    private record Header(byte[] fixed, List<byte[]> subfields, byte[] gl) {
+        @Override
+        public boolean equals(final Object other) {
+            return other instanceof Header h && Arrays.equals(fixed, h.fixed) && Arrays.equals(gl, h.gl) && subfields.size() == h.subfields.size()
+                    && IntStream.range(0, subfields.size()).allMatch(i -> Arrays.equals(subfields.get(i), h.subfields.get(i)));
         }
 
-        byte[] fixed() {
-            return fixed;
+        @Override
+        public int hashCode() {
+            int hash = 31 * Arrays.hashCode(fixed) + Arrays.hashCode(gl);
+            for (final byte[] subfield : subfields) {
+                hash = 31 * hash + Arrays.hashCode(subfield);
+            }
+            return hash;
         }
 
-        List<byte[]> subfields() {
-            return subfields;
-        }
-
-        byte[] gl() {
-            return gl;
+        @Override
+        public String toString() {
+            return "Header[fixed=" + Arrays.toString(fixed) + ", subfields=" + subfields.size() + ", gl=" + Arrays.toString(gl) + "]";
         }
     }
 

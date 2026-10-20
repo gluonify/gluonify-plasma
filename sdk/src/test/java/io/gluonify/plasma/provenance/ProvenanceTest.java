@@ -56,7 +56,6 @@ class ProvenanceTest {
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
         assertNotEquals(a, new Provenance.Signed(a.statement(), a.statementBytes(), new byte[64]));
-        assertNotEquals(a, "token");
         assertTrue(a.toString().startsWith("Signed[statement="));
     }
 

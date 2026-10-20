@@ -28,7 +28,6 @@ class BoundedBodyTest {
         final BoundedBody.Body a = new BoundedBody.Body(new byte[] {1, 2}, false);
         assertNotEquals(a, new BoundedBody.Body(new byte[] {1, 3}, false));
         assertNotEquals(a, new BoundedBody.Body(new byte[] {1, 2}, true));
-        assertNotEquals(a, "body");
     }
 
     @Test

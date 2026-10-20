@@ -35,7 +35,7 @@ public final class Provenance {
     /** Decoded token: statement (read only after verification, see {@link #verify}), signed bytes and signature. */
     public record Signed(ProvenanceStatement statement, byte[] statementBytes, byte[] signature) {
         @Override
-        public boolean equals(Object other) {
+        public boolean equals(final Object other) {
             return other instanceof Signed s && Objects.equals(statement, s.statement) && Arrays.equals(statementBytes, s.statementBytes)
                     && Arrays.equals(signature, s.signature);
         }
