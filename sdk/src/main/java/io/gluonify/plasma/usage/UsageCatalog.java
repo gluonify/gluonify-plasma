@@ -92,11 +92,11 @@ public final class UsageCatalog {
         unit(AnalysisUnits.BUP_APITESTS_RUNS, Quantity.COUNT);
         unit(AnalysisUnits.BUP_APITESTS_REQUESTS, Quantity.COUNT);
         unit(AnalysisUnits.BUP_JOBS_SECONDS, Quantity.SECONDS, true, true, Map.of(AnalysisUnits.DIM_KIND, AnalysisUnits.JOB_KINDS));
-        unit(AnalysisUnits.TRACKER_CHECKS_RUNS, Quantity.COUNT, AnalysisUnits.DIM_KIND, AnalysisUnits.CHECK_KINDS);
-        unit(AnalysisUnits.TRACKER_SEO_RUNS, Quantity.COUNT);
-        unit(AnalysisUnits.TRACKER_SEO_PAGES, Quantity.COUNT);
-        unit(AnalysisUnits.TRACKER_ZAP_RUNS, Quantity.COUNT, AnalysisUnits.DIM_MODE, AnalysisUnits.ZAP_MODES);
-        unit(AnalysisUnits.TRACKER_ZAP_REQUESTS, Quantity.COUNT);
+        unit(AnalysisUnits.GEIGER_CHECKS_RUNS, Quantity.COUNT, AnalysisUnits.DIM_KIND, AnalysisUnits.CHECK_KINDS);
+        unit(AnalysisUnits.GEIGER_SEO_RUNS, Quantity.COUNT);
+        unit(AnalysisUnits.GEIGER_SEO_PAGES, Quantity.COUNT);
+        unit(AnalysisUnits.GEIGER_ZAP_RUNS, Quantity.COUNT, AnalysisUnits.DIM_MODE, AnalysisUnits.ZAP_MODES);
+        unit(AnalysisUnits.GEIGER_ZAP_REQUESTS, Quantity.COUNT);
     }
 
     private static final Map<String, UsageUnit> VIEW = Collections.unmodifiableMap(UNITS);

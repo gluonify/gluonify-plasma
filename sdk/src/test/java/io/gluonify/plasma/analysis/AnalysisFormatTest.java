@@ -154,7 +154,7 @@ class AnalysisFormatTest {
 
     @Test
     void unitsFollowTheCatalogueNaming() {
-        for (String u : AnalysisUnits.ALL) assertTrue(u.matches("(bup|tracker)\\.[a-z]+\\.[a-z]+"), u);
+        for (String u : AnalysisUnits.ALL) assertTrue(u.matches("(bup|geiger)\\.[a-z]+\\.[a-z]+"), u);
         assertEquals(AnalysisUnits.ALL.size(), new HashSet<>(AnalysisUnits.ALL).size());
         assertEquals(List.of("native", "deps", "sonar"), AnalysisUnits.ANALYSIS_KINDS);
     }
