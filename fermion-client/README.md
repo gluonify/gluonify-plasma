@@ -22,6 +22,9 @@ WebSocket client for **gluonify-fermion** (BPMN workflow and DMN rule engine) fo
 | `gluonify.fermion.client.queue-size` | `100` | `Start` messages kept during a disconnection |
 | `gluonify.fermion.client.reconnect-interval` | `10s` | ping and reconnection period |
 | `gluonify.fermion.client.heartbeat-interval` | `60s` | period of the heartbeat (`progress`) sent while a handler is running (the first one is sent after one period: a short task sends none); `0s` disables it |
+| `gluonify.fermion.client.capacity.slots.<name>` | none | concurrent tasks per resource name (`heavy=1`, `claude=3`), announced in `Hello`; a skill holds them through `SkillHandler#requires()` |
+| `gluonify.fermion.client.capacity.closed` | none | comma-separated windows without new tasks, `[DAYS ]HH:mm-HH:mm` (`23:30-07:00`, `MON 00:00-06:00`) |
+| `gluonify.fermion.client.capacity.zone` | `Europe/Paris` | time zone of the windows |
 
 Add to the application (large messages are fragmented):
 
@@ -56,6 +59,9 @@ It also carries `stepId()` (the BPMN step, since the same skill can be used twic
 
 ## Behavior
 
+- Structured progress: `TaskContext.progress(Map)` sends a `Progress` with `data` (phase, tool call, cost so far; never a secret); fermion keeps it in the execution's timeline, bounded, and counts it as a heartbeat. An empty map is not sent.
+- Cancellation: fermion sends `Cancel` when the execution is deleted, abandoned or interrupted; the running handler's `onCancel(context, cancel)` is called on another thread and should make `handle` throw `SkillFailureException(FermionMsg.Cancel.INTERRUPTED, …)` (keep a checkpoint when `cancel.resumable()`). The default `onCancel` does nothing. A `Cancel` for a task that does not run on this node is acknowledged at once with a failure of kind `interrupted`.
+- End of a submitted workflow: `client.onWorkflowDone((correlationId, payload) -> …)` receives fermion's `Done` frame (final variables); `onWorkflowError` the refusals and abandons. One callback each, the last one wins.
 - Heartbeat: while a handler runs, a `Progress` (`correlationId`, `action`, `stepId`) is sent every `heartbeat-interval`; fermion does not resend a task whose node is beating. `SkillHandler.expectedDuration()` (optional, announced in `Hello` in ISO-8601) covers what the heartbeat cannot see, for example a multi-day human validation that the node keeps outside the handler.
 
 - Reconnection: a scheduled task that pings (5 s) and reconnects; a NEW connector per attempt (a reused connector accumulates headers until HTTP 431).

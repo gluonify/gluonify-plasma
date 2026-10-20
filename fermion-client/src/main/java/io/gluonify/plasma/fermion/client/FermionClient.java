@@ -1,6 +1,7 @@
 package io.gluonify.plasma.fermion.client;
 
 import io.gluonify.plasma.fermion.FermionMsg;
+import io.gluonify.plasma.fermion.NodeCapacity;
 import io.gluonify.plasma.fermion.WorkflowDescriptor;
 import io.gluonify.plasma.services.Endpoint;
 import io.gluonify.plasma.services.GluonifyServices;
@@ -64,6 +65,7 @@ public class FermionClient {
     private final Deque<FermionMsg.Start> pending = new ArrayDeque<>();
     private volatile WebSocketClientConnection connection;
     private volatile BiConsumer<String, String> errorSink;
+    private volatile BiConsumer<String, Map<String, Object>> doneSink;
     private volatile int connectorsCreated;
     private volatile Optional<String> resolvedUrl;
 
@@ -131,6 +133,29 @@ public class FermionClient {
             }
             catch (final Exception e) {
                 Log.errorv(e, "fermion-client=workflow-error-sink correlationId={0} error={1}", correlationId, e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Callback invoked when a workflow this node submitted ends successfully (correlationId, final variables), from fermion's {@code Done} frame.
+     * Only one: the last replaces the previous. A fermion before extension E1 sends no such frame.
+     *
+     * @param sink the callback, or {@code null} to remove it
+     */
+    public void onWorkflowDone(final BiConsumer<String, Map<String, Object>> sink) {
+        this.doneSink = sink;
+    }
+
+    void fireWorkflowDone(final FermionMsg.Done done) {
+        final BiConsumer<String, Map<String, Object>> sink = doneSink;
+        Log.infov("fermion-client=workflow-done correlationId={0} workflow={1} handled={2}", done.correlationId(), done.workflow(), sink != null);
+        if (sink != null) {
+            try {
+                sink.accept(done.correlationId(), done.payload());
+            }
+            catch (final RuntimeException e) {
+                Log.errorv(e, "fermion-client=workflow-done-sink correlationId={0} error={1}", done.correlationId(), e.getMessage());
             }
         }
     }
@@ -298,6 +323,12 @@ public class FermionClient {
             used.addAll(usage.getUsedWorkflows());
         }
         final String self = config.selfUrl().filter(s -> !s.isBlank()).map(s -> s.replaceAll("/+$", "") + "/q/openapi").orElse(null);
-        return new FermionMsg.Hello(identity.appId(), identity.nodeId(), registry.skills(), used, self);
+        return new FermionMsg.Hello(identity.appId(), identity.nodeId(), registry.skills(), used, self, capacity());
+    }
+
+    /** The capacity of {@code gluonify.fermion.client.capacity.*}; an invalid window or slot fails the connection with a clear message. */
+    NodeCapacity capacity() {
+        final FermionClientConfig.Capacity capacity = config.capacity();
+        return NodeCapacity.of(capacity.slots(), capacity.closed().orElse(List.of()), capacity.zone());
     }
 }

@@ -133,4 +133,39 @@ public final class TestBeans {
             return Map.of();
         }
     }
+
+    /** Skill that holds the heavy slot, reports its phase and stops when fermion cancels it. */
+    @ApplicationScoped
+    public static class Cancellable implements SkillHandler {
+        static volatile java.util.concurrent.CountDownLatch STARTED = new java.util.concurrent.CountDownLatch(1);
+        static volatile java.util.concurrent.CountDownLatch STOP = new java.util.concurrent.CountDownLatch(1);
+        static volatile io.gluonify.plasma.fermion.FermionMsg.Cancel LAST_CANCEL;
+
+        @Override
+        public String action() {
+            return "CANCELLABLE";
+        }
+
+        @Override
+        public Map<String, Integer> requires() {
+            return Map.of("heavy", 1);
+        }
+
+        @Override
+        public Map<String, Object> handle(final TaskContext context) throws Exception {
+            context.progress(Map.of("phase", "started"));
+            context.progress(Map.of());
+            STARTED.countDown();
+            if (STOP.await(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                throw new SkillFailureException(io.gluonify.plasma.fermion.FermionMsg.Cancel.INTERRUPTED, "stopped: " + LAST_CANCEL.reason());
+            }
+            return Map.of("finished", true);
+        }
+
+        @Override
+        public void onCancel(final TaskContext context, final io.gluonify.plasma.fermion.FermionMsg.Cancel cancel) {
+            LAST_CANCEL = cancel;
+            STOP.countDown();
+        }
+    }
 }

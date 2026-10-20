@@ -66,7 +66,7 @@ class FermionClientTest {
         assertEquals("3", hello.nodeId());
         assertEquals("orders-3", FakeFermionServer.lastNodeId);
         assertEquals("http://orders:8080/q/openapi", hello.openApiUrl());
-        assertEquals(List.of("BOOM", "ECHO", "FAIL", "RELEASE", "SLOW", "WAIT"), hello.skills().stream().map(s -> s.id()).toList());
+        assertEquals(List.of("BOOM", "CANCELLABLE", "ECHO", "FAIL", "RELEASE", "SLOW", "WAIT"), hello.skills().stream().map(s -> s.id()).toList());
         final var echo = hello.skills().stream().filter(s -> s.id().equals("ECHO")).findFirst().orElseThrow();
         assertEquals(5, echo.translations().size());
         assertEquals(Language.FR, echo.translations().get(1).language());
@@ -74,6 +74,73 @@ class FermionClientTest {
         assertEquals("order-flow", hello.usedWorkflows().get(0).id());
         assertEquals("PT2H", hello.skills().stream().filter(s -> s.id().equals("SLOW")).findFirst().orElseThrow().expectedDuration());
         assertNull(echo.expectedDuration(), "no declared duration: fermion's own timeout applies");
+        assertNull(echo.requires(), "no requirement: the former JSON");
+        assertEquals(Map.of("heavy", 1), hello.skills().stream().filter(s -> s.id().equals("CANCELLABLE")).findFirst().orElseThrow().requires());
+        assertEquals(Map.of("claude", 3, "heavy", 1), hello.capacity().slots());
+        assertEquals(List.of("23:30-07:00", "SAT 00:00-00:00"), hello.capacity().closed().stream().map(Object::toString).toList());
+        assertEquals("Europe/Paris", hello.capacity().closed().get(0).zone());
+    }
+
+    @Test
+    void relaysTheSuccessfulEndOfASubmittedWorkflow() throws Exception {
+        final List<String> done = new CopyOnWriteArrayList<>();
+        client.onWorkflowDone((id, payload) -> done.add(id + ":" + payload.get("answer")));
+        FakeFermionServer.send(mapper, new FermionMsg.Done("q1", "g1", "ask-question", Map.of("answer", "8080")));
+        await("done", () -> !done.isEmpty());
+        assertEquals(List.of("q1:8080"), done);
+        client.onWorkflowDone((id, payload) -> {
+            throw new IllegalStateException("sink failure is logged, not fatal");
+        });
+        FakeFermionServer.send(mapper, new FermionMsg.Done("q2", null, "ask-question", null));
+        client.onWorkflowDone(null);
+        FakeFermionServer.send(mapper, new FermionMsg.Done("q3", null, "ask-question", null));
+        FakeFermionServer.send(mapper, new FermionMsg.Start("unexpected", "u1", Map.of()));
+        FakeFermionServer.send(mapper, new FermionMsg.Command("d1", null, "ECHO", Map.of("text", "still alive")));
+        await("node still answers", () -> !received(FermionMsg.Result.class).isEmpty());
+    }
+
+    @Test
+    void aCancelReachesTheRunningHandlerWhichStopsAsInterrupted() throws Exception {
+        TestBeans.Cancellable.STARTED = new java.util.concurrent.CountDownLatch(1);
+        TestBeans.Cancellable.STOP = new java.util.concurrent.CountDownLatch(1);
+        FakeFermionServer.send(mapper, new FermionMsg.Command("k1", "g1", "CANCELLABLE", Map.of(), "Task_Run"));
+        assertTrue(TestBeans.Cancellable.STARTED.await(10, java.util.concurrent.TimeUnit.SECONDS));
+        await("progress event", () -> received(FermionMsg.Progress.class).stream().anyMatch(p -> p.data() != null));
+        final FermionMsg.Progress event = received(FermionMsg.Progress.class).stream().filter(p -> p.data() != null).findFirst().orElseThrow();
+        assertEquals(Map.of("phase", "started"), event.data());
+        assertEquals("Task_Run", event.stepId());
+        assertEquals(1, received(FermionMsg.Progress.class).stream().filter(p -> p.data() != null).count(), "an empty event is not sent");
+
+        FakeFermionServer.send(mapper, new FermionMsg.Cancel("k1", "Task_Run", "CANCELLABLE", "kill switch", true));
+        await("result", () -> !received(FermionMsg.Result.class).isEmpty());
+        final FermionMsg.Result result = received(FermionMsg.Result.class).get(0);
+        assertFalse(result.success());
+        assertEquals(FermionMsg.Cancel.INTERRUPTED, result.errorKind());
+        assertEquals("stopped: kill switch", result.error());
+        assertTrue(TestBeans.Cancellable.LAST_CANCEL.resumable());
+    }
+
+    @Test
+    void aCancelWithoutStepFindsTheTaskByItsInstance() throws Exception {
+        TestBeans.Cancellable.STARTED = new java.util.concurrent.CountDownLatch(1);
+        TestBeans.Cancellable.STOP = new java.util.concurrent.CountDownLatch(1);
+        FakeFermionServer.send(mapper, new FermionMsg.Command("k2", null, "CANCELLABLE", Map.of()));
+        assertTrue(TestBeans.Cancellable.STARTED.await(10, java.util.concurrent.TimeUnit.SECONDS));
+        FakeFermionServer.send(mapper, new FermionMsg.Cancel("k2", null, "CANCELLABLE", "deleted", false));
+        await("result", () -> !received(FermionMsg.Result.class).isEmpty());
+        assertEquals(FermionMsg.Cancel.INTERRUPTED, received(FermionMsg.Result.class).get(0).errorKind());
+        assertFalse(TestBeans.Cancellable.LAST_CANCEL.resumable());
+    }
+
+    @Test
+    void aCancelOfATaskThatDoesNotRunHereIsAcknowledgedAtOnce() throws Exception {
+        FakeFermionServer.send(mapper, new FermionMsg.Cancel("gone", "Task_X", "ECHO", "deleted", false));
+        await("ack", () -> !received(FermionMsg.Result.class).isEmpty());
+        final FermionMsg.Result ack = received(FermionMsg.Result.class).get(0);
+        assertEquals("gone", ack.correlationId());
+        assertEquals("Task_X", ack.stepId());
+        assertEquals(FermionMsg.Cancel.INTERRUPTED, ack.errorKind());
+        assertEquals("deleted", ack.error());
     }
 
     @Test

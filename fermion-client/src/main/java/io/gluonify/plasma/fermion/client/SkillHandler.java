@@ -1,5 +1,6 @@
 package io.gluonify.plasma.fermion.client;
 
+import io.gluonify.plasma.fermion.FermionMsg;
 import io.gluonify.plasma.fermion.Language;
 import io.gluonify.plasma.fermion.SkillParam;
 import io.gluonify.plasma.fermion.Translation;
@@ -36,6 +37,29 @@ public interface SkillHandler {
      */
     default Duration expectedDuration() {
         return null;
+    }
+
+    /**
+     * Slots of the node's capacity that one task of this skill holds while it runs ({@code heavy: 1}), announced in {@code Hello}: fermion
+     * places no further task on the node while its slots are full (configuration {@code gluonify.fermion.client.capacity.slots.*}).
+     *
+     * @return the requirement per resource name, empty for none
+     */
+    default Map<String, Integer> requires() {
+        return Map.of();
+    }
+
+    /**
+     * Called when fermion cancels the task in progress (execution deleted, abandoned or interrupted), on another thread than the one running
+     * {@link #handle}. The handler should make {@link #handle} end soon, with a {@link SkillFailureException} of kind
+     * {@link FermionMsg.Cancel#INTERRUPTED}; keep what is needed to resume when {@code cancel.resumable()}. The default does nothing: the task
+     * runs to its end and fermion ignores its result.
+     *
+     * @param context the task being cancelled
+     * @param cancel  the cancellation (reason, resumable)
+     */
+    default void onCancel(final TaskContext context, final FermionMsg.Cancel cancel) {
+        // Nothing to stop by default: a short handler simply finishes.
     }
 
     /**

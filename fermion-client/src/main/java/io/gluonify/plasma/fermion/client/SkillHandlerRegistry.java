@@ -59,7 +59,7 @@ public class SkillHandlerRegistry {
         for (final SkillHandler h : byAction.values()) {
             final java.time.Duration expected = h.expectedDuration();
             skills.add(new SkillDescriptor(h.action(), h.descriptions() == null ? List.of() : h.descriptions(), h.inputs(), h.outputs(),
-                    expected == null ? null : expected.toString()));
+                    expected == null ? null : expected.toString(), h.requires()));
         }
         return skills;
     }

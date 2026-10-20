@@ -43,4 +43,22 @@ class TaskContextTest {
         assertEquals("INVALID_PARAMETER", assertThrows(SkillFailureException.class, () -> c.getMap("m")).errorKind());
         assertTrue(assertThrows(SkillFailureException.class, () -> c.getString("x")).getMessage().contains("'x'"));
     }
+
+    @Test
+    void progressSendsOnlyNonEmptyEvents() {
+        final List<Map<String, Object>> sent = new java.util.ArrayList<>();
+        final TaskContext c = new TaskContext("g", "c", "ACT", Map.of(), mapper, "Task_A", sent::add);
+        c.progress(Map.of("phase", "build"));
+        c.progress(Map.of());
+        c.progress(null);
+        assertEquals(List.of(Map.of("phase", "build")), sent);
+    }
+
+    @Test
+    void progressWithoutSinkGoesNowhere() {
+        final TaskContext c = new TaskContext("g", "c", "ACT", Map.of(), mapper, "Task_A");
+        c.progress(Map.of("phase", "build"));
+        assertNotNull(c.events());
+        assertEquals("Task_A", c.stepId());
+    }
 }

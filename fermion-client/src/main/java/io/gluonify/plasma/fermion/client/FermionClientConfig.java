@@ -3,6 +3,8 @@ package io.gluonify.plasma.fermion.client;
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /** Client configuration: {@code gluonify.fermion.client.*}. */
@@ -53,4 +55,41 @@ public interface FermionClientConfig {
      */
     @WithDefault("60s")
     Duration heartbeatInterval();
+
+    /**
+     * What the node can take at once and when it takes nothing, announced in {@code Hello} (fermion's capacity-aware placement).
+     *
+     * @return the capacity group
+     */
+    Capacity capacity();
+
+    /**
+     * Capacity of the node: {@code gluonify.fermion.client.capacity.*}.
+     *
+     * @author David CABILLIC
+     */
+    interface Capacity {
+
+        /**
+         * Concurrent tasks per resource name ({@code capacity.slots.heavy=1}); a skill holds them through {@link SkillHandler#requires()}.
+         *
+         * @return the slots, empty for none
+         */
+        Map<String, Integer> slots();
+
+        /**
+         * Windows during which the node takes no new task, {@code [DAYS ]HH:mm-HH:mm} ({@code 23:30-07:00}, {@code MON 00:00-06:00}).
+         *
+         * @return the windows
+         */
+        Optional<List<String>> closed();
+
+        /**
+         * Time zone of the windows.
+         *
+         * @return an IANA zone
+         */
+        @WithDefault("Europe/Paris")
+        String zone();
+    }
 }

@@ -12,11 +12,17 @@ import java.util.Map;
  * The node opens the connection then authenticates in its first message — never in the URL:
  * <ul>
  *   <li>node -> fermion: {@link Auth} (Charm token), then {@link Hello} (skills and workflows used), {@link Start} (submit a workflow),
- *       {@link Result} (a task is finished), {@link Progress} (a long task is still running);</li>
- *   <li>fermion -> node: {@link Command} (run a task), {@link Error} (workflow refused or connection refused).</li>
+ *       {@link Result} (a task is finished), {@link Progress} (a long task is still running, optionally with structured {@code data});</li>
+ *   <li>fermion -> node: {@link Command} (run a task), {@link Cancel} (stop the task in progress), {@link Done} (a workflow this node started
+ *       ended successfully), {@link Error} (workflow refused or abandoned, or connection refused).</li>
  * </ul>
  * {@code globalTransactionId} anchors an entire business transaction across a fan-out (a submission that becomes N documents, each with its own
  * {@code correlationId}): set at {@link Start} (by default the first {@code correlationId}) and inherited as is by all the branches.
+ * <p>
+ * {@link Done}, {@link Cancel}, {@link Progress#data()}, {@link Hello#capacity()} and {@link SkillDescriptor#requires()} were added without
+ * changing {@link #PROTOCOL}: every record ignores unknown fields, and a node that does not know a frame type logs a read error and goes on.
+ *
+ * @author David CABILLIC
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "t")
 @JsonSubTypes({
@@ -26,6 +32,8 @@ import java.util.Map;
         @JsonSubTypes.Type(value = FermionMsg.Command.class, name = "command"),
         @JsonSubTypes.Type(value = FermionMsg.Result.class, name = "result"),
         @JsonSubTypes.Type(value = FermionMsg.Progress.class, name = "progress"),
+        @JsonSubTypes.Type(value = FermionMsg.Done.class, name = "done"),
+        @JsonSubTypes.Type(value = FermionMsg.Cancel.class, name = "cancel"),
         @JsonSubTypes.Type(value = FermionMsg.Error.class, name = "error")
 })
 public sealed interface FermionMsg {
@@ -41,13 +49,52 @@ public sealed interface FermionMsg {
         }
     }
 
-    /** Announcement from the node, on connection then on every change: skills, workflows used, address of its OpenAPI. */
+    /**
+     * Announcement from the node, on connection then on every change: skills, workflows used, address of its OpenAPI and, optionally, its
+     * {@link NodeCapacity} (slots and closed windows, extension E4; {@code null} or empty: placement by capability and round robin only).
+     *
+     * @param appId         application of the node
+     * @param nodeId        node within the application
+     * @param skills        skills the node runs
+     * @param usedWorkflows workflows the node submits
+     * @param openApiUrl    address of the node's OpenAPI, or {@code null}
+     * @param capacity      slots and closed windows, or {@code null}
+     * @author David CABILLIC
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record Hello(String appId, String nodeId, List<SkillDescriptor> skills, List<WorkflowDescriptor> usedWorkflows, String openApiUrl) implements FermionMsg {
+    record Hello(String appId, String nodeId, List<SkillDescriptor> skills, List<WorkflowDescriptor> usedWorkflows, String openApiUrl,
+                 NodeCapacity capacity) implements FermionMsg {
+
+        /**
+         * Normalises the lists ({@code null} becomes empty) and an empty capacity to {@code null}.
+         *
+         * @param appId         application of the node
+         * @param nodeId        node within the application
+         * @param skills        skills the node runs
+         * @param usedWorkflows workflows the node submits
+         * @param openApiUrl    address of the node's OpenAPI, or {@code null}
+         * @param capacity      slots and closed windows, or {@code null}
+         */
         public Hello {
+
             skills = skills == null ? List.of() : skills;
             usedWorkflows = usedWorkflows == null ? List.of() : usedWorkflows;
+            capacity = capacity == null || capacity.isEmpty() ? null : capacity;
+        }
+
+        /**
+         * Announcement without capacity (the form of the nodes before E4).
+         *
+         * @param appId         application of the node
+         * @param nodeId        node within the application
+         * @param skills        skills the node runs
+         * @param usedWorkflows workflows the node submits
+         * @param openApiUrl    address of the node's OpenAPI, or {@code null}
+         */
+        public Hello(final String appId, final String nodeId, final List<SkillDescriptor> skills, final List<WorkflowDescriptor> usedWorkflows,
+                     final String openApiUrl) {
+            this(appId, nodeId, skills, usedWorkflows, openApiUrl, null);
         }
     }
 
@@ -128,15 +175,122 @@ public sealed interface FermionMsg {
      * Heartbeat of a task in progress (node -> fermion): the node is still working on the {@link Command} {@code correlationId} + {@code stepId}.
      * Fermion then pushes back the deadline beyond which it deems the node silent and resends the task; a node that never sends one remains
      * compatible (the deadline comes from the duration announced by the skill, {@link SkillDescriptor#expectedDuration()}, or from fermion's setting).
-     * {@code message} is an optional free text (readable progress). An earlier fermion ignores the frame (read error logged).
+     * {@code message} is an optional free text (readable progress); {@code data} (optional, extension E2) is a structured event (phase, tool call,
+     * cost so far) that fermion keeps in the execution's timeline, bounded in size and number. An earlier fermion ignores the frame (read error
+     * logged); an earlier fermion that knows the frame ignores {@code data}.
+     *
+     * @param correlationId       instance of the task
+     * @param globalTransactionId business transaction, or {@code null}
+     * @param action              skill of the task
+     * @param stepId              step of the task, or {@code null}
+     * @param message             free text, or {@code null}
+     * @param data                structured event, or {@code null}
+     * @author David CABILLIC
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record Progress(String correlationId, String globalTransactionId, String action, String stepId, String message) implements FermionMsg {
-        /** Heartbeat in response to {@code command}: repeats its transaction, its action and its {@code stepId}. */
-        public static Progress of(Command command, String message) {
-            return new Progress(command.correlationId(), command.globalTransactionId(), command.action(), command.stepId(), message);
+    record Progress(String correlationId, String globalTransactionId, String action, String stepId, String message,
+                    Map<String, Object> data) implements FermionMsg {
+
+        /**
+         * Normalises an empty {@code data} to {@code null}: a plain heartbeat carries none.
+         *
+         * @param correlationId       instance of the task
+         * @param globalTransactionId business transaction, or {@code null}
+         * @param action              skill of the task
+         * @param stepId              step of the task, or {@code null}
+         * @param message             free text, or {@code null}
+         * @param data                structured event, or {@code null}
+         */
+        public Progress {
+
+            data = data == null || data.isEmpty() ? null : data;
         }
+
+        /**
+         * Heartbeat without structured data (the form before E2).
+         *
+         * @param correlationId       instance of the task
+         * @param globalTransactionId business transaction, or {@code null}
+         * @param action              skill of the task
+         * @param stepId              step of the task, or {@code null}
+         * @param message             free text, or {@code null}
+         */
+        public Progress(final String correlationId, final String globalTransactionId, final String action, final String stepId, final String message) {
+            this(correlationId, globalTransactionId, action, stepId, message, null);
+        }
+
+        /**
+         * Heartbeat in response to {@code command}: repeats its transaction, its action and its {@code stepId}.
+         *
+         * @param command the task in progress
+         * @param message free text, or {@code null}
+         * @return the heartbeat
+         */
+        public static Progress of(final Command command, final String message) {
+            return of(command, message, null);
+        }
+
+        /**
+         * Structured progress event in response to {@code command}: repeats its transaction, its action and its {@code stepId}.
+         *
+         * @param command the task in progress
+         * @param message free text, or {@code null}
+         * @param data    structured event, or {@code null}
+         * @return the progress frame
+         */
+        public static Progress of(final Command command, final String message, final Map<String, Object> data) {
+            return new Progress(command.correlationId(), command.globalTransactionId(), command.action(), command.stepId(), message, data);
+        }
+    }
+
+    /**
+     * Successful end of a workflow (fermion -> the node that submitted it with {@link Start}, when it is online; extension E1): the symmetric of
+     * the {@link Error} sent on an abandon. {@code payload} is the final state of the instance.
+     *
+     * @param correlationId       the instance, as given in {@link Start}
+     * @param globalTransactionId business transaction, or {@code null}
+     * @param workflow            the workflow that ended
+     * @param payload             final variables of the instance (never {@code null})
+     * @author David CABILLIC
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record Done(String correlationId, String globalTransactionId, String workflow, Map<String, Object> payload) implements FermionMsg {
+
+        /**
+         * Normalises a {@code null} payload to empty.
+         *
+         * @param correlationId       the instance
+         * @param globalTransactionId business transaction, or {@code null}
+         * @param workflow            the workflow that ended
+         * @param payload             final variables of the instance
+         */
+        public Done {
+
+            payload = payload == null ? Map.of() : payload;
+        }
+    }
+
+    /**
+     * Order to stop the task in progress (fermion -> the node the task is assigned to; extension E3): sent when the execution is deleted,
+     * abandoned or interrupted. The node stops as soon as it can and answers with a {@link Result} failure of kind {@link #INTERRUPTED}, which
+     * fermion takes as the step's terminal state without resending it. {@code resumable} says that the work may be resumed later (a kill
+     * switch), so the node keeps its checkpoint.
+     *
+     * @param correlationId the instance of the task
+     * @param stepId        the step of the task, or {@code null}
+     * @param action        the skill of the task
+     * @param reason        why the task is stopped (readable)
+     * @param resumable     whether the node should keep what it needs to resume
+     * @author David CABILLIC
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record Cancel(String correlationId, String stepId, String action, String reason, boolean resumable) implements FermionMsg {
+
+        /** {@code errorKind} of the {@link Result} that acknowledges a cancelled task. */
+        public static final String INTERRUPTED = "interrupted";
     }
 
     /** Refusal: connection (invalid token, unknown protocol) or workflow (missing, inactive). {@code correlationId} is empty for a connection refusal. */

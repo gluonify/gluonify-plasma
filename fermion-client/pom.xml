@@ -14,8 +14,8 @@
 
   <properties>
     <!-- Quality ratchets (gluonify-plasma README, "Quality gates"): current coverage rounded down, raised with the tests, never lowered. -->
-    <gluonify.coverage.minimum>0.22</gluonify.coverage.minimum>
-    <gluonify.coverage.branch.minimum>0.18</gluonify.coverage.branch.minimum>
+    <gluonify.coverage.minimum>0.81</gluonify.coverage.minimum>
+    <gluonify.coverage.branch.minimum>0.70</gluonify.coverage.branch.minimum>
   </properties>
   <dependencies>
     <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-sdk</artifactId></dependency>
@@ -25,6 +25,9 @@
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-jackson</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-scheduler</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-junit</artifactId><scope>test</scope></dependency>
+    <!-- The module has no src/main/resources/application.properties, so the parent's gluonify-quarkus-coverage profile does not apply:
+         same setup here, otherwise every class reached only through a @QuarkusTest reads 0 %. -->
+    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-jacoco</artifactId><scope>test</scope></dependency>
     <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-services</artifactId><type>test-jar</type><scope>test</scope></dependency>
   </dependencies>
 
@@ -41,6 +44,9 @@
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
             <maven.home>${maven.home}</maven.home>
+            <quarkus.jacoco.data-file>${project.build.directory}/jacoco.exec</quarkus.jacoco.data-file>
+            <quarkus.jacoco.reuse-data-file>true</quarkus.jacoco.reuse-data-file>
+            <quarkus.jacoco.report>false</quarkus.jacoco.report>
           </systemPropertyVariables>
         </configuration>
       </plugin>
