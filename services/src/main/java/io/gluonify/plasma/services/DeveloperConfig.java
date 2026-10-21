@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 
 /**
@@ -59,12 +60,23 @@ public final class DeveloperConfig {
     }
 
     /** The Gluonify folder: {@code GLUONIFY_HOME}, otherwise {@code <user.home>/.gluonify}. */
-    public static Path home(final Function<String, String> environment, final Function<String, String> properties) {
+    public static Path home(final UnaryOperator<String> environment, final UnaryOperator<String> properties) {
         final String h = environment.apply(ENV_HOME);
         if (h != null && !h.isBlank()) {
             return Path.of(h.strip());
         }
         return Path.of(properties.apply("user.home"), ".gluonify");
+    }
+
+    /**
+     * The Gluonify folder.
+     *
+     * @deprecated since 0.7.2, use {@link #home(UnaryOperator, UnaryOperator)}; removed in the version after.
+     */
+    @Deprecated(since = "0.7.2", forRemoval = true)
+    @SuppressWarnings("java:S4276")
+    public static Path home(final Function<String, String> environment, final Function<String, String> properties) {
+        return home((UnaryOperator<String>) environment::apply, (UnaryOperator<String>) properties::apply);
     }
 
     /** @return true if {@code zone} is an accepted zone name (lower case, digits, dots and hyphens; no scheme, port or path) */

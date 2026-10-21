@@ -9,7 +9,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.function.Supplier;
 
 /**
@@ -86,7 +86,7 @@ public interface CrystallonTokens {
     }
 
     /** Like {@link #platform()} with a supplied environment (tests). */
-    static CrystallonTokens platform(final Function<String, String> environment) {
+    static CrystallonTokens platform(final UnaryOperator<String> environment) {
         final String file = environment.apply(ENV_TOKEN_FILE);
         if (file == null || file.isBlank()) {
             throw new IllegalStateException(ENV_TOKEN_FILE + " is not set: the platform did not grant the service \"crystallon\" (build the application with Bup with this module "
@@ -118,7 +118,7 @@ public interface CrystallonTokens {
     }
 
     /** Like {@link #fromEnvironment()} with a supplied environment (tests). */
-    static CrystallonTokens fromEnvironment(final Function<String, String> environment) {
+    static CrystallonTokens fromEnvironment(final UnaryOperator<String> environment) {
         final String token = environment.apply(ENV_TOKEN);
         if (token != null && !token.isBlank()) {
             return fixed(token);

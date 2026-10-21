@@ -23,7 +23,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 /**
  * The {@code gluonify} command for the developer's workstation:
@@ -55,8 +55,8 @@ public final class Cli {
             "Files: ~/.gluonify/config.json and ~/.gluonify/tokens/<zone>.json (0600); GLUONIFY_HOME changes the folder.");
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z", Locale.ROOT);
 
-    final Function<String, String> environment;
-    final Function<String, String> properties;
+    final UnaryOperator<String> environment;
+    final UnaryOperator<String> properties;
     final Path home;
     final PrintStream out;
     final PrintStream err;
@@ -64,7 +64,7 @@ public final class Cli {
     final Clock clock;
     final ZoneId timeZone;
 
-    Cli(final Function<String, String> environment, final Function<String, String> properties, final Path home, final PrintStream out, final PrintStream err,
+    Cli(final UnaryOperator<String> environment, final UnaryOperator<String> properties, final Path home, final PrintStream out, final PrintStream err,
         final Consumer<URI> browser, final Clock clock, final ZoneId timeZone) {
         this.environment = environment;
         this.properties = properties;

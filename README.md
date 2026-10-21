@@ -240,6 +240,8 @@ Grouped signatures replace the long parameter lists of the published SDK; the ol
 | `new UsageMeter(service, replica, node, version, env, maxKeys, clock, seqs)` | `new UsageMeter(new UsageMeter.Identity(service, replica, node, version, env), maxKeys, clock, seqs)` |
 | `UsageMeter.add(at, subject, unit, dims, quantity, internal, onBehalfOf)` | `add(at, subject, new UsageMeter.Measure(unit, dims, quantity), new UsageMeter.Attribution(internal, onBehalfOf))` |
 | `UsageEmitter.fromEnvironment(Function<String, String>, timeout)` | `fromEnvironment(UnaryOperator<String>, timeout)` |
+| `DeveloperConfig.home(Function<String, String>, Function<String, String>)` | `home(UnaryOperator<String>, UnaryOperator<String>)` |
+| `GluonifyServices.Builder.environment(Function<String, String>)` / `properties(Function<String, String>)` | the same methods taking a `UnaryOperator<String>` |
 
 ## License
 

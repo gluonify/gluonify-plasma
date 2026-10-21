@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 /**
  * Provides the Charm token (audience {@code gluonify-fermion}) sent in the first {@code auth} frame. Called on every (re)connection:
@@ -51,7 +51,7 @@ public interface FermionTokenProvider {
     }
 
     /** Like {@link #platform()} with a supplied environment (tests). */
-    static FermionTokenProvider platform(final Function<String, String> environment) {
+    static FermionTokenProvider platform(final UnaryOperator<String> environment) {
         final String file = environment.apply(ENV_TOKEN_FILE);
         if (file == null || file.isBlank()) {
             throw new IllegalStateException(ENV_TOKEN_FILE + " is not set: the platform did not grant the service \"fermion\" (build the application with Bup with this module "

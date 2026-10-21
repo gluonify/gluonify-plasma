@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 /**
  * Crystallon client for applications: renders to PDF (or validates) a template stored in Crystallon, designated by its identifier or its
@@ -97,7 +97,7 @@ public final class CrystallonClient {
         return fromEnvironment(System::getenv);
     }
 
-    static CrystallonClient fromEnvironment(final Function<String, String> environment) {
+    static CrystallonClient fromEnvironment(final UnaryOperator<String> environment) {
         final String url = environment.apply(ENV_URL);
         if (url == null || url.isBlank()) {
             throw new IllegalStateException(ENV_URL + " is not set: the platform did not grant the service \"crystallon\" (build the application with Bup with this module "

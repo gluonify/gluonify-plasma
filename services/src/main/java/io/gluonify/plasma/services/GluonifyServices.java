@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 
 /**
@@ -59,8 +60,8 @@ public final class GluonifyServices {
     private static final Object DEFAULTS_LOCK = new Object();
     private static final AtomicReference<GluonifyServices> DEFAULT_INSTANCE = new AtomicReference<>();
 
-    private final Function<String, String> environment;
-    private final Function<String, String> properties;
+    private final UnaryOperator<String> environment;
+    private final UnaryOperator<String> properties;
     private final Path home;
     private final Clock clock;
     private final Duration discoveryTtl;
@@ -403,8 +404,8 @@ public final class GluonifyServices {
 
     /** A separate instance: environment, properties, folder, clock and HTTP client supplied (tests, tools). */
     public static final class Builder {
-        private Function<String, String> environment = System::getenv;
-        private Function<String, String> properties = System::getProperty;
+        private UnaryOperator<String> environment = System::getenv;
+        private UnaryOperator<String> properties = System::getProperty;
         private Path home;
         private Clock clock = Clock.systemUTC();
         private Duration discoveryTtl = DISCOVERY_TTL;
@@ -414,15 +415,41 @@ public final class GluonifyServices {
         }
 
         /** @param env the environment variables (default: {@link System#getenv(String)}) */
-        public Builder environment(final Function<String, String> env) {
+        public Builder environment(final UnaryOperator<String> env) {
             this.environment = Objects.requireNonNull(env, "env");
             return this;
         }
 
         /** @param props the system properties (default: {@link System#getProperty(String)}) */
-        public Builder properties(final Function<String, String> props) {
+        public Builder properties(final UnaryOperator<String> props) {
             this.properties = Objects.requireNonNull(props, "props");
             return this;
+        }
+
+        /**
+         * The environment variables.
+         *
+         * @param env the environment variables
+         * @return this builder
+         * @deprecated since 0.7.2, use {@link #environment(UnaryOperator)}; removed in the version after.
+         */
+        @Deprecated(since = "0.7.2", forRemoval = true)
+        @SuppressWarnings("java:S4276")
+        public Builder environment(final Function<String, String> env) {
+            return environment((UnaryOperator<String>) env::apply);
+        }
+
+        /**
+         * The system properties.
+         *
+         * @param props the system properties
+         * @return this builder
+         * @deprecated since 0.7.2, use {@link #properties(UnaryOperator)}; removed in the version after.
+         */
+        @Deprecated(since = "0.7.2", forRemoval = true)
+        @SuppressWarnings("java:S4276")
+        public Builder properties(final Function<String, String> props) {
+            return properties((UnaryOperator<String>) props::apply);
         }
 
         /** @param dir the Gluonify folder (default: {@code GLUONIFY_HOME}, otherwise {@code ~/.gluonify}) */
