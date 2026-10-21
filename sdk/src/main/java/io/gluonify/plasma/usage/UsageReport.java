@@ -73,9 +73,72 @@ public record UsageReport(String contract, String component, String version, Str
      * proportionally if their sum exceeds the process total (they are estimates), and computes the unattributed share so that
      * {@code sum of byApp + unattributedShare = process} (CPU and memory). Without a share ({@code shares} empty or {@code null}), the attribution is {@link #NONE}.
      */
+    public static UsageReport of(final Identity identity, final Snapshot snapshot, final String attribution, final List<AppShare> shares) {
+        return of(identity, snapshot, attribution, shares, null);
+    }
+
+    /**
+     * Who reports.
+     *
+     * @param component component name
+     * @param version   component version
+     * @param instance  instance identifier, or {@code null}
+     * @param node      node identifier, or {@code null}
+     */
+    public record Identity(String component, String version, String instance, String node) {
+    }
+
+    /**
+     * What was measured, and when.
+     *
+     * @param at      time of the measure (epoch milliseconds)
+     * @param process measures of the process
+     * @param cgroup  measures of the cgroup, or {@code null}
+     */
+    public record Snapshot(long at, Process process, Cgroup cgroup) {
+    }
+
+    /**
+     * Same as {@link #of(Identity, Snapshot, String, List)} with the identity and the snapshot as separate arguments.
+     *
+     * @param component   component name
+     * @param version     component version
+     * @param instance    instance identifier, or {@code null}
+     * @param node        node identifier, or {@code null}
+     * @param at          time of the measure
+     * @param process     measures of the process
+     * @param cgroup      measures of the cgroup, or {@code null}
+     * @param attribution confidence of the attribution
+     * @param shares      shares per application
+     * @return the response
+     * @deprecated since 0.7.2, use {@link #of(Identity, Snapshot, String, List)}; removed in the version after.
+     */
+    @Deprecated(since = "0.7.2", forRemoval = true)
     public static UsageReport of(final String component, final String version, final String instance, final String node, final long at, final Process process,
             final Cgroup cgroup, final String attribution, final List<AppShare> shares) {
-        return of(component, version, instance, node, at, process, cgroup, attribution, shares, null);
+        return of(new Identity(component, version, instance, node), new Snapshot(at, process, cgroup), attribution, shares, null);
+    }
+
+    /**
+     * Same as the deprecated nine-argument form, with the storage.
+     *
+     * @param component    component name
+     * @param version      component version
+     * @param instance     instance identifier, or {@code null}
+     * @param node         node identifier, or {@code null}
+     * @param at           time of the measure
+     * @param process      measures of the process
+     * @param cgroup       measures of the cgroup, or {@code null}
+     * @param attribution  confidence of the attribution
+     * @param shares       shares per application
+     * @param storageBytes bytes stored by the component, or {@code null}
+     * @return the response
+     * @deprecated since 0.7.2, use {@link #of(Identity, Snapshot, String, List, Long)}; removed in the version after.
+     */
+    @Deprecated(since = "0.7.2", forRemoval = true)
+    public static UsageReport of(final String component, final String version, final String instance, final String node, final long at, final Process process,
+            final Cgroup cgroup, final String attribution, final List<AppShare> shares, final Long storageBytes) {
+        return of(new Identity(component, version, instance, node), new Snapshot(at, process, cgroup), attribution, shares, storageBytes);
     }
 
     /**
@@ -83,8 +146,14 @@ public record UsageReport(String contract, String component, String version, Str
      * none}). A total below the rows' sum (two snapshots read at different moments) is raised to that sum; without a total, rows that carry storage give it
      * their sum. Rows beyond {@link #MAX_APPS} add their storage to {@link #OTHER}.
      */
-    public static UsageReport of(final String component, final String version, final String instance, final String node, final long at, final Process process,
-            final Cgroup cgroup, final String attribution, final List<AppShare> shares, final Long storageBytes) {
+    public static UsageReport of(final Identity identity, final Snapshot snapshot, final String attribution, final List<AppShare> shares, final Long storageBytes) {
+        final String component = identity.component();
+        final String version = identity.version();
+        final String instance = identity.instance();
+        final String node = identity.node();
+        final long at = snapshot.at();
+        final Process process = snapshot.process();
+        final Cgroup cgroup = snapshot.cgroup();
         if (shares == null || shares.isEmpty() || NONE.equals(attribution)) {
             return new UsageReport(CONTRACT_ID, component, version, instance, node, at, process, cgroup, NONE, List.of(), null, storageBytes);
         }

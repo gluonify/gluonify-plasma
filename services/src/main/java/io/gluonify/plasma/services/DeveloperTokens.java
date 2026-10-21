@@ -153,13 +153,43 @@ public final class DeveloperTokens {
     }
 
     /**
+     * Where a session comes from: the zone, the public client and the endpoints of Charm.
+     *
+     * @param zone               zone of the cluster
+     * @param clientId           public client of Charm ({@code gluonify-cli})
+     * @param tokenEndpoint      Charm's token endpoint (renewal)
+     * @param revocationEndpoint Charm's revocation endpoint, or {@code null}
+     */
+    public record Origin(String zone, String clientId, URI tokenEndpoint, URI revocationEndpoint) {
+    }
+
+    /**
+     * A session built from the response of Charm's token endpoint, with the origin given as separate arguments.
+     *
+     * @param zone               zone of the cluster
+     * @param clientId           public client of Charm
+     * @param tokenEndpoint      Charm's token endpoint
+     * @param revocationEndpoint Charm's revocation endpoint, or {@code null}
+     * @param response           the token response
+     * @param clock              clock of the expiries
+     * @param previous           previous session whose refresh token is kept, or {@code null}
+     * @return the session
+     * @throws GluonifyServicesException if the response has no access token
+     * @deprecated use {@link #fromTokenResponse(Origin, Map, Clock, Session)}
+     */
+    @Deprecated(forRemoval = true)
+    public static Session fromTokenResponse(final String zone, final String clientId, final URI tokenEndpoint, final URI revocationEndpoint,
+                                            final Map<String, Object> response, final Clock clock, final Session previous) {
+        return fromTokenResponse(new Origin(zone, clientId, tokenEndpoint, revocationEndpoint), response, clock, previous);
+    }
+
+    /**
      * A session built from the response of Charm's token endpoint ({@code access_token}, {@code expires_in}, {@code refresh_token},
      * {@code refresh_expires_in}). Without a new refresh token, the one from {@code previous} is kept.
      *
      * @throws GluonifyServicesException if the response has no access token
      */
-    public static Session fromTokenResponse(final String zone, final String clientId, final URI tokenEndpoint, final URI revocationEndpoint,
-                                            final Map<String, Object> response, final Clock clock, final Session previous) {
+    public static Session fromTokenResponse(final Origin origin, final Map<String, Object> response, final Clock clock, final Session previous) {
         final String access = Json.str(response, "access_token");
         if (access == null) {
             throw new GluonifyServicesException("Charm answered without an access token");
@@ -177,7 +207,8 @@ public final class DeveloperTokens {
         if (subject == null) {
             subject = Json.str(claims, "sub");
         }
-        return new Session(zone, clientId, tokenEndpoint, access, now + expiresIn, refresh, refreshExp, Json.strings(claims, "aud"), subject, revocationEndpoint);
+        return new Session(origin.zone(), origin.clientId(), origin.tokenEndpoint(), access, now + expiresIn, refresh, refreshExp, Json.strings(claims, "aud"), subject,
+                origin.revocationEndpoint());
     }
 
     /** The claims of a JWT, read without verification (for information: audiences, person). Empty if it is not a JWT. */
@@ -259,7 +290,7 @@ public final class DeveloperTokens {
             throw new GluonifyServicesException("the renewal of the developer token of zone " + s.zone() + " was interrupted", e);
         }
         if (r.ok()) {
-            return fromTokenResponse(s.zone(), s.clientId(), s.tokenEndpoint(), s.revocationEndpoint(), r.json(), clock, s);
+            return fromTokenResponse(new Origin(s.zone(), s.clientId(), s.tokenEndpoint(), s.revocationEndpoint()), r.json(), clock, s);
         }
         final String error = Json.str(r.json(), "error");
         if (r.status() == 400 && "invalid_grant".equals(error) || r.status() == 401) {

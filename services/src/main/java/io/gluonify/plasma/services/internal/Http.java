@@ -58,6 +58,15 @@ public final class Http {
         return b.build();
     }
 
+    /** {@code s} without its trailing slashes (linear time, unlike a regular expression anchored at the end). */
+    public static String stripTrailingSlashes(final String s) {
+        int end = s.length();
+        while (end > 0 && s.charAt(end - 1) == '/') {
+            end--;
+        }
+        return s.substring(0, end);
+    }
+
     static SSLContext sslContext(final Path caFile) {
         try {
             final List<X509Certificate> extra = new ArrayList<>();
@@ -74,41 +83,43 @@ public final class Http {
             for (int k = 0; k < extra.size(); k++) {
                 ks.setCertificateEntry("gluonify-" + k, extra.get(k));
             }
-            final X509TrustManager custom = trustManager(ks);
-            final X509TrustManager system = trustManager(null);
-            final X509TrustManager both = new X509TrustManager() {
-                @Override
-                public void checkClientTrusted(final X509Certificate[] chain, final String auth) throws CertificateException {
-                    system.checkClientTrusted(chain, auth);
-                }
-
-                @Override
-                public void checkServerTrusted(final X509Certificate[] chain, final String auth) throws CertificateException {
-                    try {
-                        system.checkServerTrusted(chain, auth);
-                    }
-                    catch (final CertificateException e) {
-                        custom.checkServerTrusted(chain, auth);
-                    }
-                }
-
-                @Override
-                public X509Certificate[] getAcceptedIssuers() {
-                    final X509Certificate[] a = system.getAcceptedIssuers();
-                    final X509Certificate[] b = custom.getAcceptedIssuers();
-                    final X509Certificate[] out = new X509Certificate[a.length + b.length];
-                    System.arraycopy(a, 0, out, 0, a.length);
-                    System.arraycopy(b, 0, out, a.length, b.length);
-                    return out;
-                }
-            };
             final SSLContext ctx = SSLContext.getInstance("TLS");
-            ctx.init(null, new TrustManager[] {both}, null);
+            ctx.init(null, new TrustManager[] {combined(trustManager(null), trustManager(ks))}, null);
             return ctx;
         }
         catch (final IOException | GeneralSecurityException | RuntimeException e) {
             throw new IllegalArgumentException("cannot read the certificate authority file " + caFile + " (" + e.getClass().getSimpleName() + ")", e);
         }
+    }
+
+    /** A trust manager that accepts what the system accepts, or else what the custom one accepts. */
+    private static X509TrustManager combined(final X509TrustManager system, final X509TrustManager custom) {
+        return new X509TrustManager() {
+            @Override
+            public void checkClientTrusted(final X509Certificate[] chain, final String auth) throws CertificateException {
+                system.checkClientTrusted(chain, auth);
+            }
+
+            @Override
+            public void checkServerTrusted(final X509Certificate[] chain, final String auth) throws CertificateException {
+                try {
+                    system.checkServerTrusted(chain, auth);
+                }
+                catch (final CertificateException e) {
+                    custom.checkServerTrusted(chain, auth);
+                }
+            }
+
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                final X509Certificate[] a = system.getAcceptedIssuers();
+                final X509Certificate[] b = custom.getAcceptedIssuers();
+                final X509Certificate[] out = new X509Certificate[a.length + b.length];
+                System.arraycopy(a, 0, out, 0, a.length);
+                System.arraycopy(b, 0, out, a.length, b.length);
+                return out;
+            }
+        };
     }
 
     private static X509TrustManager trustManager(final KeyStore ks) throws GeneralSecurityException {

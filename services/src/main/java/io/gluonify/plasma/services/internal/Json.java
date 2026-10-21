@@ -96,41 +96,48 @@ public final class Json {
         else if (v instanceof Number || v instanceof Boolean) {
             out.append(v);
         }
-        else if (v instanceof Map) {
-            final Map<?, ?> m = (Map<?, ?>) v;
-            if (m.isEmpty()) {
-                out.append("{}");
-                return;
-            }
-            out.append("{\n");
-            boolean first = true;
-            for (final Map.Entry<?, ?> e : m.entrySet()) {
-                if (!first) {
-                    out.append(",\n");
-                }
-                first = false;
-                out.append("  ".repeat(indent + 1));
-                quote(out, String.valueOf(e.getKey()));
-                out.append(": ");
-                write(out, e.getValue(), indent + 1);
-            }
-            out.append('\n').append("  ".repeat(indent)).append('}');
+        else if (v instanceof Map<?, ?> m) {
+            writeObject(out, m, indent);
         }
-        else if (v instanceof Collection) {
-            out.append('[');
-            boolean first = true;
-            for (final Object o : (Collection<?>) v) {
-                if (!first) {
-                    out.append(", ");
-                }
-                first = false;
-                write(out, o, indent + 1);
-            }
-            out.append(']');
+        else if (v instanceof Collection<?> c) {
+            writeArray(out, c, indent);
         }
         else {
             throw new IllegalArgumentException("not a JSON value: " + v.getClass().getName());
         }
+    }
+
+    private static void writeObject(final StringBuilder out, final Map<?, ?> m, final int indent) {
+        if (m.isEmpty()) {
+            out.append("{}");
+            return;
+        }
+        out.append("{\n");
+        boolean first = true;
+        for (final Map.Entry<?, ?> e : m.entrySet()) {
+            if (!first) {
+                out.append(",\n");
+            }
+            first = false;
+            out.append("  ".repeat(indent + 1));
+            quote(out, String.valueOf(e.getKey()));
+            out.append(": ");
+            write(out, e.getValue(), indent + 1);
+        }
+        out.append('\n').append("  ".repeat(indent)).append('}');
+    }
+
+    private static void writeArray(final StringBuilder out, final Collection<?> values, final int indent) {
+        out.append('[');
+        boolean first = true;
+        for (final Object o : values) {
+            if (!first) {
+                out.append(", ");
+            }
+            first = false;
+            write(out, o, indent + 1);
+        }
+        out.append(']');
     }
 
     private static void quote(final StringBuilder out, final String v) {
@@ -238,30 +245,7 @@ public final class Json {
                 return out.toString();
             }
             if (c == '\\') {
-                final char e = next();
-                switch (e) {
-                    case '"': out.append('"'); break;
-                    case '\\': out.append('\\'); break;
-                    case '/': out.append('/'); break;
-                    case 'b': out.append('\b'); break;
-                    case 'f': out.append('\f'); break;
-                    case 'n': out.append('\n'); break;
-                    case 'r': out.append('\r'); break;
-                    case 't': out.append('\t'); break;
-                    case 'u':
-                        if (i + 4 > s.length()) {
-                            throw error("bad unicode escape");
-                        }
-                        try {
-                            out.append((char) Integer.parseInt(s.substring(i, i + 4), 16));
-                        }
-                        catch (final NumberFormatException ex) {
-                            throw error("bad unicode escape");
-                        }
-                        i += 4;
-                        break;
-                    default: throw error("bad escape");
-                }
+                escape(out, next());
             }
             else if (c < 0x20) {
                 throw error("control character in a string");
@@ -269,6 +253,35 @@ public final class Json {
             else {
                 out.append(c);
             }
+        }
+    }
+
+    private void escape(final StringBuilder out, final char e) {
+        switch (e) {
+            case '"': out.append('"'); break;
+            case '\\': out.append('\\'); break;
+            case '/': out.append('/'); break;
+            case 'b': out.append('\b'); break;
+            case 'f': out.append('\f'); break;
+            case 'n': out.append('\n'); break;
+            case 'r': out.append('\r'); break;
+            case 't': out.append('\t'); break;
+            case 'u': out.append(unicode()); break;
+            default: throw error("bad escape");
+        }
+    }
+
+    private char unicode() {
+        if (i + 4 > s.length()) {
+            throw error("bad unicode escape");
+        }
+        try {
+            final char c = (char) Integer.parseInt(s.substring(i, i + 4), 16);
+            i += 4;
+            return c;
+        }
+        catch (final NumberFormatException ex) {
+            throw error("bad unicode escape");
         }
     }
 

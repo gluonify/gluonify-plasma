@@ -64,48 +64,70 @@ public final class McpSchemas {
     }
 
     private static ObjectNode schema(final Type type, final Set<Class<?>> seen) {
-        final ObjectNode s = F.objectNode();
         if (type instanceof WildcardType w) {
             return schema(w.getUpperBounds().length == 0 ? Object.class : w.getUpperBounds()[0], seen);
         }
         if (type instanceof GenericArrayType g) {
+            final ObjectNode s = F.objectNode();
             s.put("type", TYPE_ARRAY);
             s.set(KEY_ITEMS, schema(g.getGenericComponentType(), seen));
             return s;
         }
         if (type instanceof ParameterizedType p) {
-            final Class<?> raw = (Class<?>) p.getRawType();
-            final Type[] args = p.getActualTypeArguments();
-            if (Collection.class.isAssignableFrom(raw)) {
-                s.put("type", TYPE_ARRAY);
-                s.set(KEY_ITEMS, schema(args[0], seen));
-                if (Set.class.isAssignableFrom(raw)) {
-                    s.put("uniqueItems", true);
-                }
-                return s;
-            }
-            if (Map.class.isAssignableFrom(raw)) {
-                s.put("type", TYPE_OBJECT);
-                s.set("additionalProperties", schema(args[1], seen));
-                return s;
-            }
-            if (raw == Optional.class) {
-                return schema(args[0], seen);
-            }
-            return schema(raw, seen);
+            return parameterized(p, seen);
         }
         if (!(type instanceof Class<?> c)) {
+            return F.objectNode();
+        }
+        return ofClass(c, seen);
+    }
+
+    private static ObjectNode parameterized(final ParameterizedType p, final Set<Class<?>> seen) {
+        final ObjectNode s = F.objectNode();
+        final Class<?> raw = (Class<?>) p.getRawType();
+        final Type[] args = p.getActualTypeArguments();
+        if (Collection.class.isAssignableFrom(raw)) {
+            s.put("type", TYPE_ARRAY);
+            s.set(KEY_ITEMS, schema(args[0], seen));
+            if (Set.class.isAssignableFrom(raw)) {
+                s.put("uniqueItems", true);
+            }
             return s;
         }
+        if (Map.class.isAssignableFrom(raw)) {
+            s.put("type", TYPE_OBJECT);
+            s.set("additionalProperties", schema(args[1], seen));
+            return s;
+        }
+        if (raw == Optional.class) {
+            return schema(args[0], seen);
+        }
+        return schema(raw, seen);
+    }
+
+    /** The JSON type of a scalar Java type ({@code string}, {@code boolean}, {@code integer}, {@code number}), or {@code null} if it is not one. */
+    private static String scalarType(final Class<?> c) {
         if (c == String.class || c == char.class || c == Character.class) {
-            s.put("type", "string");
-        } else if (c == boolean.class || c == Boolean.class) {
-            s.put("type", "boolean");
-        } else if (c == int.class || c == long.class || c == short.class || c == byte.class || c == Integer.class || c == Long.class || c == Short.class
+            return "string";
+        }
+        if (c == boolean.class || c == Boolean.class) {
+            return "boolean";
+        }
+        if (c == int.class || c == long.class || c == short.class || c == byte.class || c == Integer.class || c == Long.class || c == Short.class
                 || c == Byte.class || c == BigInteger.class || c == OptionalInt.class || c == OptionalLong.class) {
-            s.put("type", "integer");
-        } else if (c == double.class || c == float.class || c == Double.class || c == Float.class || c == BigDecimal.class || c == OptionalDouble.class) {
-            s.put("type", "number");
+            return "integer";
+        }
+        if (c == double.class || c == float.class || c == Double.class || c == Float.class || c == BigDecimal.class || c == OptionalDouble.class) {
+            return "number";
+        }
+        return null;
+    }
+
+    private static ObjectNode ofClass(final Class<?> c, final Set<Class<?>> seen) {
+        final ObjectNode s = F.objectNode();
+        final String scalar = scalarType(c);
+        if (scalar != null) {
+            s.put("type", scalar);
         } else if (c.isEnum()) {
             s.put("type", "string");
             final var values = s.putArray("enum");
@@ -120,29 +142,33 @@ public final class McpSchemas {
         } else if (Map.class.isAssignableFrom(c)) {
             s.put("type", TYPE_OBJECT);
         } else if (c.isRecord()) {
-            s.put("type", TYPE_OBJECT);
-            if (!seen.add(c)) {
-                return s;
-            }
-            final ObjectNode props = s.putObject("properties");
-            for (final RecordComponent rc : c.getRecordComponents()) {
-                final ObjectNode p = schema(rc.getGenericType(), seen);
-                final McpParam d = rc.getAnnotation(McpParam.class);
-                if (d != null && !d.value().isBlank()) {
-                    p.put("description", d.value());
-                }
-                props.set(rc.getName(), p);
-            }
-            final List<String> required = required(c);
-            if (!required.isEmpty()) {
-                final var r = s.putArray("required");
-                required.forEach(r::add);
-            }
-            s.put("additionalProperties", false);
-            seen.remove(c);
+            recordSchema(c, s, seen);
         } else if (!JsonNode.class.isAssignableFrom(c) && c != Object.class) {
             s.put("type", TYPE_OBJECT);
         }
         return s;
+    }
+
+    private static void recordSchema(final Class<?> c, final ObjectNode s, final Set<Class<?>> seen) {
+        s.put("type", TYPE_OBJECT);
+        if (!seen.add(c)) {
+            return;
+        }
+        final ObjectNode props = s.putObject("properties");
+        for (final RecordComponent rc : c.getRecordComponents()) {
+            final ObjectNode p = schema(rc.getGenericType(), seen);
+            final McpParam d = rc.getAnnotation(McpParam.class);
+            if (d != null && !d.value().isBlank()) {
+                p.put("description", d.value());
+            }
+            props.set(rc.getName(), p);
+        }
+        final List<String> required = required(c);
+        if (!required.isEmpty()) {
+            final var r = s.putArray("required");
+            required.forEach(r::add);
+        }
+        s.put("additionalProperties", false);
+        seen.remove(c);
     }
 }

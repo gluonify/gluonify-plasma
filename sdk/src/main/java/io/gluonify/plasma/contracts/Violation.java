@@ -53,9 +53,46 @@ public record Violation(String code, String field, Long limit, Long used, Long r
     public static final String SOURCE_ORGANIZATION = "organization";
     public static final String SOURCE_TOP = "top";
 
-    /** A cap is exceeded. */
+    /**
+     * The numbers of an exceeded cap.
+     *
+     * @param code      refusal code
+     * @param field     field that is capped
+     * @param limit     the cap
+     * @param used      what is already used, or {@code null}
+     * @param requested what is requested
+     */
+    public record Cap(String code, String field, long limit, Long used, long requested) {
+    }
+
+    /**
+     * A cap is exceeded.
+     *
+     * @param cap     the numbers of the cap
+     * @param source  where the cap comes from
+     * @param message message
+     * @return the violation
+     */
+    public static Violation over(final Cap cap, final String source, final String message) {
+        return new Violation(cap.code(), cap.field(), cap.limit(), cap.used(), cap.requested(), null, source, message);
+    }
+
+    /**
+     * A cap is exceeded.
+     *
+     * @param code      refusal code
+     * @param field     field that is capped
+     * @param limit     the cap
+     * @param used      what is already used, or {@code null}
+     * @param requested what is requested
+     * @param source    where the cap comes from
+     * @param message   message
+     * @return the violation
+     * @deprecated since 0.7.2, use {@link #over(Cap, String, String)}; removed in the version after.
+     */
+    @Deprecated(since = "0.7.2", forRemoval = true)
     public static Violation over(final String code, final String field, final long limit, final Long used, final long requested, final String source, final String message) {
-        return new Violation(code, field, limit, used, requested, null, source, message);
+        return over(new Cap(code, field, limit, used, requested), source, message);
     }
 
     /** Value not allowed. */

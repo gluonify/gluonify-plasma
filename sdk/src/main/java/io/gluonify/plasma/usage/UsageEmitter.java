@@ -30,6 +30,8 @@ public final class UsageEmitter {
     /** Batches of at most 1,000 (the calorimeter accepts 5,000). */
     public static final int MAX_BATCH = 1000;
     static final long MIN_BACKOFF = 5_000;
+    /** Answer of {@link #post} when the thread was interrupted (no HTTP status has this value). */
+    private static final int INTERRUPTED = Integer.MIN_VALUE;
     static final long MAX_BACKOFF = 300_000;
 
     private final UsageMeter meter;
@@ -88,30 +90,49 @@ public final class UsageEmitter {
         Transport t = transport == null ? null : transport.get();
         if (t == null) return;
         for (UsageSpool.Batch b : spool.pending()) {
-            int status;
-            try {
-                status = t.post(body(b.lines()));
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
-            } catch (IOException | RuntimeException e) {
-                status = -1;
-            }
+            final int status = post(t, b);
+            if (status == INTERRUPTED) return;
             lastStatus = status;
-            if (status >= 200 && status < 300) {
-                spool.remove(b);
-                sent.addAndGet(b.lines().size());
-                backoff = 0;
-                continue;
+            if (!settle(b, status)) {
+                nextTry = now + backoff;
+                return;
             }
-            if (status == 400 || status == 413 || status == 422) { // the batch will never go through: dropped and counted (the seq gap shows it to the calorimeter)
-                spool.drop(b);
-                continue;
-            }
-            backoff = backoff == 0 ? MIN_BACKOFF : Math.min(MAX_BACKOFF, backoff * 2); // 401, 403, 5xx, unreachable: retry later
-            nextTry = now + backoff;
-            return;
         }
+    }
+
+    /** Status of the post, {@code -1} if it failed, {@link #INTERRUPTED} if the thread was interrupted (the flag is restored). */
+    private static int post(final Transport t, final UsageSpool.Batch b) {
+        try {
+            return t.post(body(b.lines()));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return INTERRUPTED;
+        } catch (IOException | RuntimeException e) {
+            return -1;
+        }
+    }
+
+    /** Applies the answer to the batch: {@code true} if the batch is done with (sent or dropped), {@code false} if the sending must wait. */
+    private boolean settle(final UsageSpool.Batch b, final int status) {
+        if (status >= 200 && status < 300) {
+            spool.remove(b);
+            sent.addAndGet(b.lines().size());
+            backoff = 0;
+            return true;
+        }
+        if (status == 400 || status == 413 || status == 422) { // the batch will never go through: dropped and counted (the seq gap shows it to the calorimeter)
+            spool.drop(b);
+            return true;
+        }
+        backoff = backoff == 0 ? MIN_BACKOFF : Math.min(MAX_BACKOFF, backoff * 2); // 401, 403, 5xx, unreachable: retry later
+        return false;
+    }
+
+    /** {@code s} without its trailing slashes (a loop, not a regular expression anchored at the end). */
+    private static String stripTrailingSlashes(final String s) {
+        int end = s.length();
+        while (end > 0 && s.charAt(end - 1) == '/') end--;
+        return s.substring(0, end);
     }
 
     static String body(final List<String> lines) {
@@ -128,7 +149,7 @@ public final class UsageEmitter {
      * the platform without a restart). HTTP client created on the first send (native image: never in a static field). The token is never logged.
      */
     public static Transport http(final String url, final Path tokenFile, final Duration timeout) {
-        String target = url.replaceAll("/+$", "") + "/v1/usage/records";
+        String target = stripTrailingSlashes(url) + "/v1/usage/records";
         return new Transport() {
             private HttpClient client;
 

@@ -14,12 +14,11 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.config.Config;
 
 /**
  * {@code GET /q/usage}: the component's usage contract {@code gluonify-usage/1} ({@code usage-mcp.md} § 3), ready to use.
@@ -53,32 +52,61 @@ public class UsageResource {
     private final String node;
     private final Supplier<List<UsageContributor>> contributors;
 
+    /**
+     * Injected constructor: the identity comes from {@code quarkus.application.name} and {@code .version} and from {@code gluonify.usage.component},
+     * {@code .instance} and {@code .node}.
+     *
+     * @param found  the contributors found by CDI
+     * @param config the configuration
+     */
     @Inject
-    public UsageResource(final Instance<UsageContributor> found, @ConfigProperty(name = "quarkus.application.name", defaultValue = "unknown") final String name,
-            @ConfigProperty(name = "quarkus.application.version", defaultValue = "unknown") final String version,
-            @ConfigProperty(name = "gluonify.usage.component") final Optional<String> component,
-            @ConfigProperty(name = "gluonify.usage.instance") final Optional<String> instance,
-            @ConfigProperty(name = "gluonify.usage.node") final Optional<String> node) {
+    public UsageResource(final Instance<UsageContributor> found, final Config config) {
         this(new ProcessUsage(), System::currentTimeMillis, () -> {
             final List<UsageContributor> all = new ArrayList<>();
             found.forEach(all::add);
             return all;
-        }, component.orElse(name.startsWith(BRAND_PREFIX) ? name.substring(BRAND_PREFIX.length()) : name), version, instance.orElse(null), node.orElse(null));
+        }, identity(config));
+    }
+
+    static UsageReport.Identity identity(final Config config) {
+        final String name = config.getOptionalValue("quarkus.application.name", String.class).orElse("unknown");
+        final String version = config.getOptionalValue("quarkus.application.version", String.class).orElse("unknown");
+        final String component = config.getOptionalValue("gluonify.usage.component", String.class)
+                .orElse(name.startsWith(BRAND_PREFIX) ? name.substring(BRAND_PREFIX.length()) : name);
+        return new UsageReport.Identity(component, version, config.getOptionalValue("gluonify.usage.instance", String.class).orElse(null),
+                config.getOptionalValue("gluonify.usage.node", String.class).orElse(null));
     }
 
     /**
      * Explicit constructor (component tests: a fake {@code /proc} on a workstation without one, fixed clock and contributors; install it with
      * {@code QuarkusMock.installMockForType(..., UsageResource.class)} in a Quarkus test).
      */
-    public UsageResource(final ProcessUsage usage, final LongSupplier clock, final Supplier<List<UsageContributor>> contributors,
-            final String component, final String version, final String instance, final String node) {
+    public UsageResource(final ProcessUsage usage, final LongSupplier clock, final Supplier<List<UsageContributor>> contributors, final UsageReport.Identity identity) {
         this.usage = usage;
         this.clock = clock;
         this.contributors = contributors;
-        this.component = component;
-        this.version = version;
-        this.instance = instance;
-        this.node = node;
+        this.component = identity.component();
+        this.version = identity.version();
+        this.instance = identity.instance();
+        this.node = identity.node();
+    }
+
+    /**
+     * Same as {@link #UsageResource(ProcessUsage, LongSupplier, Supplier, UsageReport.Identity)} with the identity as separate arguments.
+     *
+     * @param usage        reads the process
+     * @param clock        clock (epoch milliseconds)
+     * @param contributors the contributors
+     * @param component    component name
+     * @param version      component version
+     * @param instance     instance identifier, or {@code null}
+     * @param node         node identifier, or {@code null}
+     * @deprecated since 0.7.2, use {@link #UsageResource(ProcessUsage, LongSupplier, Supplier, UsageReport.Identity)}; removed in the version after.
+     */
+    @Deprecated(since = "0.7.2", forRemoval = true)
+    public UsageResource(final ProcessUsage usage, final LongSupplier clock, final Supplier<List<UsageContributor>> contributors,
+            final String component, final String version, final String instance, final String node) {
+        this(usage, clock, contributors, new UsageReport.Identity(component, version, instance, node));
     }
 
     @GET
@@ -118,7 +146,8 @@ public class UsageResource {
             attribution = UsageReport.NONE;
             storage = null;
         }
-        return UsageReport.of(component, version, instance, node, clock.getAsLong(), process, usage.cgroup(), attribution, shares, storage);
+        return UsageReport.of(new UsageReport.Identity(component, version, instance, node), new UsageReport.Snapshot(clock.getAsLong(), process, usage.cgroup()), attribution, shares,
+                storage);
     }
 
     /** The weakest confidence wins: {@code measured} > {@code prorata} > {@code estimated}; {@code none} yields to any attribution. */

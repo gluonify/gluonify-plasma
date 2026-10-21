@@ -126,6 +126,10 @@ class McpServerTest {
         assertError(McpContract.INVALID_PARAMS, unknown);
         assertEquals("unknown tool: nope", unknown.at("/error/message").asString());
         assertEquals(7, unknown.get("id").asInt());
+    }
+
+    @Test
+    void invalidArguments() {
         final JsonNode missing = call("order_stats", "{\"days\":3}", READER);
         assertError(McpContract.INVALID_PARAMS, missing);
         assertEquals("invalid arguments: tags: field required", missing.at("/error/message").asString());

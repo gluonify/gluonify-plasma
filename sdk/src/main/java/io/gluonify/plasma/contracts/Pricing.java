@@ -213,8 +213,7 @@ public final class Pricing {
         ContractTerms.PriceOverride best = null;
         int bestScore = -1;
         for (ContractTerms.PriceOverride o : overrides) {
-            if (!o.unit().equals(u.unit()) || !within(o.dims(), u.dims())) continue;
-            if (o.env() != null && !o.env().equals(u.env())) continue;
+            if (!o.unit().equals(u.unit()) || !within(o.dims(), u.dims()) || o.env() != null && !o.env().equals(u.env())) continue;
             int score = (o.dims() == null ? 0 : o.dims().size() * 2) + (o.env() == null ? 0 : 1);
             if (score > bestScore) {
                 best = o;

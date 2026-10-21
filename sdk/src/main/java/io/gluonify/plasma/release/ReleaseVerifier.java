@@ -58,17 +58,70 @@ public final class ReleaseVerifier {
      *
      * @param minSequence highest sequence already seen (or required); the manifest must be at least at this level
      */
-    public static ReleaseManifest verify(final byte[] manifest, final byte[] signature, final PublicKey key, final java.util.function.Function<byte[], ReleaseManifest> parser, final long minSequence, final Instant now) {
-        return verify(manifest, signature, key, parser, minSequence, now, ReleaseManifest.NAMES::contains);
+    public static ReleaseManifest verify(final byte[] manifest, final byte[] signature, final PublicKey key, final Policy policy) {
+        if (!signatureValid(manifest, signature, key)) throw new ReleaseManifest.Invalid("invalid manifest signature");
+        ReleaseManifest m = policy.parser().apply(manifest).validate(policy.nameOk());
+        if (policy.now().isAfter(Instant.parse(m.expires()))) throw new ReleaseManifest.Invalid("manifest expired (" + m.expires() + ")");
+        if (m.sequence() < policy.minSequence()) throw new ReleaseManifest.Invalid("rollback refused: sequence " + m.sequence() + " < " + policy.minSequence());
+        return m;
     }
 
-    /** Like {@link #verify(byte[], byte[], PublicKey, java.util.function.Function, long, Instant)} with the caller's component-name criterion (see {@link ReleaseManifest#validate(java.util.function.Predicate)}). */
+    /**
+     * What a manifest must satisfy besides its signature.
+     *
+     * @param parser      reads the manifest
+     * @param minSequence highest sequence already seen (or required)
+     * @param now         current instant (expiry)
+     * @param nameOk      component-name criterion (see {@link ReleaseManifest#validate(java.util.function.Predicate)})
+     */
+    public record Policy(java.util.function.Function<byte[], ReleaseManifest> parser, long minSequence, Instant now, java.util.function.Predicate<String> nameOk) {
+
+        /**
+         * A policy with the default component-name criterion.
+         *
+         * @param parser      reads the manifest
+         * @param minSequence highest sequence already seen (or required)
+         * @param now         current instant
+         * @return the policy
+         */
+        public static Policy of(final java.util.function.Function<byte[], ReleaseManifest> parser, final long minSequence, final Instant now) {
+            return new Policy(parser, minSequence, now, ReleaseManifest.NAMES::contains);
+        }
+    }
+
+    /**
+     * Same as {@link #verify(byte[], byte[], PublicKey, Policy)} with default component names.
+     *
+     * @param manifest    manifest bytes
+     * @param signature   detached signature
+     * @param key         public key
+     * @param parser      reads the manifest
+     * @param minSequence highest sequence already seen
+     * @param now         current instant
+     * @return the manifest
+     * @deprecated since 0.7.2, use {@link #verify(byte[], byte[], PublicKey, Policy)}; removed in the version after.
+     */
+    @Deprecated(since = "0.7.2", forRemoval = true)
+    public static ReleaseManifest verify(final byte[] manifest, final byte[] signature, final PublicKey key, final java.util.function.Function<byte[], ReleaseManifest> parser, final long minSequence, final Instant now) {
+        return verify(manifest, signature, key, Policy.of(parser, minSequence, now));
+    }
+
+    /**
+     * Like the six-argument form with the caller's component-name criterion.
+     *
+     * @param manifest    manifest bytes
+     * @param signature   detached signature
+     * @param key         public key
+     * @param parser      reads the manifest
+     * @param minSequence highest sequence already seen
+     * @param now         current instant
+     * @param nameOk      component-name criterion
+     * @return the manifest
+     * @deprecated since 0.7.2, use {@link #verify(byte[], byte[], PublicKey, Policy)}; removed in the version after.
+     */
+    @Deprecated(since = "0.7.2", forRemoval = true)
     public static ReleaseManifest verify(final byte[] manifest, final byte[] signature, final PublicKey key, final java.util.function.Function<byte[], ReleaseManifest> parser, final long minSequence, final Instant now, final java.util.function.Predicate<String> nameOk) {
-        if (!signatureValid(manifest, signature, key)) throw new ReleaseManifest.Invalid("invalid manifest signature");
-        ReleaseManifest m = parser.apply(manifest).validate(nameOk);
-        if (now.isAfter(Instant.parse(m.expires()))) throw new ReleaseManifest.Invalid("manifest expired (" + m.expires() + ")");
-        if (m.sequence() < minSequence) throw new ReleaseManifest.Invalid("rollback refused: sequence " + m.sequence() + " < " + minSequence);
-        return m;
+        return verify(manifest, signature, key, new Policy(parser, minSequence, now, nameOk));
     }
 
     /** Hexadecimal SHA-256 of in-memory bytes. */

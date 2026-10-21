@@ -377,7 +377,7 @@ public final class GluonifyServices {
         if (!scheme.equals("http") && !scheme.equals("https") && !scheme.equals("ws") && !scheme.equals("wss") || u.getHost() == null) {
             throw new GluonifyServicesException(key + " must be an absolute http(s) URL");
         }
-        return URI.create(u.toString().replaceAll("/+$", ""));
+        return URI.create(Http.stripTrailingSlashes(u.toString()));
     }
 
     private static String name(final String service) {

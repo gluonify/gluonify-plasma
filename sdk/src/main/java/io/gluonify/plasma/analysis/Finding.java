@@ -56,9 +56,47 @@ public record Finding(Integer v, String id, FindingKind kind, String rule, Sever
         if (status == null) status = FindingStatus.OPEN;
     }
 
-    /** Open finding, identifier computed from the target ({@code target}: build, application, site…; never written in the finding). */
+    /**
+     * What a finding is about.
+     *
+     * @param kind   kind of finding
+     * @param target build, application, site...; used to compute the identifier, never written in the finding
+     * @param rule   rule code
+     */
+    public record Subject(FindingKind kind, String target, String rule) {
+    }
+
+    /**
+     * Open finding, identifier computed from the target.
+     *
+     * @param subject  what the finding is about
+     * @param severity severity
+     * @param blocking whether the finding blocks
+     * @param location location, or {@code null}
+     * @param args     arguments of the message, or {@code null}
+     * @return the open finding
+     */
+    public static Finding open(final Subject subject, final Severity severity, final boolean blocking, final Location location, final Map<String, String> args) {
+        return new Finding(CURRENT_VERSION, idOf(subject.kind(), subject.target(), subject.rule(), location), subject.kind(), subject.rule(), severity, blocking, location, args, null,
+                FindingStatus.OPEN);
+    }
+
+    /**
+     * Open finding, identifier computed from the target ({@code target}: build, application, site…; never written in the finding).
+     *
+     * @param kind     kind of finding
+     * @param target   build, application, site...
+     * @param rule     rule code
+     * @param severity severity
+     * @param blocking whether the finding blocks
+     * @param location location, or {@code null}
+     * @param args     arguments of the message, or {@code null}
+     * @return the open finding
+     * @deprecated since 0.7.2, use {@link #open(Subject, Severity, boolean, Location, Map)}; removed in the version after.
+     */
+    @Deprecated(since = "0.7.2", forRemoval = true)
     public static Finding open(final FindingKind kind, final String target, final String rule, final Severity severity, final boolean blocking, final Location location, final Map<String, String> args) {
-        return new Finding(CURRENT_VERSION, idOf(kind, target, rule, location), kind, rule, severity, blocking, location, args, null, FindingStatus.OPEN);
+        return open(new Subject(kind, target, rule), severity, blocking, location, args);
     }
 
     public Finding withRef(final String newRef) {

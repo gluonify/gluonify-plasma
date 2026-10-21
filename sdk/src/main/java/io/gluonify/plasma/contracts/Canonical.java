@@ -36,29 +36,37 @@ public final class Canonical {
             m.forEach((k, v) -> { if (v != null) sorted.put(String.valueOf(k), v); });
             object(sb, sorted);
         } else if (o instanceof Collection<?> c) {
-            sb.append('[');
-            boolean first = true;
-            for (Object x : c) {
-                if (!first) sb.append(',');
-                first = false;
-                write(sb, x);
-            }
-            sb.append(']');
+            collection(sb, c);
         } else if (o.getClass().isRecord()) {
-            Map<String, Object> fields = new TreeMap<>();
-            for (RecordComponent rc : o.getClass().getRecordComponents()) {
-                Object v;
-                try {
-                    v = rc.getAccessor().invoke(o);
-                } catch (IllegalAccessException | InvocationTargetException e) {
-                    throw new IllegalStateException("unreadable component: " + rc.getName(), e);
-                }
-                if (v != null) fields.put(rc.getName(), v);
-            }
-            object(sb, fields);
+            object(sb, recordFields(o));
         } else {
             throw new IllegalArgumentException("non-canonical type: " + o.getClass().getName());
         }
+    }
+
+    private static void collection(final StringBuilder sb, final Collection<?> c) {
+        sb.append('[');
+        boolean first = true;
+        for (Object x : c) {
+            if (!first) sb.append(',');
+            first = false;
+            write(sb, x);
+        }
+        sb.append(']');
+    }
+
+    private static Map<String, Object> recordFields(final Object o) {
+        Map<String, Object> fields = new TreeMap<>();
+        for (RecordComponent rc : o.getClass().getRecordComponents()) {
+            Object v;
+            try {
+                v = rc.getAccessor().invoke(o);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new IllegalStateException("unreadable component: " + rc.getName(), e);
+            }
+            if (v != null) fields.put(rc.getName(), v);
+        }
+        return fields;
     }
 
     private static void object(final StringBuilder sb, final Map<String, Object> m) {

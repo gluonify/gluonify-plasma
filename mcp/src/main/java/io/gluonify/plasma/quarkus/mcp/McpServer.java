@@ -109,6 +109,11 @@ public final class McpServer {
         if (tool == null) {
             return error(id, McpContract.INVALID_PARAMS, "unknown tool: " + cut(name, 64));
         }
+        return invoke(id, tool, arguments, caller);
+    }
+
+    /** Checks the size of the arguments and the role, binds the arguments, calls the tool and renders its value. */
+    private Reply invoke(final JsonNode id, final McpRegistry.Tool tool, final JsonNode arguments, final McpCaller caller) {
         if (McpContract.utf8Size(mapper.writeValueAsString(arguments)) > McpContract.MAX_ARGUMENTS_BYTES) {
             return error(id, McpContract.INVALID_PARAMS, "arguments larger than " + McpContract.MAX_ARGUMENTS_BYTES / 1024 + " KiB");
         }
@@ -119,19 +124,9 @@ public final class McpServer {
         if (tool.caller() >= 0) {
             values[tool.caller()] = caller;
         }
-        if (tool.argument() >= 0) {
-            for (final String r : tool.required()) {
-                if (arguments.path(r).isMissingNode() || arguments.get(r).isNull()) {
-                    return error(id, McpContract.INVALID_PARAMS, cut("invalid arguments: " + r + ": field required", 1024));
-                }
-            }
-            try {
-                values[tool.argument()] = mapper.readerFor(mapper.constructType(tool.argumentType()))
-                        .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-                        .readValue(arguments);
-            } catch (JacksonException e) {
-                return error(id, McpContract.INVALID_PARAMS, cut("invalid arguments: " + e.getOriginalMessage(), 1024));
-            }
+        final Reply invalid = bindArgument(id, tool, arguments, values);
+        if (invalid != null) {
+            return invalid;
         }
         final Object value;
         try {
@@ -143,6 +138,31 @@ public final class McpServer {
             LOG.log(Level.WARNING, e, () -> "MCP tool " + tool.name() + " could not be called");
             return toolError(id, "the tool failed");
         }
+        return render(id, tool, value);
+    }
+
+    /** Reads the argument object into its parameter; the refusal to answer with if a required field is missing or the object is invalid, otherwise {@code null}. */
+    private Reply bindArgument(final JsonNode id, final McpRegistry.Tool tool, final JsonNode arguments, final Object[] values) {
+        if (tool.argument() < 0) {
+            return null;
+        }
+        for (final String r : tool.required()) {
+            if (arguments.path(r).isMissingNode() || arguments.get(r).isNull()) {
+                return error(id, McpContract.INVALID_PARAMS, cut("invalid arguments: " + r + ": field required", 1024));
+            }
+        }
+        try {
+            values[tool.argument()] = mapper.readerFor(mapper.constructType(tool.argumentType()))
+                    .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                    .readValue(arguments);
+            return null;
+        } catch (JacksonException e) {
+            return error(id, McpContract.INVALID_PARAMS, cut("invalid arguments: " + e.getOriginalMessage(), 1024));
+        }
+    }
+
+    /** The result of the tool call: its value as text, and as structured content when it is an object. */
+    private Reply render(final JsonNode id, final McpRegistry.Tool tool, final Object value) {
         final ObjectNode r = mapper.createObjectNode();
         try {
             JsonNode structured = null;

@@ -55,7 +55,7 @@ public final class CrystallonClient {
     private final AtomicReference<HttpClient> http = new AtomicReference<>();
 
     private CrystallonClient(final Builder b) {
-        this.base = b.baseUrl.toString().replaceAll("/+$", "");
+        this.base = stripTrailingSlashes(b.baseUrl.toString());
         this.tokens = b.tokens;
         this.timeout = b.timeout;
         this.json = b.json != null ? b.json : PayloadCodec.detect();
@@ -195,7 +195,7 @@ public final class CrystallonClient {
         if (pdf.length < 4 || pdf[0] != '%' || pdf[1] != 'P' || pdf[2] != 'D' || pdf[3] != 'F') {
             throw new CrystallonException(status, null, "Crystallon did not return a PDF", null);
         }
-        return new RenderedPdf(pdf, intHeader(response, PAGES_HEADER), intHeader(response, WARNINGS_HEADER), pdfa(response));
+        return new RenderedPdf(pdf, intHeader(response, PAGES_HEADER), intHeader(response, WARNINGS_HEADER), pdfa(response).orElse(null));
     }
 
     private Check check(final String pathAndQuery, final Object request) {
@@ -291,15 +291,25 @@ public final class CrystallonClient {
         }).orElse(0);
     }
 
-    private static Boolean pdfa(final HttpResponse<?> response) {
+    /** The PDF/A validity announced by the server, empty if it did not say (or said something else). */
+    private static Optional<Boolean> pdfa(final HttpResponse<?> response) {
         final String value = response.headers().firstValue(PDFA_HEADER).map(String::strip).orElse("");
         if (value.equalsIgnoreCase("valid") || value.equalsIgnoreCase("true")) {
-            return Boolean.TRUE;
+            return Optional.of(Boolean.TRUE);
         }
         if (value.equalsIgnoreCase("invalid") || value.equalsIgnoreCase("false")) {
-            return Boolean.FALSE;
+            return Optional.of(Boolean.FALSE);
         }
-        return null;
+        return Optional.empty();
+    }
+
+    /** {@code s} without its trailing slashes (a loop, not a regular expression anchored at the end). */
+    private static String stripTrailingSlashes(final String s) {
+        int end = s.length();
+        while (end > 0 && s.charAt(end - 1) == '/') {
+            end--;
+        }
+        return s.substring(0, end);
     }
 
     private HttpClient http() {

@@ -127,9 +127,21 @@ public final class McpRegistry {
         if (!Modifier.isPublic(m.getModifiers())) {
             throw new IllegalStateException("MCP tool " + name + " (" + where + "): the method must be public");
         }
+        final Class<?>[] types = m.getParameterTypes();
+        final int[] positions = parameterPositions(types, name, where);
+        final int argument = positions[0];
+        final int caller = positions[1];
+        final Type argumentType = argument < 0 ? null : m.getGenericParameterTypes()[argument];
+        final ObjectNode schema = inputSchema(a, argumentType, name + " (" + where + ")", mapper);
+        m.setAccessible(true); // a package-private toolbox class
+        final List<String> required = argument < 0 ? List.of() : McpSchemas.required(types[argument]);
+        return new Tool(name, a.description().strip(), a.write(), schema, target, m, argument, argumentType, caller, required);
+    }
+
+    /** The position of the arguments parameter and of the optional {@link McpCaller} parameter ({@code -1}: absent), as {@code {argument, caller}}. */
+    private static int[] parameterPositions(final Class<?>[] types, final String name, final String where) {
         int argument = -1;
         int caller = -1;
-        final Class<?>[] types = m.getParameterTypes();
         for (int i = 0; i < types.length; i++) {
             if (types[i] == McpCaller.class && caller < 0) {
                 caller = i;
@@ -140,19 +152,14 @@ public final class McpRegistry {
                         + types[i].getSimpleName());
             }
         }
-        final Type argumentType = argument < 0 ? null : m.getGenericParameterTypes()[argument];
-        ObjectNode schema;
+        return new int[] {argument, caller};
+    }
+
+    /** The input schema: the declared one, otherwise derived from the argument type, otherwise an empty object schema; checked to be an object schema within the size limit. */
+    private static ObjectNode inputSchema(final McpTool a, final Type argumentType, final String what, final ObjectMapper mapper) {
+        final ObjectNode schema;
         if (!a.inputSchema().isBlank()) {
-            final JsonNode n;
-            try {
-                n = mapper.readTree(a.inputSchema());
-            } catch (JacksonException e) {
-                throw new IllegalStateException("MCP tool " + name + " (" + where + "): the input schema is not valid JSON");
-            }
-            if (!(n instanceof ObjectNode o)) {
-                throw new IllegalStateException("MCP tool " + name + " (" + where + "): the input schema must be a JSON object");
-            }
-            schema = o;
+            schema = declaredSchema(a.inputSchema(), what, mapper);
         } else if (argumentType != null) {
             schema = McpSchemas.of(argumentType);
         } else {
@@ -161,14 +168,25 @@ public final class McpRegistry {
             schema.putObject("properties");
         }
         if (!"object".equals(schema.path("type").asString(""))) {
-            throw new IllegalStateException("MCP tool " + name + " (" + where + "): the input schema must be an object schema (\"type\": \"object\")");
+            throw new IllegalStateException("MCP tool " + what + ": the input schema must be an object schema (\"type\": \"object\")");
         }
         if (McpContract.utf8Size(mapper.writeValueAsString(schema)) > McpContract.MAX_SCHEMA_BYTES) {
-            throw new IllegalStateException("MCP tool " + name + " (" + where + "): the input schema is larger than " + McpContract.MAX_SCHEMA_BYTES / 1024 + " KiB");
+            throw new IllegalStateException("MCP tool " + what + ": the input schema is larger than " + McpContract.MAX_SCHEMA_BYTES / 1024 + " KiB");
         }
-        m.setAccessible(true); // a package-private toolbox class
-        final List<String> required = argument < 0 ? List.of() : McpSchemas.required(types[argument]);
-        return new Tool(name, a.description().strip(), a.write(), schema, target, m, argument, argumentType, caller, required);
+        return schema;
+    }
+
+    private static ObjectNode declaredSchema(final String text, final String what, final ObjectMapper mapper) {
+        final JsonNode n;
+        try {
+            n = mapper.readTree(text);
+        } catch (JacksonException e) {
+            throw new IllegalStateException("MCP tool " + what + ": the input schema is not valid JSON");
+        }
+        if (!(n instanceof ObjectNode o)) {
+            throw new IllegalStateException("MCP tool " + what + ": the input schema must be a JSON object");
+        }
+        return o;
     }
 
     /** {@code orderStats} -> {@code order_stats}; {@code HTTPStatus} -> {@code httpstatus}. */

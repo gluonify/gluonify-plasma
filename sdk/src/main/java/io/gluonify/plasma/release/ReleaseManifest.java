@@ -69,6 +69,17 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
         if (schema != SCHEMA_VERSION) throw new Invalid("unsupported manifest schema: " + schema);
         if (version == null || !VERSION_PATTERN.matcher(version).matches()) throw new Invalid("invalid version");
         if (sequence < 1) throw new Invalid("invalid sequence");
+        requireDates();
+        if (artifacts == null || artifacts.isEmpty() || artifacts.size() > MAX_ARTIFACTS) throw new Invalid("invalid artifact list");
+        var seen = new java.util.HashSet<String>();
+        for (Artifact a : artifacts) {
+            requireArtifact(a, nameOk);
+            if (!seen.add(a.name() + "/" + a.arch())) throw new Invalid("artefact en double : " + a.name() + "/" + a.arch());
+        }
+        return this;
+    }
+
+    private void requireDates() {
         if (createdAt == null || expires == null) throw new Invalid("dates absentes");
         try {
             java.time.Instant.parse(createdAt);
@@ -76,17 +87,14 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
         } catch (java.time.format.DateTimeParseException e) {
             throw new Invalid("invalid date");
         }
-        if (artifacts == null || artifacts.isEmpty() || artifacts.size() > MAX_ARTIFACTS) throw new Invalid("invalid artifact list");
-        var seen = new java.util.HashSet<String>();
-        for (Artifact a : artifacts) {
-            if (a == null || a.name() == null || !nameOk.test(a.name())) throw new Invalid("unknown component: " + (a == null ? null : a.name()));
-            if (a.arch() == null || !ARCHS.contains(a.arch())) throw new Invalid("invalid architecture: " + a.arch());
-            if (a.file() == null || !FILE.matcher(a.file()).matches() || a.file().contains("..")) throw new Invalid("invalid file name: " + a.file());
-            if (a.sha256() == null || !SHA.matcher(a.sha256()).matches()) throw new Invalid("invalid digest for " + a.file());
-            if (a.size() < 1 || a.size() > MAX_ARTIFACT_BYTES) throw new Invalid("invalid size for " + a.file());
-            if (!seen.add(a.name() + "/" + a.arch())) throw new Invalid("artefact en double : " + a.name() + "/" + a.arch());
-        }
-        return this;
+    }
+
+    private static void requireArtifact(final Artifact a, final java.util.function.Predicate<String> nameOk) {
+        if (a == null || a.name() == null || !nameOk.test(a.name())) throw new Invalid("unknown component: " + (a == null ? null : a.name()));
+        if (a.arch() == null || !ARCHS.contains(a.arch())) throw new Invalid("invalid architecture: " + a.arch());
+        if (a.file() == null || !FILE.matcher(a.file()).matches() || a.file().contains("..")) throw new Invalid("invalid file name: " + a.file());
+        if (a.sha256() == null || !SHA.matcher(a.sha256()).matches()) throw new Invalid("invalid digest for " + a.file());
+        if (a.size() < 1 || a.size() > MAX_ARTIFACT_BYTES) throw new Invalid("invalid size for " + a.file());
     }
 
     /**

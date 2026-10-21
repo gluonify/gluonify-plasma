@@ -36,7 +36,7 @@ public class GluonifyProducers {
      */
     @Produces
     @DefaultBean
-    @Singleton
+    @Singleton // not ApplicationScoped: CrystallonClient is a final class that a client proxy cannot subclass
     CrystallonClient crystallon(final Instance<ObjectMapper> mapper) {
         return crystallon(GluonifyServices.defaults(), mapper.isResolvable() ? mapper.get() : null);
     }

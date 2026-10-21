@@ -99,12 +99,12 @@ public final class UsageContract {
             if (v == null || v.isNull()) {
                 continue;
             }
-            if (!isInteger(row, STORAGE_BYTES)) {
+            if (isInteger(row, STORAGE_BYTES)) {
+                any = true;
+                rows += v.asLong();
+            } else {
                 errors.add(BY_APP_PREFIX + text(row, "app") + "]." + STORAGE_BYTES + INTEGER_EXPECTED);
-                continue;
             }
-            any = true;
-            rows += v.asLong();
         }
         if (!any) {
             return;

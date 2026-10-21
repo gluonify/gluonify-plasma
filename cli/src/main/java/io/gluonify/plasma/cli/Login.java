@@ -52,6 +52,10 @@ final class Login {
         this.cli = cli;
     }
 
+    /** What the discovery document and the OpenID configuration of Charm say: the issuer and the three endpoints. */
+    private record Provider(Discovery discovery, String issuer, URI authorize, URI token, URI revocation) {
+    }
+
     DeveloperTokens.Session run(final Options o) {
         final URI discoveryUrl = o.discovery() != null ? o.discovery() : Discovery.defaultUrl(o.zone());
         if (!Http.secure(discoveryUrl)) {
@@ -64,6 +68,36 @@ final class Login {
         catch (final IllegalArgumentException e) {
             throw new GluonifyServicesException(e.getMessage());
         }
+        final Provider provider = discover(http, o, discoveryUrl);
+        final SecureRandom random = new SecureRandom();
+        final String verifier = random(random, 48);
+        final String state = random(random, 24);
+        final CompletableFuture<String> code = new CompletableFuture<>();
+        final HttpServer server = listen(o.port());
+        final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
+            final Thread t = new Thread(r, "gluonify-login-callback");
+            t.setDaemon(true);
+            return t;
+        });
+        server.setExecutor(executor);
+        server.createContext("/", ex -> callback(ex, state, provider.issuer(), o.zone(), code));
+        server.start();
+        try {
+            final Challenge challenge = new Challenge(state, verifier, "http://127.0.0.1:" + server.getAddress().getPort() + CALLBACK);
+            return exchange(http, o, provider, discoveryUrl, challenge, authorize(o, provider, challenge, code));
+        }
+        finally {
+            server.stop(0);
+            executor.shutdownNow();
+        }
+    }
+
+    /** The values of one authorization request: {@code state}, the PKCE {@code verifier} and the {@code redirect} address. */
+    private record Challenge(String state, String verifier, String redirect) {
+    }
+
+    /** Reads the discovery document, then the OpenID configuration it points to, and checks that they agree. */
+    private Provider discover(final HttpClient http, final Options o, final URI discoveryUrl) {
         final Discovery d = Discovery.of(get(http, discoveryUrl, "the discovery document of " + o.zone()));
         final URI oidcUrl = d.openidConfigurationUrl().orElseThrow(() -> new GluonifyServicesException("the discovery document of " + o.zone()
                 + " gives no issuer (Charm): is the cluster up to date?"));
@@ -78,84 +112,76 @@ final class Login {
         final URI authorize = endpoint(oidc, "authorization_endpoint", o.zone());
         final URI token = endpoint(oidc, "token_endpoint", o.zone());
         final URI revocation = Json.str(oidc, "revocation_endpoint") == null ? null : endpoint(oidc, "revocation_endpoint", o.zone());
+        return new Provider(d, issuer, authorize, token, revocation);
+    }
 
-        final SecureRandom random = new SecureRandom();
-        final String verifier = random(random, 48);
-        final String state = random(random, 24);
-        final CompletableFuture<String> code = new CompletableFuture<>();
-        final HttpServer server;
+    private static HttpServer listen(final int port) {
         try {
-            server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), o.port()), 0);
+            return HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), port), 0);
         }
         catch (final IOException e) {
-            throw new GluonifyServicesException("cannot listen on 127.0.0.1:" + o.port() + " for the login callback (" + e.getClass().getSimpleName() + ")", e);
+            throw new GluonifyServicesException("cannot listen on 127.0.0.1:" + port + " for the login callback (" + e.getClass().getSimpleName() + ")", e);
         }
-        final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
-            final Thread t = new Thread(r, "gluonify-login-callback");
-            t.setDaemon(true);
-            return t;
-        });
-        server.setExecutor(executor);
-        server.createContext("/", ex -> callback(ex, state, issuer, o.zone(), code));
-        server.start();
-        try {
-            final String redirect = "http://127.0.0.1:" + server.getAddress().getPort() + CALLBACK;
-            final Map<String, String> q = new LinkedHashMap<>();
-            q.put("response_type", "code");
-            q.put("client_id", d.clientId());
-            q.put("redirect_uri", redirect);
-            q.put("scope", o.scope());
-            q.put("state", state);
-            q.put("code_challenge", s256(verifier));
-            q.put("code_challenge_method", "S256");
-            final URI url = URI.create(authorize + (authorize.getRawQuery() == null ? "?" : "&") + Http.form(q));
-            cli.out.println("Log in to " + o.zone() + " in your browser" + (o.noBrowser() ? "" : " (opening it now)") + ":");
-            cli.out.println("  " + url);
-            if (!o.noBrowser()) {
-                try {
-                    cli.browser.accept(url);
-                }
-                catch (final RuntimeException e) {
-                    cli.out.println("(the browser could not be opened: open the address above)");
-                }
-            }
-            final String authorizationCode;
+    }
+
+    /** Prints the authorization address, opens the browser unless asked not to, and waits for the code of the callback. */
+    private String authorize(final Options o, final Provider p, final Challenge c, final CompletableFuture<String> code) {
+        final Map<String, String> q = new LinkedHashMap<>();
+        q.put("response_type", "code");
+        q.put("client_id", p.discovery().clientId());
+        q.put("redirect_uri", c.redirect());
+        q.put("scope", o.scope());
+        q.put("state", c.state());
+        q.put("code_challenge", s256(c.verifier()));
+        q.put("code_challenge_method", "S256");
+        final URI url = URI.create(p.authorize() + (p.authorize().getRawQuery() == null ? "?" : "&") + Http.form(q));
+        cli.out.println("Log in to " + o.zone() + " in your browser" + (o.noBrowser() ? "" : " (opening it now)") + ":");
+        cli.out.println("  " + url);
+        if (!o.noBrowser()) {
             try {
-                authorizationCode = code.get(o.timeout().toMillis(), TimeUnit.MILLISECONDS);
+                cli.browser.accept(url);
             }
-            catch (final TimeoutException e) {
-                throw new GluonifyServicesException("no answer from the browser within " + o.timeout().toSeconds() + " s: run gluonify login " + o.zone() + " again");
+            catch (final RuntimeException e) {
+                cli.out.println("(the browser could not be opened: open the address above)");
             }
-            catch (final ExecutionException e) {
-                throw new GluonifyServicesException(e.getCause().getMessage(), e.getCause());
-            }
-            catch (final InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new GluonifyServicesException("the login was interrupted", e);
-            }
-            final Map<String, String> form = new LinkedHashMap<>();
-            form.put("grant_type", "authorization_code");
-            form.put("code", authorizationCode);
-            form.put("redirect_uri", redirect);
-            form.put("client_id", d.clientId());
-            form.put("code_verifier", verifier);
-            final Http.Response r = post(http, token, form);
-            if (!r.ok()) {
-                final String error = Json.str(r.json(), KEY_ERROR);
-                throw new GluonifyServicesException("Charm refused the login (HTTP " + r.status() + (error == null ? "" : ", " + error) + ")");
-            }
-            final DeveloperTokens.Session s = DeveloperTokens.fromTokenResponse(o.zone(), d.clientId(), token, revocation, r.json(), cli.clock, null);
-            DeveloperTokens.write(cli.home, s);
-            DeveloperConfig.read(cli.home).with(new DeveloperConfig.Zone(o.zone(), discoveryUrl, d.environment(), o.ca())).write(cli.home);
-            if (!d.services().isEmpty()) {
-                cli.out.println("Services of " + o.zone() + (d.environment() == null ? "" : " (" + d.environment() + ")") + ": " + String.join(", ", d.services().keySet()));
-            }
-            return s;
         }
-        finally {
-            server.stop(0);
-            executor.shutdownNow();
+        try {
+            return code.get(o.timeout().toMillis(), TimeUnit.MILLISECONDS);
         }
+        catch (final TimeoutException e) {
+            throw new GluonifyServicesException("no answer from the browser within " + o.timeout().toSeconds() + " s: run gluonify login " + o.zone() + " again");
+        }
+        catch (final ExecutionException e) {
+            throw new GluonifyServicesException(e.getCause().getMessage(), e.getCause());
+        }
+        catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new GluonifyServicesException("the login was interrupted", e);
+        }
+    }
+
+    /** Exchanges the code for the tokens at Charm, then stores the session and the zone. */
+    private DeveloperTokens.Session exchange(final HttpClient http, final Options o, final Provider p, final URI discoveryUrl, final Challenge c,
+                                             final String authorizationCode) {
+        final Discovery d = p.discovery();
+        final Map<String, String> form = new LinkedHashMap<>();
+        form.put("grant_type", "authorization_code");
+        form.put("code", authorizationCode);
+        form.put("redirect_uri", c.redirect());
+        form.put("client_id", d.clientId());
+        form.put("code_verifier", c.verifier());
+        final Http.Response r = post(http, p.token(), form);
+        if (!r.ok()) {
+            final String error = Json.str(r.json(), KEY_ERROR);
+            throw new GluonifyServicesException("Charm refused the login (HTTP " + r.status() + (error == null ? "" : ", " + error) + ")");
+        }
+        final DeveloperTokens.Session s = DeveloperTokens.fromTokenResponse(new DeveloperTokens.Origin(o.zone(), d.clientId(), p.token(), p.revocation()), r.json(), cli.clock, null);
+        DeveloperTokens.write(cli.home, s);
+        DeveloperConfig.read(cli.home).with(new DeveloperConfig.Zone(o.zone(), discoveryUrl, d.environment(), o.ca())).write(cli.home);
+        if (!d.services().isEmpty()) {
+            cli.out.println("Services of " + o.zone() + (d.environment() == null ? "" : " (" + d.environment() + ")") + ": " + String.join(", ", d.services().keySet()));
+        }
+        return s;
     }
 
     /** The browser's return: a single valid call ends the login; other paths (favicon...) get 404. */

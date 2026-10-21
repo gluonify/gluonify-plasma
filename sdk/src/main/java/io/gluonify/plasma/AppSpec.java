@@ -180,31 +180,12 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
     public static final Set<String> ARCHITECTURES = Set.of("amd64", "arm64", "darwin-amd64", "darwin-arm64", "windows-amd64", "windows-arm64");
 
     public AppSpec {
-        if (name == null || !name.matches("[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?")) {
-            throw new IllegalArgumentException("invalid application name (DNS label expected)");
-        }
-        if (name.equals("api") || name.startsWith("ns") && name.length() <= 4) {
-            throw new IllegalArgumentException("reserved name");
-        }
-        if (artifacts == null) artifacts = Map.of();
-        if (!artifacts.isEmpty()) {
-            for (var e : artifacts.entrySet()) {
-                if (!ARCHITECTURES.contains(e.getKey())) throw new IllegalArgumentException("unknown architecture: " + e.getKey() + " (amd64, arm64, darwin-amd64, darwin-arm64, windows-amd64 or windows-arm64)");
-                if (e.getValue() == null || e.getValue().isBlank() || e.getValue().length() > 2048) throw new IllegalArgumentException("invalid executable for " + e.getKey());
-            }
-            artifacts = Collections.unmodifiableMap(new TreeMap<>(artifacts)); // stable order (replication, snapshots)
-        } else if (image == null || image.isBlank()) {
-            throw new IllegalArgumentException("image or artifacts required");
-        }
+        requireName(name);
+        artifacts = checkedArtifacts(artifacts, image);
         replicas = replicas == null ? 1 : replicas;
         port = port == null ? 8080 : port;
         memoryMb = memoryMb == null ? 64 : memoryMb;
-        if (topNamespace != null && !topNamespace.matches("[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?(\\.(app|gluonify))?")) {
-            throw new IllegalArgumentException("invalid topNamespace (DNS label expected, optionally suffixed .app or .gluonify)");
-        }
-        if (uuid != null && !uuid.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) {
-            throw new IllegalArgumentException("invalid uuid");
-        }
+        requireNamespaceAndUuid(topNamespace, uuid);
         scratchMb = scratchMb == null ? DEFAULT_SCRATCH_MB : scratchMb;
         nas = nas != null && nas;
         if (scratchMb < 0 || scratchMb > MAX_SCRATCH_MB) throw new IllegalArgumentException("scratchMb out of range (0 to " + MAX_SCRATCH_MB + ")");
@@ -213,50 +194,119 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
         uses = uses == null ? java.util.List.of() : java.util.List.copyOf(uses);
         internal = internal != null && internal;
         ports = ports == null ? java.util.List.of() : java.util.List.copyOf(ports);
-        if (ports.size() > 4) throw new IllegalArgumentException("too many additional ports (4 at most)");
-        for (int q : ports) {
-            if (q < 1025 || q > 65535 || (q >= 20000 && q < 30000)) throw new IllegalArgumentException("invalid additional port: " + q + " (1025-19999 or 30000-65535)");
-        }
-        if (new java.util.HashSet<>(ports).size() != ports.size() || (port != null && ports.contains(port))) throw new IllegalArgumentException("duplicate ports");
-        if (env.size() > 64) throw new IllegalArgumentException("too many variables (64 at most)");
-        for (var e : env.entrySet()) {
-            if (!ENV_NAME.matcher(e.getKey()).matches()) throw new IllegalArgumentException("invalid variable name: " + e.getKey());
-            if (RESERVED_ENV.contains(e.getKey()) || e.getKey().startsWith("GLUONIFY_SERVICE_") || ServiceToken.isReservedEnv(e.getKey()) || GdownBolt.RESERVED_ENV.contains(e.getKey())) throw new IllegalArgumentException("variable reserved to the PaaS: " + e.getKey());
-            if (e.getValue() == null || e.getValue().length() > 4096) throw new IllegalArgumentException("invalid value for " + e.getKey());
-        }
-        if (generated.size() > 16) throw new IllegalArgumentException("too many generated secrets (16 at most)");
-        for (String g : generated) {
-            if (!ENV_NAME.matcher(g).matches() || RESERVED_ENV.contains(g) || g.startsWith("GLUONIFY_SERVICE_") || ServiceToken.isReservedEnv(g) || GdownBolt.RESERVED_ENV.contains(g) || env.containsKey(g)) throw new IllegalArgumentException("invalid generated secret: " + g);
-        }
-        if (uses.size() > 16) throw new IllegalArgumentException("too many services used (16 at most)");
-        for (String u : uses) if (!u.matches("\\??[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?")) throw new IllegalArgumentException("invalid service: " + u); // "?name": optional (already ready or not)
-        if (pin != null && !pin.matches("[A-Za-z0-9-]{1,40}")) throw new IllegalArgumentException("invalid pin (node identifier)");
-        if (role != null && !role.matches("[a-z]{1,20}")) throw new IllegalArgumentException("invalid role");
-        if (pullSecret != null && !pullSecret.matches("PULL_[A-Z0-9_]{1,60}")) throw new IllegalArgumentException("pullSecret: PULL_… name expected (A-Z, 0-9, _)");
-        if (distributedQuotaMb != null && (distributedQuotaMb < 1 || distributedQuotaMb > 1048576)) throw new IllegalArgumentException("distributedQuotaMb: 1 to 1048576 MB");
+        requirePorts(ports, port);
+        requireEnv(env);
+        requireGenerated(generated, env);
+        requireUses(uses);
+        requireFormats(pin, role, pullSecret, distributedQuotaMb);
         distributed = distributed == null ? java.util.List.of() : java.util.List.copyOf(distributed);
-        for (String d : distributed) if (!d.equals("std") && !d.equals("tmp") && !d.equals("gdown")) throw new IllegalArgumentException("distributed: \"std\", \"tmp\" or \"gdown\" (received: " + d + ")");
-        if (new java.util.HashSet<>(distributed).size() != distributed.size()) throw new IllegalArgumentException("distributed: duplicate");
-        if (Boolean.TRUE.equals(distributedLocks) && distributed.isEmpty()) throw new IllegalArgumentException("distributedLocks: no distributed file system declared (distributed)");
-        if (distributedQuotaMb != null && distributed.isEmpty()) throw new IllegalArgumentException("distributedQuotaMb: no distributed file system declared (distributed)");
-        if (sleep != null && sleep.enabled()) {
-            if (internal) throw new IllegalArgumentException("sleep: an internal application has no public route to wake it");
-            if (!ports.isEmpty()) throw new IllegalArgumentException("sleep: incompatible with additional ports (replicated peers)");
-            if (role != null) throw new IllegalArgumentException("sleep: incompatible with a node role (stack component)");
-            if (Boolean.TRUE.equals(distributedLocks)) throw new IllegalArgumentException("sleep: incompatible with distributedLocks");
-        }
+        requireDistributed(distributed, distributedLocks, distributedQuotaMb);
+        requireSleepCompatible(sleep, internal, ports, role, distributedLocks);
         Organizations.requireValid(organization);
         if (provenance != null && provenance.isBlank()) provenance = null;
-        if (artifactLevel != null && artifactLevel.isBlank()) artifactLevel = null;
-        if (artifactLevel != null) {
-            artifactLevel = artifactLevel.trim().toLowerCase(java.util.Locale.ROOT);
-            if (!artifactLevel.matches("amd64:v[1-4]")) throw new IllegalArgumentException("artifactLevel: \"amd64:v1\" to \"amd64:v4\" expected");
-        }
+        artifactLevel = normalizedLevel(artifactLevel);
         pythonVersion = PythonVersions.normalize(pythonVersion);
         mcp = Boolean.TRUE.equals(mcp) ? Boolean.TRUE : null; // false and absent are the same: stable equality and JSON of the stored specification
         if (provenance != null && !io.gluonify.plasma.provenance.Provenance.wellFormed(provenance)) throw new IllegalArgumentException("provenance: unreadable token (base64url.base64url expected)");
         if (replicas < 0 || replicas > 100) throw new IllegalArgumentException("replicas out of range");
         if (port < 1 || port > 65535) throw new IllegalArgumentException("invalid port");
         if (memoryMb < 16) throw new IllegalArgumentException("minimum memory: 16 MB");
+    }
+
+    private static void requireName(final String name) {
+        if (name == null || !name.matches("[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?")) {
+            throw new IllegalArgumentException("invalid application name (DNS label expected)");
+        }
+        if (name.equals("api") || name.startsWith("ns") && name.length() <= 4) {
+            throw new IllegalArgumentException("reserved name");
+        }
+    }
+
+    private static Map<String, String> checkedArtifacts(final Map<String, String> given, final String image) {
+        final Map<String, String> artifacts = given == null ? Map.of() : given;
+        if (artifacts.isEmpty()) {
+            if (image == null || image.isBlank()) {
+                throw new IllegalArgumentException("image or artifacts required");
+            }
+            return artifacts;
+        }
+        for (var e : artifacts.entrySet()) {
+            if (!ARCHITECTURES.contains(e.getKey())) throw new IllegalArgumentException("unknown architecture: " + e.getKey() + " (amd64, arm64, darwin-amd64, darwin-arm64, windows-amd64 or windows-arm64)");
+            if (e.getValue() == null || e.getValue().isBlank() || e.getValue().length() > 2048) throw new IllegalArgumentException("invalid executable for " + e.getKey());
+        }
+        return Collections.unmodifiableMap(new TreeMap<>(artifacts)); // stable order (replication, snapshots)
+    }
+
+    private static void requireNamespaceAndUuid(final String topNamespace, final String uuid) {
+        if (topNamespace != null && !topNamespace.matches("[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?(\\.(app|gluonify))?")) {
+            throw new IllegalArgumentException("invalid topNamespace (DNS label expected, optionally suffixed .app or .gluonify)");
+        }
+        if (uuid != null && !uuid.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) {
+            throw new IllegalArgumentException("invalid uuid");
+        }
+    }
+
+    private static void requirePorts(final java.util.List<Integer> ports, final int port) {
+        if (ports.size() > 4) throw new IllegalArgumentException("too many additional ports (4 at most)");
+        for (int q : ports) {
+            if (q < 1025 || q > 65535 || (q >= 20000 && q < 30000)) throw new IllegalArgumentException("invalid additional port: " + q + " (1025-19999 or 30000-65535)");
+        }
+        if (new java.util.HashSet<>(ports).size() != ports.size() || ports.contains(port)) throw new IllegalArgumentException("duplicate ports");
+    }
+
+    private static boolean reservedVariable(final String name) {
+        return RESERVED_ENV.contains(name) || name.startsWith("GLUONIFY_SERVICE_") || ServiceToken.isReservedEnv(name) || GdownBolt.RESERVED_ENV.contains(name);
+    }
+
+    private static void requireEnv(final Map<String, String> env) {
+        if (env.size() > 64) throw new IllegalArgumentException("too many variables (64 at most)");
+        for (var e : env.entrySet()) {
+            if (!ENV_NAME.matcher(e.getKey()).matches()) throw new IllegalArgumentException("invalid variable name: " + e.getKey());
+            if (reservedVariable(e.getKey())) throw new IllegalArgumentException("variable reserved to the PaaS: " + e.getKey());
+            if (e.getValue() == null || e.getValue().length() > 4096) throw new IllegalArgumentException("invalid value for " + e.getKey());
+        }
+    }
+
+    private static void requireGenerated(final java.util.List<String> generated, final Map<String, String> env) {
+        if (generated.size() > 16) throw new IllegalArgumentException("too many generated secrets (16 at most)");
+        for (String g : generated) {
+            if (!ENV_NAME.matcher(g).matches() || reservedVariable(g) || env.containsKey(g)) throw new IllegalArgumentException("invalid generated secret: " + g);
+        }
+    }
+
+    private static void requireUses(final java.util.List<String> uses) {
+        if (uses.size() > 16) throw new IllegalArgumentException("too many services used (16 at most)");
+        for (String u : uses) {
+            if (!u.matches("\\??[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?")) throw new IllegalArgumentException("invalid service: " + u); // "?name": optional (already ready or not)
+        }
+    }
+
+    private static void requireFormats(final String pin, final String role, final String pullSecret, final Integer distributedQuotaMb) {
+        if (pin != null && !pin.matches("[A-Za-z0-9-]{1,40}")) throw new IllegalArgumentException("invalid pin (node identifier)");
+        if (role != null && !role.matches("[a-z]{1,20}")) throw new IllegalArgumentException("invalid role");
+        if (pullSecret != null && !pullSecret.matches("PULL_[A-Z0-9_]{1,60}")) throw new IllegalArgumentException("pullSecret: PULL_… name expected (A-Z, 0-9, _)");
+        if (distributedQuotaMb != null && (distributedQuotaMb < 1 || distributedQuotaMb > 1048576)) throw new IllegalArgumentException("distributedQuotaMb: 1 to 1048576 MB");
+    }
+
+    private static void requireDistributed(final java.util.List<String> distributed, final Boolean distributedLocks, final Integer distributedQuotaMb) {
+        for (String d : distributed) if (!d.equals("std") && !d.equals("tmp") && !d.equals("gdown")) throw new IllegalArgumentException("distributed: \"std\", \"tmp\" or \"gdown\" (received: " + d + ")");
+        if (new java.util.HashSet<>(distributed).size() != distributed.size()) throw new IllegalArgumentException("distributed: duplicate");
+        if (Boolean.TRUE.equals(distributedLocks) && distributed.isEmpty()) throw new IllegalArgumentException("distributedLocks: no distributed file system declared (distributed)");
+        if (distributedQuotaMb != null && distributed.isEmpty()) throw new IllegalArgumentException("distributedQuotaMb: no distributed file system declared (distributed)");
+    }
+
+    private static void requireSleepCompatible(final SleepSpec sleep, final boolean internal, final java.util.List<Integer> ports, final String role, final Boolean distributedLocks) {
+        if (sleep == null || !sleep.enabled()) return;
+        if (internal) throw new IllegalArgumentException("sleep: an internal application has no public route to wake it");
+        if (!ports.isEmpty()) throw new IllegalArgumentException("sleep: incompatible with additional ports (replicated peers)");
+        if (role != null) throw new IllegalArgumentException("sleep: incompatible with a node role (stack component)");
+        if (Boolean.TRUE.equals(distributedLocks)) throw new IllegalArgumentException("sleep: incompatible with distributedLocks");
+    }
+
+    private static String normalizedLevel(final String artifactLevel) {
+        if (artifactLevel == null || artifactLevel.isBlank()) return null;
+        final String level = artifactLevel.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!level.matches("amd64:v[1-4]")) throw new IllegalArgumentException("artifactLevel: \"amd64:v1\" to \"amd64:v4\" expected");
+        return level;
     }
 }

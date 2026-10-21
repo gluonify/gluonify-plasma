@@ -1,5 +1,6 @@
 package io.gluonify.plasma.services;
 
+import io.gluonify.plasma.services.internal.Http;
 import java.net.URI;
 import java.util.Objects;
 import java.util.Optional;
@@ -43,7 +44,7 @@ public record Endpoint(String service, URI url, Supplier<String> tokens, Source 
 
     /** {@code url} followed by {@code path} ({@code /v1/...}). */
     public URI resolve(final String path) {
-        final String base = url.toString().replaceAll("/+$", "");
+        final String base = Http.stripTrailingSlashes(url.toString());
         return URI.create(base + (path.startsWith("/") ? path : "/" + path));
     }
 

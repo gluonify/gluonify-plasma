@@ -47,7 +47,7 @@ public final class ProcessUsage {
     }
 
     private ProcessUsage(final long createdMs) {
-        this(Path.of("/proc/self"), Path.of("/sys/fs/cgroup"), 100, System::currentTimeMillis,
+        this(new Roots(Path.of("/proc/self"), Path.of("/sys/fs/cgroup")), 100, System::currentTimeMillis,
                 plausibleStart(ProcessHandle.current().info().startInstant().map(java.time.Instant::toEpochMilli).orElse(0L), createdMs, createdMs),
                 () -> {
                     final Runtime rt = Runtime.getRuntime();
@@ -55,11 +55,44 @@ public final class ProcessUsage {
                 });
     }
 
-    /** @param proc process directory ({@code /proc/self}); @param cgroupRoot cgroup v2 root ({@code /sys/fs/cgroup}); @param startMs process start (0: unknown lifetime). */
+    /**
+     * The directories read.
+     *
+     * @param proc       process directory ({@code /proc/self})
+     * @param cgroupRoot cgroup v2 root ({@code /sys/fs/cgroup})
+     */
+    public record Roots(Path proc, Path cgroupRoot) {
+    }
+
+    /**
+     * Same as {@link #ProcessUsage(Roots, long, LongSupplier, long, LongSupplier)} with the directories as separate arguments.
+     *
+     * @param proc                process directory ({@code /proc/self})
+     * @param cgroupRoot          cgroup v2 root ({@code /sys/fs/cgroup})
+     * @param clockTicksPerSecond kernel ticks per second
+     * @param nowMs               clock
+     * @param startMs             process start (0: unknown lifetime)
+     * @param heapBytes           heap in use
+     * @deprecated since 0.7.2, use {@link #ProcessUsage(Roots, long, LongSupplier, long, LongSupplier)}; removed in the version after.
+     */
+    @Deprecated(since = "0.7.2", forRemoval = true)
     public ProcessUsage(final Path proc, final Path cgroupRoot, final long clockTicksPerSecond, final LongSupplier nowMs, final long startMs,
             final LongSupplier heapBytes) {
-        this.proc = proc;
-        this.cgroupRoot = cgroupRoot;
+        this(new Roots(proc, cgroupRoot), clockTicksPerSecond, nowMs, startMs, heapBytes);
+    }
+
+    /**
+     * Explicit constructor.
+     *
+     * @param roots               the directories read
+     * @param clockTicksPerSecond kernel ticks per second
+     * @param nowMs               clock
+     * @param startMs             process start (0: unknown lifetime)
+     * @param heapBytes           heap in use
+     */
+    public ProcessUsage(final Roots roots, final long clockTicksPerSecond, final LongSupplier nowMs, final long startMs, final LongSupplier heapBytes) {
+        this.proc = roots.proc();
+        this.cgroupRoot = roots.cgroupRoot();
         this.clockTicksPerSecond = Math.max(1, clockTicksPerSecond);
         this.nowMs = nowMs;
         this.startMs = startMs;
@@ -153,19 +186,22 @@ public final class ProcessUsage {
             return null;
         }
         for (final String line : cgroupFile.split("\n")) {
-            if (!line.startsWith("0::")) {
-                continue;
-            }
-            final String rel = line.substring(3).trim();
-            if (rel.isEmpty() || rel.equals("/") || rel.contains("..")) {
-                continue;
-            }
-            final Path p = cgroupRoot.resolve(rel.startsWith("/") ? rel.substring(1) : rel);
-            if (hasCgroupFiles(p)) {
-                return p;
+            if (line.startsWith("0::")) {
+                final Path p = unifiedPath(line.substring(3).trim());
+                if (p != null && hasCgroupFiles(p)) {
+                    return p;
+                }
             }
         }
         return null;
+    }
+
+    /** The directory of a {@code 0::} line under the root, or {@code null} for the root itself or a path with {@code ..}. */
+    private Path unifiedPath(final String rel) {
+        if (rel.isEmpty() || rel.equals("/") || rel.contains("..")) {
+            return null;
+        }
+        return cgroupRoot.resolve(rel.startsWith("/") ? rel.substring(1) : rel);
     }
 
     private static boolean hasCgroupFiles(final Path dir) {

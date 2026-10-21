@@ -38,6 +38,19 @@ public final class TermsValidator {
             e.add("terms required");
             return e;
         }
+        enforcementAndValidity(t, e);
+        if (t.environments() != null) for (String env : t.environments()) if (env == null || !ENV.matcher(env).matches()) e.add("environments : invalid name (" + env + ")");
+        if (t.services() != null) services(t.services(), e);
+        planRef(t.plan(), e);
+        quotaSections(t, e);
+        if (t.ha() != null) ha(t.ha(), "ha", e);
+        if (t.apps() != null) appOverrides(t, e);
+        if (t.pricing() != null) pricing(t.pricing(), e);
+        if (t.budget() != null) budget(t.budget(), e);
+        return e;
+    }
+
+    private static void enforcementAndValidity(final ContractTerms t, final List<String> e) {
         if (t.enforcement() != null && !t.enforcement().equals(ContractTerms.ENFORCE) && !t.enforcement().equals(ContractTerms.WARN))
             e.add("enforcement : enforce or warn");
         if (t.validity() != null) {
@@ -45,19 +58,14 @@ public final class TermsValidator {
             LocalDate until = date(t.validity().until(), "validity.until", e);
             if (from != null && until != null && until.isBefore(from)) e.add("validity : until precedes from");
         }
-        if (t.environments() != null) for (String env : t.environments()) if (env == null || !ENV.matcher(env).matches()) e.add("environments : invalid name (" + env + ")");
-        if (t.services() != null) services(t.services(), e);
-        planRef(t.plan(), e);
+    }
+
+    private static void quotaSections(final ContractTerms t, final List<String> e) {
         if (t.quotas() != null) quotas(t.quotas(), "quotas", e);
         if (t.quotasByEnv() != null) t.quotasByEnv().forEach((env, q) -> {
             if (!ENV.matcher(env).matches()) e.add("quotasByEnv : invalid environment (" + env + ")");
             if (q != null) quotas(q, "quotasByEnv." + env, e);
         });
-        if (t.ha() != null) ha(t.ha(), "ha", e);
-        if (t.apps() != null) appOverrides(t, e);
-        if (t.pricing() != null) pricing(t.pricing(), e);
-        if (t.budget() != null) budget(t.budget(), e);
-        return e;
     }
 
     private static void appOverrides(final ContractTerms t, final List<String> e) {

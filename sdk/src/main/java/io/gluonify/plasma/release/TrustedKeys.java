@@ -149,7 +149,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
             byte[] s = pass == 0 ? sig : sig2;
             if (s == null) continue;
             Key k = signer(manifest, s, ok);
-            if (k != null) return new Verified(ReleaseVerifier.verify(manifest, s, k.publicKey(), parser, minSequence, now), k, pass == 1);
+            if (k != null) return new Verified(ReleaseVerifier.verify(manifest, s, k.publicKey(), ReleaseVerifier.Policy.of(parser, minSequence, now)), k, pass == 1);
         }
         refuseRetired(manifest, sig, ok);
         throw new ReleaseManifest.Invalid("invalid manifest signature");

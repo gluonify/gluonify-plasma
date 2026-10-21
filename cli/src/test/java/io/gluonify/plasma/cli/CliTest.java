@@ -62,8 +62,8 @@ class CliTest {
     int run(final Consumer<URI> opener, final String... args) {
         out.reset();
         err.reset();
-        final Cli cli = new Cli(env::get, k -> null, home, new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(err, true, StandardCharsets.UTF_8),
-                opener, Clock.systemUTC(), ZoneOffset.UTC);
+        final Cli cli = new Cli(new Cli.Settings(env::get, k -> null, home),
+                new Cli.Streams(new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(err, true, StandardCharsets.UTF_8)), opener, Clock.systemUTC(), ZoneOffset.UTC);
         return cli.run(args);
     }
 
@@ -106,14 +106,22 @@ class CliTest {
         assertEquals("test.lan", config.current().orElseThrow().name());
         assertEquals("SBX", config.current().orElseThrow().environment());
         assertEquals(cluster.discoveryUrl(), config.current().orElseThrow().discovery());
+    }
 
-        // status: never a token
+    @Test
+    void statusNeverShowsATokenOrAnythingSecret() {
+        assertEquals(0, login(), err());
+        final DeveloperTokens.Session s = DeveloperTokens.read(home, "test.lan").orElseThrow();
         assertEquals(0, run(browser, "status"));
         assertTrue(out().contains("* test.lan (SBX), ada, token valid until"), out());
         assertFalse(out().contains(s.accessToken()));
         assertFalse(out().contains(s.refreshToken()));
+    }
 
-        // token: checks without printing, then --print
+    @Test
+    void tokenChecksWithoutPrintingThenPrintsOnRequest() {
+        assertEquals(0, login(), err());
+        final DeveloperTokens.Session s = DeveloperTokens.read(home, "test.lan").orElseThrow();
         assertEquals(0, run(browser, "token", "crystallon"));
         assertTrue(out().startsWith("ok, crystallon at " + cluster.base() + "/crystallon (DEVELOPER), expires at "), out());
         assertFalse(out().contains(s.accessToken()));
@@ -121,8 +129,11 @@ class CliTest {
         assertEquals(s.accessToken(), out().strip());
         assertEquals(1, run(browser, "token", "interfero"));
         assertTrue(err().contains("does not publish the service interfero"), err());
+    }
 
-        // logout
+    @Test
+    void logoutForgetsTheZone() {
+        assertEquals(0, login(), err());
         assertEquals(0, run(browser, "logout"));
         assertTrue(out().contains("Logged out of test.lan"), out());
         assertTrue(DeveloperTokens.read(home, "test.lan").isEmpty());

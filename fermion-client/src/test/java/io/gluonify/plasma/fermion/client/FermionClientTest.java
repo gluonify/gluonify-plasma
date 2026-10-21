@@ -25,20 +25,14 @@ class FermionClientTest {
     ObjectMapper mapper;
 
     static void await(final String what, final BooleanSupplier condition) throws InterruptedException {
-        final long end = System.nanoTime() + Duration.ofSeconds(20).toNanos();
-        while (!condition.getAsBoolean()) {
-            if (System.nanoTime() > end) {
-                fail("timeout: " + what);
-            }
-            Thread.sleep(50);
-        }
+        Waits.until(what, condition, Duration.ofSeconds(20));
     }
 
     @BeforeEach
     void connected() throws InterruptedException {
         FakeFermionServer.accepting = true;
         await("client connected", () -> client.isConnected() && !FakeFermionServer.OPEN.isEmpty());
-        Thread.sleep(300); // let the Auth and Hello of a fresh session land before the slate is cleared
+        Waits.stable(FakeFermionServer.FRAMES::size, Duration.ofMillis(300), Duration.ofSeconds(10)); // let the Auth and Hello of a fresh session land before the slate is cleared
         FakeFermionServer.FRAMES.clear();
         client.onWorkflowError(null);
     }
@@ -219,13 +213,12 @@ class FermionClientTest {
         gate.countDown();
         await("result", () -> !received(FermionMsg.Result.class).isEmpty());
         final int after = received(FermionMsg.Progress.class).size();
-        Thread.sleep(600);
-        assertEquals(after, received(FermionMsg.Progress.class).size(), "no heartbeat once the result is sent");
+        Waits.holds("no heartbeat once the result is sent", () -> after == received(FermionMsg.Progress.class).size(), Duration.ofMillis(600));
         // ECHO is short (under one period): no heartbeat at all
         FakeFermionServer.FRAMES.clear();
         FakeFermionServer.send(mapper, new FermionMsg.Command("h2", null, "ECHO", Map.of("text", "x")));
         await("echo", () -> !received(FermionMsg.Result.class).isEmpty());
-        Thread.sleep(300);
+        Waits.holds("no heartbeat for a short task", () -> received(FermionMsg.Progress.class).isEmpty(), Duration.ofMillis(300));
         assertTrue(received(FermionMsg.Progress.class).isEmpty());
     }
 

@@ -14,7 +14,7 @@ public class GluonifyTokenProducer {
 
     @Produces
     @DefaultBean
-    @Singleton
+    @Singleton // not ApplicationScoped: a lambda-backed functional interface read on every call, a client proxy would only add an indirection
     FermionTokenProvider gluonifyTokens() {
         return FermionTokenProvider.gluonify();
     }

@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -106,26 +105,38 @@ public final class UsageSpool implements UsageMeter.SeqSource {
     public synchronized List<Batch> pending() {
         List<Batch> out = new ArrayList<>(memory);
         if (dir != null) {
-            List<Path> files = new ArrayList<>();
-            try (DirectoryStream<Path> s = Files.newDirectoryStream(dir, "b-*.jsonl")) {
-                for (Path p : s) if (NAME.matcher(p.getFileName().toString()).matches()) files.add(p);
-            } catch (IOException e) {
-                return out;
-            }
+            final List<Path> files = batchFiles();
             for (Path p : files) {
-                Matcher m = NAME.matcher(p.getFileName().toString());
-                m.matches();
-                try {
-                    List<String> lines = new ArrayList<>();
-                    for (String l : Files.readAllLines(p, StandardCharsets.UTF_8)) if (!l.isBlank()) lines.add(l);
-                    out.add(new Batch(Long.parseLong(m.group(1)), lines, p));
-                } catch (IOException e) {
-                    // sent in the meantime (NoSuchFileException) or unreadable: left there, removed by age
-                }
+                final Batch b = readBatch(p);
+                if (b != null) out.add(b);
             }
         }
         out.sort((a, b) -> a.at() != b.at() ? Long.compare(a.at(), b.at()) : Long.compare(seqOf(a.file()), seqOf(b.file())));
         return out;
+    }
+
+    /** The batch files of the directory, or an empty list if it cannot be listed. */
+    private List<Path> batchFiles() {
+        List<Path> files = new ArrayList<>();
+        try (DirectoryStream<Path> s = Files.newDirectoryStream(dir, "b-*.jsonl")) {
+            for (Path p : s) if (NAME.matcher(p.getFileName().toString()).matches()) files.add(p);
+        } catch (IOException e) {
+            return List.of();
+        }
+        return files;
+    }
+
+    /** The batch of a file, or {@code null} if it was sent in the meantime ({@code NoSuchFileException}) or is unreadable: left there, removed by age. */
+    private static Batch readBatch(final Path p) {
+        Matcher m = NAME.matcher(p.getFileName().toString());
+        m.matches();
+        try {
+            List<String> lines = new ArrayList<>();
+            for (String l : Files.readAllLines(p, StandardCharsets.UTF_8)) if (!l.isBlank()) lines.add(l);
+            return new Batch(Long.parseLong(m.group(1)), lines, p);
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     /** Number of pending records. */

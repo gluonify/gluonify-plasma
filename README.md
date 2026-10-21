@@ -242,6 +242,12 @@ Grouped signatures replace the long parameter lists of the published SDK; the ol
 | `UsageEmitter.fromEnvironment(Function<String, String>, timeout)` | `fromEnvironment(UnaryOperator<String>, timeout)` |
 | `DeveloperConfig.home(Function<String, String>, Function<String, String>)` | `home(UnaryOperator<String>, UnaryOperator<String>)` |
 | `GluonifyServices.Builder.environment(Function<String, String>)` / `properties(Function<String, String>)` | the same methods taking a `UnaryOperator<String>` |
+| `DeveloperTokens.fromTokenResponse(zone, clientId, tokenEndpoint, revocationEndpoint, response, clock, previous)` | `fromTokenResponse(new DeveloperTokens.Origin(zone, clientId, tokenEndpoint, revocationEndpoint), response, clock, previous)` |
+| `Finding.open(kind, target, rule, severity, blocking, location, args)` | `Finding.open(new Finding.Subject(kind, target, rule), severity, blocking, location, args)` |
+| `Violation.over(code, field, limit, used, requested, source, message)` | `Violation.over(new Violation.Cap(code, field, limit, used, requested), source, message)` |
+| `ReleaseVerifier.verify(manifest, signature, key, parser, minSequence, now)` | `verify(manifest, signature, key, ReleaseVerifier.Policy.of(parser, minSequence, now))` |
+| `UsageReport.of(component, version, instance, node, at, process, cgroup, attribution, shares, storageBytes)` | `UsageReport.of(new Identity(component, version, instance, node), new Snapshot(at, process, cgroup), attribution, shares, storageBytes)` |
+| `new UsageResource(usage, clock, contributors, component, version, instance, node)` | `new UsageResource(usage, clock, contributors, new UsageReport.Identity(component, version, instance, node))` |
 | `Finding.VERSION` / `Finding.RULE` | `Finding.CURRENT_VERSION` / `Finding.RULE_PATTERN` |
 | `PriceList.ID` / `Plan.ID` | `PriceList.ID_PATTERN` / `Plan.ID_PATTERN` |
 | `Organization.SUSPENDED` / `Organization.ARCHIVED` | `Organization.STATUS_SUSPENDED` / `Organization.STATUS_ARCHIVED` |

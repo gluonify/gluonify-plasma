@@ -13,7 +13,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /** Fake Crystallon: a JDK {@link HttpServer} that records the calls and answers what it was programmed to. */
 final class FakeCrystallon implements AutoCloseable {
@@ -127,7 +129,7 @@ final class FakeCrystallon implements AutoCloseable {
         final Reply r = reply;
         try {
             if (r.delayMillis() > 0) {
-                Thread.sleep(r.delayMillis());
+                new CountDownLatch(1).await(r.delayMillis(), TimeUnit.MILLISECONDS); // simulated slow server: a bounded wait that nobody releases
             }
             r.headers().forEach((k, v) -> ex.getResponseHeaders().add(k, v));
             if (r.chunked()) {

@@ -25,16 +25,22 @@ public record Requires(Map<String, List<String>> packages) {
         int total = 0;
         if (packages != null) for (var e : packages.entrySet()) {
             if (e.getKey() == null || !DISTRO.matcher(e.getKey()).matches()) throw new IllegalArgumentException("invalid distribution id: " + e.getKey());
-            var names = new TreeSet<String>();
-            if (e.getValue() != null) for (String p : e.getValue()) {
-                if (p == null || !PACKAGE.matcher(p).matches()) throw new IllegalArgumentException("invalid package name: " + p);
-                names.add(p);
-            }
+            final List<String> names = packageNames(e.getValue());
             total += names.size();
             if (total > MAX_PACKAGES) throw new IllegalArgumentException("too many packages (max " + MAX_PACKAGES + ")");
-            if (!names.isEmpty()) sorted.put(e.getKey(), Collections.unmodifiableList(new ArrayList<>(names)));
+            if (!names.isEmpty()) sorted.put(e.getKey(), names);
         }
         packages = Collections.unmodifiableMap(sorted);
+    }
+
+    /** The valid package names, sorted and without duplicates; an invalid name is refused. */
+    private static List<String> packageNames(final List<String> given) {
+        final var names = new TreeSet<String>();
+        if (given != null) for (String p : given) {
+            if (p == null || !PACKAGE.matcher(p).matches()) throw new IllegalArgumentException("invalid package name: " + p);
+            names.add(p);
+        }
+        return Collections.unmodifiableList(new ArrayList<>(names));
     }
 
     /** Packages to install for this distribution (empty if nothing is declared for it). */

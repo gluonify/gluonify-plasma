@@ -66,7 +66,7 @@ public record Discovery(String zone, String environment, String issuer, URI open
         if (issuer == null) {
             return Optional.empty();
         }
-        return Optional.of(URI.create(issuer.replaceAll("/+$", "") + "/.well-known/openid-configuration"));
+        return Optional.of(URI.create(Http.stripTrailingSlashes(issuer) + "/.well-known/openid-configuration"));
     }
 
     /** Reads the document. @throws IllegalArgumentException if the text is not a JSON object */
@@ -78,22 +78,30 @@ public record Discovery(String zone, String environment, String issuer, URI open
     public static Discovery of(final Map<String, Object> m) {
         final Map<String, Service> services = new LinkedHashMap<>();
         for (final Map.Entry<String, Object> e : Json.obj(m, "services").entrySet()) {
-            if (!(e.getValue() instanceof Map)) {
-                continue;
+            final Service service = service(e.getKey(), e.getValue());
+            if (service != null) {
+                services.put(service.name(), service);
             }
-            @SuppressWarnings("unchecked")
-            final Map<String, Object> s = (Map<String, Object>) e.getValue();
-            final URI url = uri(Json.str(s, "url"));
-            if (url == null || !Http.secure(url)) {
-                continue;
-            }
-            final String name = e.getKey().toLowerCase(Locale.ROOT);
-            services.put(name, new Service(name, url, Json.str(s, "audience")));
         }
         final URI oidc = uri(Json.str(m, "openidConfiguration"));
         final String clientId = Json.str(Json.obj(m, "cli"), "clientId");
         return new Discovery(Json.str(m, "zone"), Json.str(m, "environment"), Json.str(m, "issuer"), oidc != null && Http.secure(oidc) ? oidc : null,
                 clientId == null ? DEFAULT_CLIENT_ID : clientId, services);
+    }
+
+    /** The service described by one entry of the document, or {@code null} if the entry is not an object or its address is missing or not secure. */
+    private static Service service(final String key, final Object value) {
+        if (!(value instanceof Map)) {
+            return null;
+        }
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> s = (Map<String, Object>) value;
+        final URI url = uri(Json.str(s, "url"));
+        if (url == null || !Http.secure(url)) {
+            return null;
+        }
+        final String name = key.toLowerCase(Locale.ROOT);
+        return new Service(name, url, Json.str(s, "audience"));
     }
 
     private static URI uri(final String s) {

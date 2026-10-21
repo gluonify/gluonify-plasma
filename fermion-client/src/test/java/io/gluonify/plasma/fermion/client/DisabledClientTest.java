@@ -6,6 +6,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
+import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -27,7 +28,7 @@ class DisabledClientTest {
     @Test
     void inactiveWithoutUrl() throws Exception {
         final int sessions = FakeFermionServer.sessions;
-        Thread.sleep(2500);
+        Waits.holds("no session is opened", () -> sessions == FakeFermionServer.sessions, Duration.ofMillis(2500));
         assertFalse(client.isActive());
         assertFalse(client.isConnected());
         assertEquals(sessions, FakeFermionServer.sessions);

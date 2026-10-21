@@ -40,19 +40,23 @@ public record ProvenanceStatement(String app, Map<String, String> artifacts, Str
 
     public ProvenanceStatement {
         if (app == null || !APP_PATTERN.matcher(app).matches()) throw new IllegalArgumentException("provenance: invalid application name");
-        TreeMap<String, String> a = new TreeMap<>();
-        if (artifacts != null) for (var e : artifacts.entrySet()) {
-            if (e.getKey() == null || !ARCH.matcher(e.getKey()).matches()) throw new IllegalArgumentException("provenance: invalid architecture");
-            if (e.getValue() == null || !SHA.matcher(e.getValue()).matches()) throw new IllegalArgumentException("provenance: invalid SHA-256 digest for " + e.getKey());
-            a.put(e.getKey(), e.getValue());
-        }
-        if (a.size() > 16) throw new IllegalArgumentException("provenance: too many architectures");
-        artifacts = Collections.unmodifiableMap(a);
+        artifacts = checkedArtifacts(artifacts);
         if (imageDigest != null && !DIGEST.matcher(imageDigest).matches()) throw new IllegalArgumentException("provenance: invalid image digest (sha256:<64 hex>)");
         if (artifacts.isEmpty() && imageDigest == null) throw new IllegalArgumentException("provenance: neither executable nor image");
         if (keyId == null || !KEY_ID.matcher(keyId).matches()) throw new IllegalArgumentException("provenance: invalid key identifier");
         if (signedAt == null) throw new IllegalArgumentException("provenance: signing date missing");
         signedAt = signedAt.truncatedTo(ChronoUnit.SECONDS);
+    }
+
+    private static Map<String, String> checkedArtifacts(final Map<String, String> given) {
+        TreeMap<String, String> a = new TreeMap<>();
+        if (given != null) for (var e : given.entrySet()) {
+            if (e.getKey() == null || !ARCH.matcher(e.getKey()).matches()) throw new IllegalArgumentException("provenance: invalid architecture");
+            if (e.getValue() == null || !SHA.matcher(e.getValue()).matches()) throw new IllegalArgumentException("provenance: invalid SHA-256 digest for " + e.getKey());
+            a.put(e.getKey(), e.getValue());
+        }
+        if (a.size() > 16) throw new IllegalArgumentException("provenance: too many architectures");
+        return Collections.unmodifiableMap(a);
     }
 
     /** Signed bytes. */

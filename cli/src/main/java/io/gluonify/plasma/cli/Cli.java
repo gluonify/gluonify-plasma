@@ -64,21 +64,28 @@ public final class Cli {
     final Clock clock;
     final ZoneId timeZone;
 
-    Cli(final UnaryOperator<String> environment, final UnaryOperator<String> properties, final Path home, final PrintStream out, final PrintStream err,
-        final Consumer<URI> browser, final Clock clock, final ZoneId timeZone) {
-        this.environment = environment;
-        this.properties = properties;
-        this.home = home;
-        this.out = out;
-        this.err = err;
+    /** Where the configuration comes from: environment variables, system properties and the folder of the files. */
+    record Settings(UnaryOperator<String> environment, UnaryOperator<String> properties, Path home) {
+    }
+
+    /** The two output streams. */
+    record Streams(PrintStream out, PrintStream err) {
+    }
+
+    Cli(final Settings settings, final Streams streams, final Consumer<URI> browser, final Clock clock, final ZoneId timeZone) {
+        this.environment = settings.environment();
+        this.properties = settings.properties();
+        this.home = settings.home();
+        this.out = streams.out();
+        this.err = streams.err();
         this.browser = browser;
         this.clock = clock;
         this.timeZone = timeZone;
     }
 
     static Cli system() {
-        return new Cli(System::getenv, System::getProperty, DeveloperConfig.home(System::getenv, System::getProperty), System.out, System.err, Cli::openBrowser,
-                Clock.systemUTC(), ZoneId.systemDefault());
+        return new Cli(new Settings(System::getenv, System::getProperty, DeveloperConfig.home(System::getenv, System::getProperty)),
+                new Streams(System.out, System.err), Cli::openBrowser, Clock.systemUTC(), ZoneId.systemDefault());
     }
 
     /** Runs the command. @return the exit code */
@@ -88,17 +95,28 @@ public final class Cli {
             return args.length == 0 ? 2 : 0;
         }
         final List<String> rest = new ArrayList<>(List.of(args).subList(1, args.length));
+        final Command command = Command.named(args[0]);
+        if (command == null) {
+            err.println("unknown command: " + args[0]);
+            err.println(USAGE);
+            return 2;
+        }
         try {
-            switch (args[0]) {
-                case "login": return login(rest);
-                case "logout": return logout(rest);
-                case "status": return status(rest);
-                case "token": return token(rest);
-                default:
-                    err.println("unknown command: " + args[0]);
-                    err.println(USAGE);
-                    return 2;
-            }
+            return switch (command) {
+                case LOGIN -> {
+                    login(rest);
+                    yield 0;
+                }
+                case LOGOUT -> {
+                    logout(rest);
+                    yield 0;
+                }
+                case STATUS -> {
+                    status(rest);
+                    yield 0;
+                }
+                case TOKEN -> token(rest);
+            };
         }
         catch (final UsageException e) {
             err.println(e.getMessage());
@@ -113,7 +131,7 @@ public final class Cli {
 
     // ------------------------------------------------------------------------------------------------ login
 
-    private int login(final List<String> args) {
+    private void login(final List<String> args) {
         final Map<String, String> opts = options(args, List.of(OPT_PORT, "--ca", OPT_DISCOVERY, "--scope", OPT_TIMEOUT), List.of("--no-browser"));
         if (args.size() != 1) {
             throw new UsageException("login needs exactly one zone, for example: gluonify login gluonify.lan");
@@ -132,12 +150,11 @@ public final class Cli {
         final DeveloperTokens.Session s = new Login(this).run(o);
         out.println("Logged in to " + zone + (s.subject() == null ? "" : " as " + s.subject()) + "; the token is valid until " + time(s.expiry())
                 + (s.refreshToken() == null ? " (no refresh token: log in again then)" : " and is renewed automatically") + ".");
-        return 0;
     }
 
     // ------------------------------------------------------------------------------------------------ logout
 
-    private int logout(final List<String> args) {
+    private void logout(final List<String> args) {
         options(args, List.of(), List.of());
         if (args.size() > 1) {
             throw new UsageException("logout takes at most one zone");
@@ -146,7 +163,7 @@ public final class Cli {
         final String zone = args.isEmpty() ? config.current().map(DeveloperConfig.Zone::name).orElse(null) : args.get(0).toLowerCase(Locale.ROOT);
         if (zone == null) {
             out.println("Not logged in.");
-            return 0;
+            return;
         }
         if (!DeveloperConfig.validZone(zone)) {
             throw new IllegalArgumentException("not a zone name: " + zone);
@@ -159,7 +176,6 @@ public final class Cli {
             config.without(zone).write(home);
         }
         out.println(had || known ? "Logged out of " + zone + "." : "Not logged in to " + zone + ".");
-        return 0;
     }
 
     /** Best-effort revocation of the refresh token: a failure does not prevent deleting the tokens from this computer. */
@@ -184,7 +200,7 @@ public final class Cli {
 
     // ------------------------------------------------------------------------------------------------ status
 
-    private int status(final List<String> args) {
+    private void status(final List<String> args) {
         options(args, List.of(), List.of());
         if (!args.isEmpty()) {
             throw new UsageException("status takes no argument");
@@ -195,7 +211,7 @@ public final class Cli {
         final DeveloperConfig config = DeveloperConfig.read(home);
         if (config.isEmpty()) {
             out.println("Not logged in. Run: gluonify login <zone> (for example gluonify login gluonify.lan)");
-            return 0;
+            return;
         }
         final String current = config.current().map(DeveloperConfig.Zone::name).orElse(null);
         for (final DeveloperConfig.Zone z : config.zones().values()) {
@@ -208,27 +224,30 @@ public final class Cli {
                 line.append(": not logged in");
             }
             else {
-                final DeveloperTokens.Session t = s.get();
-                if (t.subject() != null) {
-                    line.append(", ").append(t.subject());
-                }
-                line.append(", token ").append(t.fresh(clock, Duration.ZERO) ? "valid until " + time(t.expiry()) : "expired");
-                if (t.refreshToken() == null) {
-                    line.append(", no refresh token");
-                }
-                else if (!t.renewable(clock)) {
-                    line.append(", session expired: gluonify login ").append(z.name());
-                }
-                else {
-                    line.append(", renewed automatically").append(t.refreshExpiresAt() == 0 ? "" : " until " + time(Instant.ofEpochSecond(t.refreshExpiresAt())));
-                }
-                if (!t.audiences().isEmpty()) {
-                    line.append(", audiences ").append(String.join(" ", t.audiences()));
-                }
+                appendSession(line, z.name(), s.get());
             }
             out.println(line);
         }
-        return 0;
+    }
+
+    /** Who is logged in, the state of the token and of the session of a zone. */
+    private void appendSession(final StringBuilder line, final String zone, final DeveloperTokens.Session t) {
+        if (t.subject() != null) {
+            line.append(", ").append(t.subject());
+        }
+        line.append(", token ").append(t.fresh(clock, Duration.ZERO) ? "valid until " + time(t.expiry()) : "expired");
+        if (t.refreshToken() == null) {
+            line.append(", no refresh token");
+        }
+        else if (!t.renewable(clock)) {
+            line.append(", session expired: gluonify login ").append(zone);
+        }
+        else {
+            line.append(", renewed automatically").append(t.refreshExpiresAt() == 0 ? "" : " until " + time(Instant.ofEpochSecond(t.refreshExpiresAt())));
+        }
+        if (!t.audiences().isEmpty()) {
+            line.append(", audiences ").append(String.join(" ", t.audiences()));
+        }
     }
 
     // ------------------------------------------------------------------------------------------------ token
@@ -270,7 +289,8 @@ public final class Cli {
     /** Removes the options from {@code args} (which keeps the arguments) and returns them. */
     private static Map<String, String> options(final List<String> args, final List<String> withValue, final List<String> flags) {
         final Map<String, String> opts = new LinkedHashMap<>();
-        for (int k = 0; k < args.size(); ) {
+        int k = 0;
+        while (k < args.size()) {
             final String a = args.get(k);
             if (!a.startsWith("--")) {
                 k++;
@@ -324,6 +344,38 @@ public final class Cli {
         }
         catch (final IOException e) {
             // no browser: the address is printed
+        }
+    }
+
+    /** The commands, by the word typed on the command line. */
+    private enum Command {
+
+        /** {@code login}. */
+        LOGIN("login"),
+
+        /** {@code logout}. */
+        LOGOUT("logout"),
+
+        /** {@code status}. */
+        STATUS("status"),
+
+        /** {@code token}. */
+        TOKEN("token");
+
+        private final String word;
+
+        Command(final String word) {
+            this.word = word;
+        }
+
+        /** The command typed as {@code word}, or {@code null} if there is none. */
+        static Command named(final String word) {
+            for (final Command c : values()) {
+                if (c.word.equals(word)) {
+                    return c;
+                }
+            }
+            return null;
         }
     }
 
