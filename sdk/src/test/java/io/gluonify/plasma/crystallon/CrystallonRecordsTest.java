@@ -65,7 +65,8 @@ class CrystallonRecordsTest {
         final Check copy = new Check(true, 1, source, null, null);
         source.add("changed later");
         assertEquals(List.of("w"), copy.warnings());
-        assertThrows(UnsupportedOperationException.class, () -> copy.warnings().add("x"));
+        final var subject = copy.warnings();
+        assertThrows(UnsupportedOperationException.class, () -> subject.add("x"));
         assertTrue(new Check(true, 1, new ArrayList<>(java.util.Arrays.asList("a", null)), null, null).warnings().contains(null));
     }
 

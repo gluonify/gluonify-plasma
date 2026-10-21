@@ -17,6 +17,8 @@ import tools.jackson.databind.node.ObjectNode;
  * Prism relays both identically. The caller is already authenticated ({@link McpResource}).
  */
 public final class McpServer {
+    private static final String KEY_JSONRPC = "jsonrpc";
+    private static final String KEY_PROTOCOL_VERSION = "protocolVersion";
     private static final Logger LOG = Logger.getLogger("gluonify.mcp");
     private static final String JSON = "application/json";
 
@@ -52,7 +54,7 @@ public final class McpServer {
         } catch (JacksonException e) {
             return error(null, McpContract.PARSE_ERROR, "parse error");
         }
-        if (message == null || !message.isObject() || !"2.0".equals(message.path("jsonrpc").asString(null)) || !message.path("method").isString()) {
+        if (message == null || !message.isObject() || !"2.0".equals(message.path(KEY_JSONRPC).asString(null)) || !message.path("method").isString()) {
             return error(null, McpContract.INVALID_REQUEST, "not a JSON-RPC 2.0 request");
         }
         if (!message.has("id")) {
@@ -83,9 +85,9 @@ public final class McpServer {
     }
 
     private ObjectNode initialize(final JsonNode params) {
-        final String asked = params != null && params.isObject() && params.path("protocolVersion").isString() ? params.get("protocolVersion").asString() : null;
+        final String asked = params != null && params.isObject() && params.path(KEY_PROTOCOL_VERSION).isString() ? params.get(KEY_PROTOCOL_VERSION).asString() : null;
         final ObjectNode r = mapper.createObjectNode();
-        r.put("protocolVersion", McpContract.negotiate(asked));
+        r.put(KEY_PROTOCOL_VERSION, McpContract.negotiate(asked));
         r.putObject("capabilities").putObject("tools").put("listChanged", false);
         r.putObject("serverInfo").put("name", McpContract.SERVER_NAME).put("version", version);
         return r;
@@ -176,7 +178,7 @@ public final class McpServer {
 
     private Reply result(final JsonNode id, final JsonNode result) {
         final ObjectNode r = mapper.createObjectNode();
-        r.put("jsonrpc", "2.0");
+        r.put(KEY_JSONRPC, "2.0");
         r.set("id", id);
         r.set("result", result);
         return Reply.json(mapper.writeValueAsString(r));
@@ -184,7 +186,7 @@ public final class McpServer {
 
     private Reply error(final JsonNode id, final int code, final String message) {
         final ObjectNode r = mapper.createObjectNode();
-        r.put("jsonrpc", "2.0");
+        r.put(KEY_JSONRPC, "2.0");
         if (id == null) {
             r.putNull("id");
         } else {
@@ -195,7 +197,8 @@ public final class McpServer {
     }
 
     private static String cut(final String s, final int max) {
-        return s == null ? "" : s.length() <= max ? s : s.substring(0, max);
+        if (s == null) return "";
+        return s.length() <= max ? s : s.substring(0, max);
     }
 
     /** Media type of every body this server writes. */

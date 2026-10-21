@@ -93,7 +93,8 @@ public record UsageReport(String contract, String component, String version, Str
         final List<AppShare> rows = fitToTotal(fold(sorted(shares)), totalCpu, totalMemory);
         final Share rest = new Share(Math.max(0, totalCpu - sumCpu(rows)), Math.max(0, totalMemory - sumMemory(rows)));
         final Long rowsStorage = sumStorage(rows);
-        final Long storage = rowsStorage == null ? storageBytes : Long.valueOf(Math.max(rowsStorage, storageBytes == null ? 0 : storageBytes));
+        final long reported = storageBytes == null ? 0 : storageBytes;
+        final Long storage = rowsStorage == null ? storageBytes : Long.valueOf(Math.max(rowsStorage, reported));
         return new UsageReport(CONTRACT_ID, component, version, instance, node, at, process, cgroup, attribution == null ? ESTIMATED : attribution,
                 List.copyOf(rows), rest, storage);
     }

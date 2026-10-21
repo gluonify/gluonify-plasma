@@ -30,6 +30,7 @@ import java.util.function.Supplier;
  * threads and between processes) and the new pair is rewritten atomically. No token appears in a message or in a {@code toString()}.
  */
 public final class DeveloperTokens {
+    private static final String KEY_REFRESH_TOKEN = "refresh_token";
     /** Margin: a token that expires in less than this delay is renewed before the call. */
     public static final Duration MARGIN = Duration.ofSeconds(60);
 
@@ -165,7 +166,7 @@ public final class DeveloperTokens {
         }
         final long now = clock.instant().getEpochSecond();
         final long expiresIn = Json.num(response, "expires_in", 3600);
-        String refresh = Json.str(response, "refresh_token");
+        String refresh = Json.str(response, KEY_REFRESH_TOKEN);
         long refreshExp = response.containsKey("refresh_expires_in") ? now + Json.num(response, "refresh_expires_in", 0) : 0;
         if (refresh == null && previous != null) {
             refresh = previous.refreshToken();
@@ -242,8 +243,8 @@ public final class DeveloperTokens {
             throw new GluonifyServicesException("the token endpoint of zone " + s.zone() + " is not https: run gluonify login " + s.zone() + " again");
         }
         final Map<String, String> form = new LinkedHashMap<>();
-        form.put("grant_type", "refresh_token");
-        form.put("refresh_token", s.refreshToken());
+        form.put("grant_type", KEY_REFRESH_TOKEN);
+        form.put(KEY_REFRESH_TOKEN, s.refreshToken());
         form.put("client_id", s.clientId() == null ? Discovery.DEFAULT_CLIENT_ID : s.clientId());
         final Http.Response r;
         try {

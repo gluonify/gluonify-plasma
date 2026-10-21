@@ -21,25 +21,35 @@ class CrystallonClientBuilderTest {
 
     @Test
     void theBaseUrlIsRequired() {
-        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> CrystallonClient.builder().build());
+        final var subject = CrystallonClient.builder();
+        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> subject.build());
         assertTrue(e.getMessage().contains("base URL"));
     }
 
     @Test
     void theBaseUrlMustBeAnAbsoluteHttpUrl() {
-        assertThrows(IllegalArgumentException.class, () -> CrystallonClient.builder().baseUrl("crystallon:8080"));
-        assertThrows(IllegalArgumentException.class, () -> CrystallonClient.builder().baseUrl("ftp://crystallon"));
-        assertThrows(IllegalArgumentException.class, () -> CrystallonClient.builder().baseUrl("/relative"));
-        assertThrows(IllegalArgumentException.class, () -> CrystallonClient.builder().baseUrl("http://crystallon?x=1"));
-        assertThrows(NullPointerException.class, () -> CrystallonClient.builder().baseUrl((String) null));
+        final var subject5 = CrystallonClient.builder();
+        assertThrows(IllegalArgumentException.class, () -> subject5.baseUrl("crystallon:8080"));
+        final var subject4 = CrystallonClient.builder();
+        assertThrows(IllegalArgumentException.class, () -> subject4.baseUrl("ftp://crystallon"));
+        final var subject3 = CrystallonClient.builder();
+        assertThrows(IllegalArgumentException.class, () -> subject3.baseUrl("/relative"));
+        final var subject2 = CrystallonClient.builder();
+        assertThrows(IllegalArgumentException.class, () -> subject2.baseUrl("http://crystallon?x=1"));
+        final var subject = CrystallonClient.builder();
+        assertThrows(NullPointerException.class, () -> subject.baseUrl((String) null));
         CrystallonClient.builder().baseUrl(URI.create("https://crystallon.example")).build();
     }
 
     @Test
     void valuesAreChecked() {
-        assertThrows(IllegalArgumentException.class, () -> CrystallonClient.builder().timeout(Duration.ZERO));
-        assertThrows(IllegalArgumentException.class, () -> CrystallonClient.builder().timeout(Duration.ofSeconds(-1)));
-        assertThrows(IllegalArgumentException.class, () -> CrystallonClient.builder().maxPdfBytes(0));
+        final var subject3 = CrystallonClient.builder();
+        assertThrows(IllegalArgumentException.class, () -> subject3.timeout(Duration.ZERO));
+        final var input = Duration.ofSeconds(-1);
+        final var subject2 = CrystallonClient.builder();
+        assertThrows(IllegalArgumentException.class, () -> subject2.timeout(input));
+        final var subject = CrystallonClient.builder();
+        assertThrows(IllegalArgumentException.class, () -> subject.maxPdfBytes(0));
         final CrystallonClient client = CrystallonClient.builder().baseUrl("http://crystallon").build();
         assertThrows(IllegalArgumentException.class, () -> client.byId(" "));
         assertThrows(IllegalArgumentException.class, () -> client.byName(null));
@@ -71,8 +81,9 @@ class CrystallonClientBuilderTest {
         final IllegalStateException e = assertThrows(IllegalStateException.class, () -> CrystallonClient.fromEnvironment(Map.<String, String>of()::get));
         assertTrue(e.getMessage().contains("GLUONIFY_SERVICE_CRYSTALLON_URL"));
         assertTrue(e.getMessage().contains("uses"));
+        final var blankEnv = Map.of("GLUONIFY_SERVICE_CRYSTALLON_URL", "  ");
         final IllegalStateException blank = assertThrows(IllegalStateException.class,
-                () -> CrystallonClient.fromEnvironment(Map.of("GLUONIFY_SERVICE_CRYSTALLON_URL", "  ")::get));
+                () -> CrystallonClient.fromEnvironment(blankEnv::get));
         assertTrue(blank.getMessage().contains("GLUONIFY_SERVICE_CRYSTALLON_URL"));
     }
 

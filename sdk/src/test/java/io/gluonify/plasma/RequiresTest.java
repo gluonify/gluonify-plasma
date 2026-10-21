@@ -18,17 +18,22 @@ class RequiresTest {
 
     @Test
     void rejectsAnythingThatCouldBeReadAsAnOptionOrShellSyntax() {
-        for (String bad : List.of("-y", "--force-yes", "a b", "a;b", "$(id)", "UPPER", "x", "", "a/b", "a".repeat(65)))
-            assertThrows(IllegalArgumentException.class, () -> new Requires(Map.of("debian13", List.of(bad))), bad);
-        assertThrows(IllegalArgumentException.class, () -> new Requires(Map.of("Debian 13", List.of("libc6"))));
-        assertThrows(IllegalArgumentException.class, () -> new Requires(Map.of("../x", List.of("libc6"))));
+        for (String bad : List.of("-y", "--force-yes", "a b", "a;b", "$(id)", "UPPER", "x", "", "a/b", "a".repeat(65))) {
+            final var input3 = Map.of("debian13", List.of(bad));
+            assertThrows(IllegalArgumentException.class, () -> new Requires(input3), bad);
+        }
+        final var input2 = Map.of("Debian 13", List.of("libc6"));
+        assertThrows(IllegalArgumentException.class, () -> new Requires(input2));
+        final var input = Map.of("../x", List.of("libc6"));
+        assertThrows(IllegalArgumentException.class, () -> new Requires(input));
     }
 
     @Test
     void boundsTheNumberOfPackages() {
         var many = new java.util.ArrayList<String>();
         for (int i = 0; i < Requires.MAX_PACKAGES + 1; i++) many.add("pkg" + String.format("%03d", i));
-        assertThrows(IllegalArgumentException.class, () -> new Requires(Map.of("debian13", many)));
+        final Map<String, List<String>> input = Map.of("debian13", many);
+        assertThrows(IllegalArgumentException.class, () -> new Requires(input));
     }
 
     @Test

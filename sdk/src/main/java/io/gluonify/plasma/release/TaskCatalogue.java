@@ -12,6 +12,8 @@ import java.util.regex.Pattern;
  * The same catalogue serves the control-plane (before sending) and the node (before executing): the node does not trust the sender.
  */
 public final class TaskCatalogue {
+    private static final String KEY_VERSION = "version";
+    private static final String KEY_COMPONENT = "component";
     private TaskCatalogue() {}
 
     public static final String BOOTSTRAP = "bootstrap";
@@ -65,18 +67,18 @@ public final class TaskCatalogue {
         Set<String> agent = Set.of(AGENT);
         Map<String, Type> t = new LinkedHashMap<>();
         t.put("report-status", new Type("report-status", both, List.of(), 30));
-        t.put("install-wireguard", new Type("install-wireguard", both, List.of(req("version", VERSION)), 600));
-        t.put("install-containerd", new Type("install-containerd", both, List.of(req("version", VERSION)), 900));
-        t.put("install-strange", new Type("install-strange", boot, List.of(req("version", VERSION), req("role", ROLE), opt("runtime", RUNTIME),
+        t.put("install-wireguard", new Type("install-wireguard", both, List.of(req(KEY_VERSION, VERSION)), 600));
+        t.put("install-containerd", new Type("install-containerd", both, List.of(req(KEY_VERSION, VERSION)), 900));
+        t.put("install-strange", new Type("install-strange", boot, List.of(req(KEY_VERSION, VERSION), req("role", ROLE), opt("runtime", RUNTIME),
                 opt("address", ADDRESS), opt("wireguard", BOOL)), 900));
-        t.put("install-higgs", new Type("install-higgs", boot, List.of(req("version", VERSION), req("zone", HOST), req("publicIp", IPS), req("httpUrl", URL),
+        t.put("install-higgs", new Type("install-higgs", boot, List.of(req(KEY_VERSION, VERSION), req("zone", HOST), req("publicIp", IPS), req("httpUrl", URL),
                 req("nodeId", NAME), req("advertise", HOST), req("seed", HOSTPORT), new Param("seedToken", TOKEN, true, true), opt("mode", CP_MODE),
                 opt("dnsMode", DNS_MODE), opt("acmeEmail", EMAIL), opt("wireguard", BOOL)), 900));
         // the new key comes from the version's signed announcement (rollover.json), NEVER from a parameter: only the version to read and "finalize"
-        t.put("rotate-release-key", new Type("rotate-release-key", both, List.of(req("version", VERSION), opt("finalize", BOOL)), 120));
-        t.put("update", new Type("update", agent, List.of(req("component", COMPONENT), req("version", VERSION)), 900));
-        t.put("rollback", new Type("rollback", agent, List.of(req("component", COMPONENT)), 300));
-        t.put("uninstall", new Type("uninstall", agent, List.of(req("component", UNINSTALL), opt("purge", BOOL)), 300));
+        t.put("rotate-release-key", new Type("rotate-release-key", both, List.of(req(KEY_VERSION, VERSION), opt("finalize", BOOL)), 120));
+        t.put("update", new Type("update", agent, List.of(req(KEY_COMPONENT, COMPONENT), req(KEY_VERSION, VERSION)), 900));
+        t.put("rollback", new Type("rollback", agent, List.of(req(KEY_COMPONENT, COMPONENT)), 300));
+        t.put("uninstall", new Type("uninstall", agent, List.of(req(KEY_COMPONENT, UNINSTALL), opt("purge", BOOL)), 300));
         TYPES = java.util.Collections.unmodifiableMap(t);
     }
 

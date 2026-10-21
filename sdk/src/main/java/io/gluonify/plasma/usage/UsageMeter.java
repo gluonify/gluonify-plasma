@@ -16,6 +16,7 @@ import java.util.function.LongSupplier;
  * Beyond {@code maxKeysPerWindow} keys in a window, the following ones are merged into {@code app = _overflow} of the same organization (§ 4.4): never dropped.
  */
 public final class UsageMeter {
+    private static final String INTERNAL_SUFFIX = "|internal";
     public static final String OVERFLOW = "_overflow";
 
     private final String service;
@@ -166,13 +167,13 @@ public final class UsageMeter {
         ConcurrentHashMap<String, Cell> cells = windows.computeIfAbsent(window, w -> new ConcurrentHashMap<>());
         boolean inner = internal || u.internal();
         TreeMap<String, String> d = new TreeMap<>(dims == null ? Map.of() : dims);
-        String k = UsageRecord.key(env, subject, unit, d) + (inner ? "|internal" : "") + (onBehalfOf == null ? "" : "|for=" + onBehalfOf);
+        String k = UsageRecord.key(env, subject, unit, d) + (inner ? INTERNAL_SUFFIX : "") + (onBehalfOf == null ? "" : "|for=" + onBehalfOf);
         Cell c = cells.get(k);
         if (c == null) {
             if (cells.size() >= maxKeysPerWindow) {
                 overflowed.incrementAndGet();
                 UsageRecord.Subject o = new UsageRecord.Subject(subject.org(), OVERFLOW, null, subject.kind(), null);
-                k = UsageRecord.key(env, o, unit, d) + (inner ? "|internal" : "");
+                k = UsageRecord.key(env, o, unit, d) + (inner ? INTERNAL_SUFFIX : "");
                 final String fk = k;
                 c = cells.computeIfAbsent(fk, x -> new Cell(o, unit, d, inner, null));
             } else {
@@ -217,7 +218,7 @@ public final class UsageMeter {
             }
             if (sum.signum() == 0) continue;
             UsageUnit u = UsageCatalog.get(c.unit);
-            String key = UsageRecord.key(env, c.subject, c.unit, c.dims) + (c.internal ? "|internal" : "") + (c.onBehalfOf == null ? "" : "|for=" + c.onBehalfOf);
+            String key = UsageRecord.key(env, c.subject, c.unit, c.dims) + (c.internal ? INTERNAL_SUFFIX : "") + (c.onBehalfOf == null ? "" : "|for=" + c.onBehalfOf);
             out.add(new UsageRecord(UsageRecord.id(service, replica, w, key), seqs.next(), em, env, w, c.subject, c.unit, c.dims, sum, c.internal, c.onBehalfOf,
                     u.billable() ? "billable" : "indicative"));
         }

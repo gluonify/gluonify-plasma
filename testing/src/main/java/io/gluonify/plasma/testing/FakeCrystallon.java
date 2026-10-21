@@ -24,6 +24,7 @@ import java.util.concurrent.Executors;
  * (the payload JSON) is kept as is: the application reads it back with its own JSON library.
  */
 public final class FakeCrystallon implements AutoCloseable {
+    private static final String TEMPLATES_PATH = "/v1/templates/";
     private static final byte[] PDF = minimalPdf();
 
     /** The rendered PDF: a valid minimal one-page blank PDF (header, catalog, exact cross-reference table). A copy on each call. */
@@ -170,8 +171,8 @@ public final class FakeCrystallon implements AutoCloseable {
         if (p.startsWith("/v1/templates/by-name/")) {
             return new Render(kind, decode(p.substring("/v1/templates/by-name/".length())), true, query, body);
         }
-        if (p.startsWith("/v1/templates/") && p.indexOf('/', "/v1/templates/".length()) < 0) {
-            return new Render(kind, decode(p.substring("/v1/templates/".length())), false, query, body);
+        if (p.startsWith(TEMPLATES_PATH) && p.indexOf('/', TEMPLATES_PATH.length()) < 0) {
+            return new Render(kind, decode(p.substring(TEMPLATES_PATH.length())), false, query, body);
         }
         return null;
     }

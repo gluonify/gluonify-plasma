@@ -36,9 +36,12 @@ class AppSpecTest {
         assertNull(s.image());
         assertTrue(new AppSpec("a", "img", null, null, null, null).artifacts().isEmpty(), "mono-livrable : aucune map");
         assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", null, null, null, null, null, null), "ni image ni artifacts");
-        assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", null, null, null, null, null, java.util.Map.of("riscv", "u")));
-        assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", null, null, null, null, null, java.util.Map.of("arm64", " ")));
-        assertThrows(UnsupportedOperationException.class, () -> s.artifacts().put("amd64", "x"));
+        final var input2 = java.util.Map.of("riscv", "u");
+        assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", null, null, null, null, null, input2));
+        final var input = java.util.Map.of("arm64", " ");
+        assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", null, null, null, null, null, input));
+        final var subject = s.artifacts();
+        assertThrows(UnsupportedOperationException.class, () -> subject.put("amd64", "x"));
     }
 
     @Test
@@ -48,11 +51,16 @@ class AppSpecTest {
         assertTrue(s.internal());
         assertEquals(0, s.scratchMb());
         for (String reserve : java.util.List.of("QUARKUS_HTTP_PORT", "GLUONIFY_ENVIRONMENT", "GLUONIFY_SERVICE_X_URL", "GLUONIFY_CRYSTALLON_TOKEN_FILE", "GLUONIFY_GDOWN_BOLT_URL", "GLUONIFY_GDOWN_CA_FILE")) {
-            assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "img", null, null, null, null, null, null, null, null, Map.of(reserve, "x"), null, null, null, null), reserve);
+            final var input5 = Map.of(reserve, "x");
+            assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "img", null, null, null, null, null, null, null, null, input5, null, null, null, null), reserve);
         }
-        assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "img", null, null, null, null, null, null, null, null, Map.of("minuscule", "x"), null, null, null, null));
-        assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "img", null, null, null, null, null, null, null, null, Map.of("X", "1"), java.util.List.of("X"), null, null, null), "same name as plain and as secret");
-        assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "img", null, null, null, null, null, null, null, null, null, null, java.util.List.of("Pas Un Label"), null, null));
+        final var input4 = Map.of("minuscule", "x");
+        assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "img", null, null, null, null, null, null, null, null, input4, null, null, null, null));
+        final var input2 = Map.of("X", "1");
+        final var input3 = java.util.List.of("X");
+        assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "img", null, null, null, null, null, null, null, null, input2, input3, null, null, null), "same name as plain and as secret");
+        final var input = java.util.List.of("Pas Un Label");
+        assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "img", null, null, null, null, null, null, null, null, null, null, input, null, null));
     }
 
     @Test
@@ -88,8 +96,10 @@ class AppSpecTest {
         var ok = new AppSpec("shop", "img", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, java.util.List.of("std", "tmp"));
         assertEquals(java.util.List.of("std", "tmp"), ok.distributed());
         assertEquals(java.util.List.of(), new AppSpec("shop", "img", 1, 8080, 64, null).distributed(), "none by default");
-        assertThrows(IllegalArgumentException.class, () -> new AppSpec("shop", "img", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, java.util.List.of("nfs")));
-        assertThrows(IllegalArgumentException.class, () -> new AppSpec("shop", "img", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, java.util.List.of("std", "std")));
+        final var input2 = java.util.List.of("nfs");
+        assertThrows(IllegalArgumentException.class, () -> new AppSpec("shop", "img", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, input2));
+        final var input = java.util.List.of("std", "std");
+        assertThrows(IllegalArgumentException.class, () -> new AppSpec("shop", "img", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, input));
         assertEquals(java.util.List.of("gdown"), new AppSpec("shop", "img", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, java.util.List.of("gdown")).distributed());
         var req = new DeployRequest("img", null, null, null, null, null, null, null, null, null, null, null, null, null, null, java.util.List.of("std"));
         assertEquals(java.util.List.of("std"), req.toSpec("shop").distributed());

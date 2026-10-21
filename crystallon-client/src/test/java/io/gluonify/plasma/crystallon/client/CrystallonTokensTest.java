@@ -87,7 +87,8 @@ class CrystallonTokensTest {
 
     @Test
     void aFileThatCannotBeReadIsAnError() {
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> CrystallonTokens.file(dir).token());
+        final var subject = CrystallonTokens.file(dir);
+        final CrystallonException e = assertThrows(CrystallonException.class, () -> subject.token());
         assertEquals(0, e.status());
         assertTrue(e.getMessage().contains(dir.toString()));
     }
@@ -115,7 +116,8 @@ class CrystallonTokensTest {
 
     @Test
     void aTokenThatIsNotAValidHeaderValueIsRefusedWithoutBeingEchoed() {
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> callWith(CrystallonTokens.fixed("line1\nline2")));
+        final var input = CrystallonTokens.fixed("line1\nline2");
+        final CrystallonException e = assertThrows(CrystallonException.class, () -> callWith(input));
         assertEquals(0, e.status());
         assertFalse(e.getMessage().contains("line1"));
         assertTrue(fake.calls().isEmpty());

@@ -39,6 +39,9 @@ import java.util.function.Function;
  * Exit codes: 0 success, 1 failure, 2 usage.
  */
 public final class Cli {
+    private static final String OPT_TIMEOUT = "--timeout";
+    private static final String OPT_PORT = "--port";
+    private static final String OPT_DISCOVERY = "--discovery";
     static final String USAGE = String.join("\n",
             "Usage: gluonify <command>",
             "",
@@ -111,7 +114,7 @@ public final class Cli {
     // ------------------------------------------------------------------------------------------------ login
 
     private int login(final List<String> args) {
-        final Map<String, String> opts = options(args, List.of("--port", "--ca", "--discovery", "--scope", "--timeout"), List.of("--no-browser"));
+        final Map<String, String> opts = options(args, List.of(OPT_PORT, "--ca", OPT_DISCOVERY, "--scope", OPT_TIMEOUT), List.of("--no-browser"));
         if (args.size() != 1) {
             throw new UsageException("login needs exactly one zone, for example: gluonify login gluonify.lan");
         }
@@ -120,11 +123,11 @@ public final class Cli {
             throw new IllegalArgumentException("not a zone name: " + args.get(0) + " (a host name such as gluonify.lan, without https:// or path)");
         }
         final Login.Options o = new Login.Options(zone,
-                opts.containsKey("--discovery") ? URI.create(opts.get("--discovery")) : null,
+                opts.containsKey(OPT_DISCOVERY) ? URI.create(opts.get(OPT_DISCOVERY)) : null,
                 opts.containsKey("--ca") ? Path.of(opts.get("--ca")).toAbsolutePath() : null,
-                opts.containsKey("--port") ? integer(opts.get("--port"), "--port", 0, 65535) : 0,
+                opts.containsKey(OPT_PORT) ? integer(opts.get(OPT_PORT), OPT_PORT, 0, 65535) : 0,
                 opts.getOrDefault("--scope", Login.DEFAULT_SCOPE),
-                Duration.ofSeconds(opts.containsKey("--timeout") ? integer(opts.get("--timeout"), "--timeout", 1, 3600) : 300),
+                Duration.ofSeconds(opts.containsKey(OPT_TIMEOUT) ? integer(opts.get(OPT_TIMEOUT), OPT_TIMEOUT, 1, 3600) : 300),
                 opts.containsKey("--no-browser"));
         final DeveloperTokens.Session s = new Login(this).run(o);
         out.println("Logged in to " + zone + (s.subject() == null ? "" : " as " + s.subject()) + "; the token is valid until " + time(s.expiry())
@@ -305,11 +308,17 @@ public final class Cli {
         }
     }
 
+    /** The command that opens an address in the browser of the given operating system (lower-case {@code os.name}). */
+    static List<String> browserCommand(final String os, final URI uri) {
+        if (os.contains("mac")) return List.of("open", uri.toString());
+        if (os.contains("win")) return List.of("rundll32", "url.dll,FileProtocolHandler", uri.toString());
+        return List.of("xdg-open", uri.toString());
+    }
+
     /** Opens the address in the system browser; a failure is harmless (the address is printed). */
     static void openBrowser(final URI uri) {
         final String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
-        final List<String> cmd = os.contains("mac") ? List.of("open", uri.toString())
-                : os.contains("win") ? List.of("rundll32", "url.dll,FileProtocolHandler", uri.toString()) : List.of("xdg-open", uri.toString());
+        final List<String> cmd = browserCommand(os, uri);
         try {
             new ProcessBuilder(cmd).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.DISCARD).start();
         }

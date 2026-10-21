@@ -38,6 +38,7 @@ public final class UsageContract {
     private static final String NUMBER_EXPECTED = " : number >= 0 expected";
     private static final String STORAGE_BYTES = "storageBytes";
     private static final String INTEGER_EXPECTED = ": integer >= 0 expected";
+    private static final String SPACED_INTEGER_EXPECTED = " : integer >= 0 expected";
 
     private UsageContract() {}
 
@@ -142,7 +143,7 @@ public final class UsageContract {
             cpuTotal = process.get(CPU_SECONDS_TOTAL).asDouble();
         }
         if (!isInteger(process, MEMORY_BYTES)) {
-            errors.add(PROCESS_PREFIX + MEMORY_BYTES + " : integer >= 0 expected");
+            errors.add(PROCESS_PREFIX + MEMORY_BYTES + SPACED_INTEGER_EXPECTED);
         }
         if (!known(MEMORY_KINDS, text(process, "memoryKind"))) {
             errors.add(PROCESS_PREFIX + "memoryKind : rss, pss or cgroup expected");
@@ -207,7 +208,7 @@ public final class UsageContract {
             cpu = row.get(CPU_SECONDS).asDouble();
         }
         if (!isInteger(row, MEMORY_BYTES)) {
-            errors.add(BY_APP_PREFIX + app + "]." + MEMORY_BYTES + " : integer >= 0 expected");
+            errors.add(BY_APP_PREFIX + app + "]." + MEMORY_BYTES + SPACED_INTEGER_EXPECTED);
         }
         if (!known(BASES, text(row, "basis"))) {
             errors.add(BY_APP_PREFIX + app + "].basis : measured, estimated or prorata expected");
@@ -251,7 +252,7 @@ public final class UsageContract {
     private static void optionalInteger(final JsonNode node, final String field, final String prefix, final List<String> errors) {
         final JsonNode v = node.get(field);
         if (v != null && !v.isNull() && !isInteger(node, field)) {
-            errors.add(prefix + field + " : integer >= 0 expected");
+            errors.add(prefix + field + SPACED_INTEGER_EXPECTED);
         }
     }
 }

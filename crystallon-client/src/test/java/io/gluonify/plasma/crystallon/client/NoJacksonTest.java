@@ -30,8 +30,9 @@ class NoJacksonTest {
 
     @Test
     void buildingWithoutACodecFailsEarlyWithTheSameExplanation() {
+        final var subject = CrystallonClient.builder().baseUrl("http://crystallon");
         final IllegalStateException e = assertThrows(IllegalStateException.class,
-                () -> CrystallonClient.builder().baseUrl("http://crystallon").build());
+                () -> subject.build());
         assertTrue(e.getMessage().contains("No JSON library"), e.getMessage());
     }
 
@@ -62,7 +63,9 @@ class NoJacksonTest {
             assertEquals(4, client.byId("t1").validate(Map.of()).pages());
 
             fake.reply(FakeCrystallon.Reply.json(404, "{}"));
-            assertEquals("CRYSTALLON-0004", assertThrows(CrystallonException.class, () -> client.byId("t1").render(Map.of())).code());
+            final var input = Map.of();
+            final var subject = client.byId("t1");
+            assertEquals("CRYSTALLON-0004", assertThrows(CrystallonException.class, () -> subject.render(input)).code());
         }
     }
 }

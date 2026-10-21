@@ -62,7 +62,8 @@ public final class Contracts {
         if (contract == null || planTerms == null) return contract;
         ContractTerms c = contract;
         ContractTerms p = planTerms;
-        ContractTerms.Quotas q = p.quotas() == null ? c.quotas() : c.quotas() == null ? p.quotas() : p.quotas().merge(c.quotas());
+        ContractTerms.Quotas q = c.quotas();
+        if (p.quotas() != null) q = c.quotas() == null ? p.quotas() : p.quotas().merge(c.quotas());
         java.util.Map<String, ContractTerms.Quotas> byEnv = p.quotasByEnv();
         if (c.quotasByEnv() != null) {
             java.util.Map<String, ContractTerms.Quotas> m = new java.util.TreeMap<>(byEnv == null ? java.util.Map.of() : byEnv);

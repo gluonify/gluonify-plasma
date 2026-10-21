@@ -83,9 +83,11 @@ class PricingVectorsTest {
     void invalidEntriesRefused() {
         assertThrows(IllegalArgumentException.class, () -> Pricing.value("CHF", 27, List.of()));
         assertThrows(IllegalArgumentException.class, () -> Pricing.value("chf", 30, List.of()));
-        assertThrows(IllegalArgumentException.class, () -> Pricing.value("CHF", 30, List.of(new Pricing.Section(null, null, null, null,
-                List.of(new Pricing.Usage("nope.x", Map.of(), null, "1")), null, null, null))));
-        assertThrows(IllegalArgumentException.class, () -> Pricing.value("CHF", 30, List.of(new Pricing.Section(null, "1.5", null, null, List.of(), null, null, null))));
+        final var input2 = List.of(new Pricing.Section(null, null, null, null,
+                List.of(new Pricing.Usage("nope.x", Map.of(), null, "1")), null, null, null));
+        assertThrows(IllegalArgumentException.class, () -> Pricing.value("CHF", 30, input2));
+        final var input = List.of(new Pricing.Section(null, "1.5", null, null, List.of(), null, null, null));
+        assertThrows(IllegalArgumentException.class, () -> Pricing.value("CHF", 30, input));
         assertEquals("0.00", Pricing.value("CHF", 30, List.of()).total());
     }
 }

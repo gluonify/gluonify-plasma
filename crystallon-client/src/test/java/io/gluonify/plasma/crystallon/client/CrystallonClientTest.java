@@ -199,7 +199,9 @@ class CrystallonClientTest {
     @Test
     void anUnreadableValidationAnswerIsACrystallonException() {
         fake.reply(FakeCrystallon.Reply.json(200, "[1,2]"));
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> fake.client().build().byId("t1").validate(Map.of()));
+        final var input = Map.of();
+        final var subject = fake.client().build().byId("t1");
+        final CrystallonException e = assertThrows(CrystallonException.class, () -> subject.validate(input));
         assertEquals(200, e.status());
         assertNull(e.code());
     }
@@ -210,7 +212,9 @@ class CrystallonClientTest {
     void anErrorBodyBecomesACrystallonException() {
         fake.reply(FakeCrystallon.Reply.json(422, "{\"code\":\"CRYSTALLON-0014\",\"message\":\"Unknown block type 'foo'\",\"path\":\"body[3].blocks[0].text\"}"));
 
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> fake.client().build().byId("t1").render(Map.of()));
+        final var input = Map.of();
+        final var subject = fake.client().build().byId("t1");
+        final CrystallonException e = assertThrows(CrystallonException.class, () -> subject.render(input));
 
         assertEquals(422, e.status());
         assertEquals("CRYSTALLON-0014", e.code());
@@ -221,14 +225,19 @@ class CrystallonClientTest {
     @Test
     void notFoundAndBadRequestKeepTheirCodes() {
         fake.reply(FakeCrystallon.Reply.json(404, "{\"code\":\"CRYSTALLON-0004\",\"message\":\"Template not found\"}"));
-        final CrystallonException notFound = assertThrows(CrystallonException.class, () -> fake.client().build().byName("nope").render(Map.of()));
+        final var input3 = Map.of();
+        final var subject2 = fake.client().build().byName("nope");
+        final CrystallonException notFound = assertThrows(CrystallonException.class, () -> subject2.render(input3));
         assertEquals(404, notFound.status());
         assertEquals("CRYSTALLON-0004", notFound.code());
         assertNull(notFound.path());
 
         fake.reply(FakeCrystallon.Reply.json(400, "{\"code\":\"CRYSTALLON-0005\",\"message\":\"unsupported lang 'xx' (en, fr, es, it, de)\"}"));
+        final var input = Map.of();
+        final var input2 = RenderOptions.builder().lang("xx").build();
+        final var subject = fake.client().build().byId("t1");
         final CrystallonException bad = assertThrows(CrystallonException.class,
-                () -> fake.client().build().byId("t1").validate(Map.of(), RenderOptions.builder().lang("xx").build()));
+                () -> subject.validate(input, input2));
         assertEquals(400, bad.status());
         assertEquals("CRYSTALLON-0005", bad.code());
     }
@@ -236,8 +245,10 @@ class CrystallonClientTest {
     @Test
     void unauthorizedAndForbiddenWithoutABodyHaveNoCode() {
         fake.reply(FakeCrystallon.Reply.empty(401));
+        final var input2 = Map.of();
+        final var subject2 = fake.client().tokens(CrystallonTokens.fixed("secret-token")).build().byId("t1");
         final CrystallonException unauthorized = assertThrows(CrystallonException.class,
-                () -> fake.client().tokens(CrystallonTokens.fixed("secret-token")).build().byId("t1").render(Map.of()));
+                () -> subject2.render(input2));
         assertEquals(401, unauthorized.status());
         assertNull(unauthorized.code());
         assertNull(unauthorized.path());
@@ -245,7 +256,9 @@ class CrystallonClientTest {
         assertFalse(unauthorized.getMessage().contains("secret-token"));
 
         fake.reply(FakeCrystallon.Reply.empty(403));
-        final CrystallonException forbidden = assertThrows(CrystallonException.class, () -> fake.client().build().byId("t1").render(Map.of()));
+        final var input = Map.of();
+        final var subject = fake.client().build().byId("t1");
+        final CrystallonException forbidden = assertThrows(CrystallonException.class, () -> subject.render(input));
         assertEquals(403, forbidden.status());
         assertNull(forbidden.code());
         assertTrue(forbidden.getMessage().contains("gluonify:crystallon:render"));
@@ -254,12 +267,16 @@ class CrystallonClientTest {
     @Test
     void anErrorThatIsNotAnErrorBodyKeepsOnlyTheStatus() {
         fake.reply(FakeCrystallon.Reply.raw(502, "text/html", "<html>Bad gateway</html>".getBytes()));
-        final CrystallonException html = assertThrows(CrystallonException.class, () -> fake.client().build().byId("t1").render(Map.of()));
+        final var input2 = Map.of();
+        final var subject2 = fake.client().build().byId("t1");
+        final CrystallonException html = assertThrows(CrystallonException.class, () -> subject2.render(input2));
         assertEquals(502, html.status());
         assertNull(html.code());
 
         fake.reply(FakeCrystallon.Reply.raw(500, "application/json", "{\"truncated\":".getBytes()));
-        final CrystallonException broken = assertThrows(CrystallonException.class, () -> fake.client().build().byId("t1").render(Map.of()));
+        final var input = Map.of();
+        final var subject = fake.client().build().byId("t1");
+        final CrystallonException broken = assertThrows(CrystallonException.class, () -> subject.render(input));
         assertEquals(500, broken.status());
         assertNull(broken.code());
     }
@@ -267,7 +284,9 @@ class CrystallonClientTest {
     @Test
     void anErrorBodyIsAlsoReadOn401() {
         fake.reply(FakeCrystallon.Reply.json(401, "{\"code\":\"CRYSTALLON-0001\",\"message\":\"Token expired\"}"));
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> fake.client().build().byId("t1").render(Map.of()));
+        final var input = Map.of();
+        final var subject = fake.client().build().byId("t1");
+        final CrystallonException e = assertThrows(CrystallonException.class, () -> subject.render(input));
         assertEquals("CRYSTALLON-0001", e.code());
         assertEquals("Token expired", e.getMessage());
     }
@@ -275,7 +294,9 @@ class CrystallonClientTest {
     @Test
     void aRedirectIsNotFollowed() {
         fake.reply(FakeCrystallon.Reply.empty(302).with("Location", "http://127.0.0.1:1/elsewhere"));
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> fake.client().build().byId("t1").render(Map.of()));
+        final var input = Map.of();
+        final var subject = fake.client().build().byId("t1");
+        final CrystallonException e = assertThrows(CrystallonException.class, () -> subject.render(input));
         assertEquals(302, e.status());
         assertEquals(1, fake.calls().size());
     }
@@ -285,19 +306,25 @@ class CrystallonClientTest {
     @Test
     void aBodyThatIsNotAPdfIsRefused() {
         fake.reply(FakeCrystallon.Reply.raw(200, "application/pdf", "<html>not a pdf</html>".getBytes()));
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> fake.client().build().byId("t1").render(Map.of()));
+        final var input2 = Map.of();
+        final var subject2 = fake.client().build().byId("t1");
+        final CrystallonException e = assertThrows(CrystallonException.class, () -> subject2.render(input2));
         assertEquals(200, e.status());
         assertNull(e.code());
         assertTrue(e.getMessage().contains("did not return a PDF"));
 
         fake.reply(FakeCrystallon.Reply.empty(204));
-        assertThrows(CrystallonException.class, () -> fake.client().build().byId("t1").render(Map.of()));
+        final var input = Map.of();
+        final var subject = fake.client().build().byId("t1");
+        assertThrows(CrystallonException.class, () -> subject.render(input));
     }
 
     @Test
     void aPdfLargerThanTheLimitIsRefusedByContentLength() {
         fake.reply(FakeCrystallon.Reply.raw(200, "application/pdf", pdfOf(200 * 1024)));
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> fake.client().maxPdfBytes(100 * 1024).build().byId("t1").render(Map.of()));
+        final var input = Map.of();
+        final var subject = fake.client().maxPdfBytes(100 * 1024).build().byId("t1");
+        final CrystallonException e = assertThrows(CrystallonException.class, () -> subject.render(input));
         assertTrue(e.getMessage().contains("larger than"), e.getMessage());
         assertEquals(200, e.status());
     }
@@ -306,8 +333,10 @@ class CrystallonClientTest {
     void aChunkedPdfLargerThanTheLimitIsCutOff() {
         fake.reply(FakeCrystallon.Reply.raw(200, "application/pdf", pdfOf(3 * 1024 * 1024)).asChunked());
         final long start = System.nanoTime();
+        final var input = Map.of();
+        final var subject = fake.client().maxPdfBytes(100 * 1024).timeout(Duration.ofSeconds(10)).build().byId("t1");
         final CrystallonException e = assertThrows(CrystallonException.class,
-                () -> fake.client().maxPdfBytes(100 * 1024).timeout(Duration.ofSeconds(10)).build().byId("t1").render(Map.of()));
+                () -> subject.render(input));
         assertTrue(e.getMessage().contains("larger than"), e.getMessage());
         assertTrue(Duration.ofNanos(System.nanoTime() - start).toSeconds() < 8, "the limit must stop the read, not the timeout");
     }
@@ -324,8 +353,10 @@ class CrystallonClientTest {
     @Test
     void aSlowCrystallonTimesOut() {
         fake.reply(FakeCrystallon.Reply.pdf().delayed(2000));
+        final var input = Map.of();
+        final var subject = fake.client().timeout(Duration.ofMillis(300)).build().byId("t1");
         final CrystallonException e = assertThrows(CrystallonException.class,
-                () -> fake.client().timeout(Duration.ofMillis(300)).build().byId("t1").render(Map.of()));
+                () -> subject.render(input));
         assertEquals(0, e.status());
         assertNull(e.code());
         assertNotNull(e.getCause());
@@ -336,8 +367,10 @@ class CrystallonClientTest {
     void anUnreachableCrystallonIsACrystallonException() {
         final String url = fake.url();
         fake.close();
+        final var input = Map.of();
+        final var subject = CrystallonClient.builder().baseUrl(url).timeout(Duration.ofSeconds(2)).build().byId("t1");
         final CrystallonException e = assertThrows(CrystallonException.class,
-                () -> CrystallonClient.builder().baseUrl(url).timeout(Duration.ofSeconds(2)).build().byId("t1").render(Map.of()));
+                () -> subject.render(input));
         assertEquals(0, e.status());
         assertNull(e.code());
     }

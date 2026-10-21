@@ -38,6 +38,7 @@ import java.util.concurrent.TimeoutException;
  * present, {@code iss} (RFC 9207) are checked. The CLI never sees a password.
  */
 final class Login {
+    private static final String KEY_ERROR = "error";
     static final String DEFAULT_SCOPE = "openid";
     static final String CALLBACK = "/callback";
 
@@ -140,7 +141,7 @@ final class Login {
             form.put("code_verifier", verifier);
             final Http.Response r = post(http, token, form);
             if (!r.ok()) {
-                final String error = Json.str(r.json(), "error");
+                final String error = Json.str(r.json(), KEY_ERROR);
                 throw new GluonifyServicesException("Charm refused the login (HTTP " + r.status() + (error == null ? "" : ", " + error) + ")");
             }
             final DeveloperTokens.Session s = DeveloperTokens.fromTokenResponse(o.zone(), d.clientId(), token, revocation, r.json(), cli.clock, null);
@@ -172,9 +173,9 @@ final class Login {
                 code.completeExceptionally(new GluonifyServicesException("the login answer does not match this login (state): run gluonify login " + zone + " again"));
                 return;
             }
-            if (p.containsKey("error")) {
-                page(ex, 400, "The login failed: " + p.get("error") + ". You can close this window.");
-                code.completeExceptionally(new GluonifyServicesException("Charm refused the login: " + p.get("error")
+            if (p.containsKey(KEY_ERROR)) {
+                page(ex, 400, "The login failed: " + p.get(KEY_ERROR) + ". You can close this window.");
+                code.completeExceptionally(new GluonifyServicesException("Charm refused the login: " + p.get(KEY_ERROR)
                         + (p.get("error_description") == null ? "" : " (" + p.get("error_description") + ")")));
                 return;
             }

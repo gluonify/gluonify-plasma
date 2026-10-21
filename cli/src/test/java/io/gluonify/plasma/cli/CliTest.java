@@ -194,4 +194,12 @@ class CliTest {
         assertEquals(0, run(browser, "--help"));
         assertTrue(out().contains("gluonify login"), out());
     }
+
+    @Test
+    void browserCommandDependsOnTheOperatingSystem() {
+        final URI uri = URI.create("https://example.org/login");
+        assertEquals(List.of("open", "https://example.org/login"), Cli.browserCommand("mac os x", uri));
+        assertEquals(List.of("rundll32", "url.dll,FileProtocolHandler", "https://example.org/login"), Cli.browserCommand("windows 11", uri));
+        assertEquals(List.of("xdg-open", "https://example.org/login"), Cli.browserCommand("linux", uri));
+    }
 }

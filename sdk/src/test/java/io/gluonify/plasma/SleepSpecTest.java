@@ -48,9 +48,11 @@ class SleepSpecTest {
         var on = new SleepSpec(true, 3, 8, null);
         // an internal application, with peer ports, a role or locks between nodes cannot sleep
         assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "i", null, null, null, null, null, null, null, null, null, null, null, null, true, null, null, null, null, null, null, on));
-        assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "i", null, null, null, null, null, null, null, null, null, null, null, null, null, List.of(9100), null, null, null, null, null, on));
+        final var input2 = List.of(9100);
+        assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "i", null, null, null, null, null, null, null, null, null, null, null, null, null, input2, null, null, null, null, null, on));
         assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "i", null, null, null, null, null, null, null, null, null, null, null, null, null, null, "storage", null, null, null, null, on));
-        assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "i", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, List.of("std"), null, null, true, on));
+        final var input = List.of("std");
+        assertThrows(IllegalArgumentException.class, () -> new AppSpec("a", "i", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, input, null, null, true, on));
         // disabled: the same combinations pass
         assertDoesNotThrow(() -> new AppSpec("a", "i", null, null, null, null, null, null, null, null, null, null, null, null, true, null, null, null, null, null, null, SleepSpec.off()));
         assertTrue(new AppSpec("a", "i", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, on).sleepEnabled());

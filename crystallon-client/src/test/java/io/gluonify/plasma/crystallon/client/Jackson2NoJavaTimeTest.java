@@ -29,7 +29,9 @@ class Jackson2NoJavaTimeTest {
 
     @Test
     void aLocalDateIsRefusedWithTheArtifactToAdd() {
-        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> PayloadCodec.detect().write(Map.of("d", LocalDate.of(2026, 1, 1))));
+        final var input = Map.of("d", LocalDate.of(2026, 1, 1));
+        final var subject = PayloadCodec.detect();
+        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> subject.write(input));
         assertTrue(e.getMessage().contains("jackson-datatype-jsr310"), e.getMessage());
     }
 }

@@ -308,8 +308,8 @@ public final class CrystallonClient {
             synchronized (httpLock) {
                 h = http.get();
                 if (h == null) {
-                    h = configuredHttp != null ? configuredHttp : HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1)
-                            .connectTimeout(timeout.compareTo(Duration.ofSeconds(10)) < 0 ? timeout : Duration.ofSeconds(10)).build();
+                    final Duration connect = timeout.compareTo(Duration.ofSeconds(10)) < 0 ? timeout : Duration.ofSeconds(10);
+                    h = configuredHttp != null ? configuredHttp : HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(connect).build();
                     http.set(h);
                 }
             }

@@ -217,7 +217,8 @@ class InlineTemplateTest {
         assertThrows(IllegalArgumentException.class, () -> client.inline(null));
         assertThrows(IllegalArgumentException.class, () -> client.inline(""));
         assertThrows(IllegalArgumentException.class, () -> client.inline("  \n"));
-        assertThrows(IllegalArgumentException.class, () -> client.inline(List.of(1, 2)));
+        final var input = List.of(1, 2);
+        assertThrows(IllegalArgumentException.class, () -> client.inline(input));
         assertThrows(IllegalArgumentException.class, () -> client.inline(42));
         assertThrows(IllegalArgumentException.class, () -> client.inline(true));
         assertTrue(fake.calls().isEmpty());
@@ -225,7 +226,8 @@ class InlineTemplateTest {
 
     @Test
     void jsonWrittenInAStringIsRefusedWithAHint() {
-        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> client().inline("{\"extends\":\"invoice\"}"));
+        final var subject = client();
+        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> subject.inline("{\"extends\":\"invoice\"}"));
 
         assertTrue(e.getMessage().contains("Map"), e.getMessage());
         assertTrue(fake.calls().isEmpty());
@@ -269,7 +271,9 @@ class InlineTemplateTest {
     void anUnreadableValidationAnswerIsACrystallonException() {
         fake.reply(FakeCrystallon.Reply.json(200, "[1,2]"));
 
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> client().inline("invoice").validate(Map.of()));
+        final var input = Map.of();
+        final var subject = client().inline("invoice");
+        final CrystallonException e = assertThrows(CrystallonException.class, () -> subject.validate(input));
         assertEquals(200, e.status());
         assertNull(e.code());
     }
@@ -280,7 +284,9 @@ class InlineTemplateTest {
     void anUnknownPresetIsACrystallonExceptionWithItsCodeAndPath() {
         fake.reply(FakeCrystallon.Reply.json(404, "{\"code\":\"CRYSTALLON-0004\",\"message\":\"Unknown predefined template 'invoise'\",\"path\":\"template\"}"));
 
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> client().inline("invoise").render(Map.of()));
+        final var input = Map.of();
+        final var subject = client().inline("invoise");
+        final CrystallonException e = assertThrows(CrystallonException.class, () -> subject.render(input));
 
         assertEquals(404, e.status());
         assertEquals("CRYSTALLON-0004", e.code());
@@ -291,7 +297,9 @@ class InlineTemplateTest {
     void anInvalidTemplateKeepsThePathOfTheProblem() {
         fake.reply(FakeCrystallon.Reply.json(422, "{\"code\":\"CRYSTALLON-0014\",\"message\":\"Unknown block type 'foo'\",\"path\":\"body[3].blocks[0].text\"}"));
 
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> client().inline(Map.of("body", List.of())).render(Map.of()));
+        final var input = Map.of();
+        final var subject = client().inline(Map.of("body", List.of()));
+        final CrystallonException e = assertThrows(CrystallonException.class, () -> subject.render(input));
 
         assertEquals(422, e.status());
         assertEquals("body[3].blocks[0].text", e.path());
@@ -300,14 +308,18 @@ class InlineTemplateTest {
     @Test
     void unauthorizedAndForbiddenWithoutABodyHaveNoCode() {
         fake.reply(FakeCrystallon.Reply.empty(401));
+        final var input2 = Map.of();
+        final var subject2 = fake.client().tokens(CrystallonTokens.fixed("secret-token")).build().inline("invoice");
         final CrystallonException unauthorized = assertThrows(CrystallonException.class,
-                () -> fake.client().tokens(CrystallonTokens.fixed("secret-token")).build().inline("invoice").render(Map.of()));
+                () -> subject2.render(input2));
         assertEquals(401, unauthorized.status());
         assertNull(unauthorized.code());
         assertFalse(unauthorized.getMessage().contains("secret-token"));
 
         fake.reply(FakeCrystallon.Reply.empty(403));
-        final CrystallonException forbidden = assertThrows(CrystallonException.class, () -> client().inline("invoice").validate(Map.of()));
+        final var input = Map.of();
+        final var subject = client().inline("invoice");
+        final CrystallonException forbidden = assertThrows(CrystallonException.class, () -> subject.validate(input));
         assertEquals(403, forbidden.status());
         assertTrue(forbidden.getMessage().contains("gluonify:crystallon:render"));
     }
@@ -323,7 +335,9 @@ class InlineTemplateTest {
     void aBodyThatIsNotAPdfIsRefused() {
         fake.reply(FakeCrystallon.Reply.raw(200, "application/pdf", "<html>not a pdf</html>".getBytes()));
 
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> client().inline("invoice").render(Map.of()));
+        final var input = Map.of();
+        final var subject = client().inline("invoice");
+        final CrystallonException e = assertThrows(CrystallonException.class, () -> subject.render(input));
         assertEquals(200, e.status());
         assertTrue(e.getMessage().contains("did not return a PDF"));
     }
@@ -335,7 +349,9 @@ class InlineTemplateTest {
         System.arraycopy("%PDF-1.4\n".getBytes(), 0, big, 0, 9);
         fake.reply(FakeCrystallon.Reply.raw(200, "application/pdf", big));
 
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> fake.client().maxPdfBytes(100 * 1024).build().inline("invoice").render(Map.of()));
+        final var input = Map.of();
+        final var subject = fake.client().maxPdfBytes(100 * 1024).build().inline("invoice");
+        final CrystallonException e = assertThrows(CrystallonException.class, () -> subject.render(input));
         assertTrue(e.getMessage().contains("larger than"), e.getMessage());
     }
 

@@ -69,14 +69,19 @@ class ProvenanceTest {
         // modified statement (other fingerprint), original signature
         String forged = Base64.getUrlEncoder().withoutPadding().encodeToString(new ProvenanceStatement("shop", Map.of("amd64", SHA_B, "arm64", SHA_B), null, "bup-2026", AT).canonicalBytes())
                 + token.substring(token.indexOf('.'));
-        assertThrows(IllegalArgumentException.class, () -> Provenance.verify(forged, vectorPublic()), "forged fingerprint");
+        final var input5 = vectorPublic();
+        assertThrows(IllegalArgumentException.class, () -> Provenance.verify(forged, input5), "forged fingerprint");
         // signature modified by one bit
         char[] c = token.toCharArray();
         int i = token.length() - 3;
         c[i] = c[i] == 'A' ? 'B' : 'A';
-        assertThrows(IllegalArgumentException.class, () -> Provenance.verify(new String(c), vectorPublic()));
-        assertThrows(IllegalArgumentException.class, () -> Provenance.verify("pas-un-jeton", vectorPublic()));
-        assertThrows(IllegalArgumentException.class, () -> Provenance.verify(null, vectorPublic()));
+        final var input3 = new String(c);
+        final var input4 = vectorPublic();
+        assertThrows(IllegalArgumentException.class, () -> Provenance.verify(input3, input4));
+        final var input2 = vectorPublic();
+        assertThrows(IllegalArgumentException.class, () -> Provenance.verify("pas-un-jeton", input2));
+        final var input = vectorPublic();
+        assertThrows(IllegalArgumentException.class, () -> Provenance.verify(null, input));
     }
 
     @Test void strictReading() {
@@ -88,7 +93,8 @@ class ProvenanceTest {
                 s.replace("app shop", "app  shop"), s.replace("gluonify-provenance 1", "gluonify-provenance 2"), s + "x\n", s.substring(0, s.length() - 1),
                 s.replace("signed-at 2026-10-11T20:00:00Z", "signed-at 2026-10-11T20:00:00.5Z"), s.replace("key bup-2026\n", ""), s.replace("app shop", "app Shop"),
                 s.replace(SHA_A, SHA_A.toUpperCase()), "{\"schema\":1}\n"}) {
-            assertThrows(IllegalArgumentException.class, () -> ProvenanceStatement.parse(bad.getBytes(StandardCharsets.UTF_8)), bad);
+            final var input = bad.getBytes(StandardCharsets.UTF_8);
+            assertThrows(IllegalArgumentException.class, () -> ProvenanceStatement.parse(input), bad);
         }
         assertThrows(IllegalArgumentException.class, () -> new ProvenanceStatement("shop", Map.of(), null, "k", AT), "neither executable nor image");
         assertThrows(IllegalArgumentException.class, () -> new ProvenanceStatement("shop", null, "sha256:abc", "k", AT));
@@ -126,7 +132,8 @@ class ProvenanceTest {
     @Test void statementFromTheSpecification() {
         var s = ProvenanceStatement.of("shop", Map.of("amd64", "https://b/x#sha256=" + SHA_A), null, "bup-2026", AT);
         assertEquals(Map.of("amd64", SHA_A), s.artifacts());
-        assertThrows(IllegalArgumentException.class, () -> ProvenanceStatement.of("shop", Map.of("amd64", "https://b/x"), null, "k", AT));
+        final var input = Map.of("amd64", "https://b/x");
+        assertThrows(IllegalArgumentException.class, () -> ProvenanceStatement.of("shop", input, null, "k", AT));
         assertThrows(IllegalArgumentException.class, () -> ProvenanceStatement.of("shop", null, "reg/shop:1", "k", AT));
         assertEquals("sha256:" + SHA_A, ProvenanceStatement.of("shop", null, "reg/shop@sha256:" + SHA_A, "k", AT).imageDigest());
     }

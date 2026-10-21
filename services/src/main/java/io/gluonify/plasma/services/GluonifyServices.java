@@ -397,7 +397,8 @@ public final class GluonifyServices {
     }
 
     private static String first(final String a, final String b) {
-        return !blank(a) ? a.strip() : !blank(b) ? b.strip() : null;
+        if (!blank(a)) return a.strip();
+        return !blank(b) ? b.strip() : null;
     }
 
     /** A separate instance: environment, properties, folder, clock and HTTP client supplied (tests, tools). */

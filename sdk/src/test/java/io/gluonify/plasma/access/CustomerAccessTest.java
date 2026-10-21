@@ -69,10 +69,14 @@ class CustomerAccessTest {
 
     @Test
     void theTableAcceptsCustomerRolesAndServiceRightsOnly() {
-        assertThrows(IllegalArgumentException.class, () -> CustomerAccess.Table.builder().grant("org:admin", "svc:write"));
-        assertThrows(IllegalArgumentException.class, () -> CustomerAccess.Table.builder().grant("gluonify:svc:write", "svc:write"));
-        assertThrows(IllegalArgumentException.class, () -> CustomerAccess.Table.builder().grant("org:viewer", "org:owner"));
-        assertThrows(IllegalArgumentException.class, () -> CustomerAccess.Table.builder().grant("org:viewer", " "));
+        final var subject4 = CustomerAccess.Table.builder();
+        assertThrows(IllegalArgumentException.class, () -> subject4.grant("org:admin", "svc:write"));
+        final var subject3 = CustomerAccess.Table.builder();
+        assertThrows(IllegalArgumentException.class, () -> subject3.grant("gluonify:svc:write", "svc:write"));
+        final var subject2 = CustomerAccess.Table.builder();
+        assertThrows(IllegalArgumentException.class, () -> subject2.grant("org:viewer", "org:owner"));
+        final var subject = CustomerAccess.Table.builder();
+        assertThrows(IllegalArgumentException.class, () -> subject.grant("org:viewer", " "));
         assertEquals(Set.of(), TABLE.rightsOf("org:billing"));
     }
 }

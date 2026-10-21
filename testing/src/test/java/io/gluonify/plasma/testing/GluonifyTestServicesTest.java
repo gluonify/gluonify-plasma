@@ -45,13 +45,17 @@ class GluonifyTestServicesTest {
             assertEquals(4, services.crystallon().renders().size());
 
             services.crystallon().failNext(422, "CRYSTALLON-0015", "Invalid template");
-            final CrystallonException ex = assertThrows(CrystallonException.class, () -> client.byName("x").render(Map.of()));
+            final var input2 = Map.of();
+            final var subject2 = client.byName("x");
+            final CrystallonException ex = assertThrows(CrystallonException.class, () -> subject2.render(input2));
             assertEquals(422, ex.status());
             assertEquals("CRYSTALLON-0015", ex.code());
             client.byName("x").render(Map.of()); // the failure applies only once
 
             final CrystallonClient intruder = CrystallonClient.builder().baseUrl(e.url()).tokens(CrystallonTokens.fixed("other")).build();
-            assertEquals(401, assertThrows(CrystallonException.class, () -> intruder.byName("x").render(Map.of())).status());
+            final var input = Map.of();
+            final var subject = intruder.byName("x");
+            assertEquals(401, assertThrows(CrystallonException.class, () -> subject.render(input)).status());
 
             assertThrows(IllegalStateException.class, GluonifyTestServices::start, "only one instance at a time");
         }

@@ -39,7 +39,8 @@ class DiscoveryTest {
         assertThrows(IllegalArgumentException.class, () -> Json.object("{\"a\":1} x"));
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> Json.object("{\"secret-token\":"));
         assertFalse(e.getMessage().contains("secret"), "the text read never appears in the message");
-        assertThrows(IllegalArgumentException.class, () -> Json.parse("[".repeat(100)));
+        final var deep = "[".repeat(100);
+        assertThrows(IllegalArgumentException.class, () -> Json.parse(deep));
     }
 
     @Test

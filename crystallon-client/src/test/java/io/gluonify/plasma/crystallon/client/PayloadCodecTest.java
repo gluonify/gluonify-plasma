@@ -119,8 +119,10 @@ class PayloadCodecTest {
 
     @Test
     void aPayloadThatCannotBeWrittenIsAnIllegalArgument() {
-        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> codec.write(new Broken()));
+        final var input = new Broken();
+        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> codec.write(input));
         assertTrue(e.getMessage().startsWith("cannot write the Crystallon payload"), e.getMessage());
-        assertThrows(IllegalArgumentException.class, () -> codec.read("{".getBytes(StandardCharsets.UTF_8), Check.class));
+        final var truncated = "{".getBytes(StandardCharsets.UTF_8);
+        assertThrows(IllegalArgumentException.class, () -> codec.read(truncated, Check.class));
     }
 }

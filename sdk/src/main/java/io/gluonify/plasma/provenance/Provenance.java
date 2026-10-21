@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
  * {@code .sig} file. Signing and verification by the JDK ({@code Ed25519}), without dependencies.
  */
 public final class Provenance {
+    private static final String ED25519 = "Ed25519";
     private Provenance() {}
 
     /** Maximum length of a token (statement of at most 2048 bytes, signature of 64). */
@@ -60,7 +61,7 @@ public final class Provenance {
     public static String sign(final ProvenanceStatement s, final PrivateKey key) {
         byte[] b = s.canonicalBytes();
         try {
-            Signature sig = Signature.getInstance("Ed25519");
+            Signature sig = Signature.getInstance(ED25519);
             sig.initSign(key);
             sig.update(b);
             Base64.Encoder enc = Base64.getUrlEncoder().withoutPadding();
@@ -101,7 +102,7 @@ public final class Provenance {
         byte[][] p = split(token);
         boolean ok;
         try {
-            Signature sig = Signature.getInstance("Ed25519");
+            Signature sig = Signature.getInstance(ED25519);
             sig.initVerify(key);
             sig.update(p[0]);
             ok = sig.verify(p[1]);
@@ -169,7 +170,7 @@ public final class Provenance {
     public static PublicKey publicKey(final String text) {
         try {
             String b64 = text.replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "").replaceAll("\\s", "");
-            PublicKey k = KeyFactory.getInstance("Ed25519").generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(b64)));
+            PublicKey k = KeyFactory.getInstance(ED25519).generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(b64)));
             return k;
         } catch (GeneralSecurityException | IllegalArgumentException | NullPointerException e) {
             throw new IllegalArgumentException("provenance: unreadable Ed25519 public key");
@@ -180,7 +181,7 @@ public final class Provenance {
     public static PrivateKey privateKey(final String pem) {
         try {
             String b64 = pem.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replaceAll("\\s", "");
-            return KeyFactory.getInstance("Ed25519").generatePrivate(new PKCS8EncodedKeySpec(Base64.getDecoder().decode(b64)));
+            return KeyFactory.getInstance(ED25519).generatePrivate(new PKCS8EncodedKeySpec(Base64.getDecoder().decode(b64)));
         } catch (GeneralSecurityException | IllegalArgumentException | NullPointerException e) {
             throw new IllegalArgumentException("provenance: unreadable Ed25519 private key");
         }

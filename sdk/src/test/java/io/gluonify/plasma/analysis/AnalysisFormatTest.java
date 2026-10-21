@@ -85,12 +85,14 @@ class AnalysisFormatTest {
         for (String bad : List.of("", "n-elf", "N ELF", "N-", "-N", "Le binaire n'est pas un ELF", "N-ELF\n")) {
             assertThrows(IllegalArgumentException.class, () -> Finding.open(FindingKind.NATIVE, null, bad, Severity.INFO, false, null, null), bad);
         }
-        assertThrows(IllegalArgumentException.class, () -> Finding.open(FindingKind.NATIVE, null, "N-ELF", Severity.INFO, false, null, Map.of("a b", "x")));
+        final var input = Map.of("a b", "x");
+        assertThrows(IllegalArgumentException.class, () -> Finding.open(FindingKind.NATIVE, null, "N-ELF", Severity.INFO, false, null, input));
         assertThrows(NullPointerException.class, () -> Finding.open(FindingKind.NATIVE, null, "N-ELF", null, false, null, null));
         Map<String, String> big = new LinkedHashMap<>();
         big.put("file", "x".repeat(5000));
         assertEquals(Finding.MAX_ARG_LENGTH, Finding.open(FindingKind.NATIVE, null, "N-ELF", Severity.INFO, false, null, big).args().get("file").length());
-        assertThrows(UnsupportedOperationException.class, () -> Finding.open(FindingKind.NATIVE, null, "N-ELF", Severity.INFO, false, null, Map.of("a", "b")).args().put("c", "d"));
+        final var subject = Finding.open(FindingKind.NATIVE, null, "N-ELF", Severity.INFO, false, null, Map.of("a", "b")).args();
+        assertThrows(UnsupportedOperationException.class, () -> subject.put("c", "d"));
     }
 
     @Test

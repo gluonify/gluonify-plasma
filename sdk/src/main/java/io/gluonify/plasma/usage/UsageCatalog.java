@@ -12,6 +12,7 @@ import java.util.Map;
  * calling the calorimeter ({@code contracts.md} § 2.4). A name outside this catalog can be neither recorded nor priced.
  */
 public final class UsageCatalog {
+    private static final String SERVICE_GDOWN = "gdown";
     private UsageCatalog() {}
 
     private static final String KIND = "kind";
@@ -36,9 +37,9 @@ public final class UsageCatalog {
         unit("strange.instance.net_egress", Quantity.BYTES);
         unit("strange.instance.net_ingress", Quantity.BYTES);
         unit("strange.instance.disk_state", Quantity.MB_SECONDS);
-        unit("strange.vfs.bytes_written", Quantity.BYTES, "kind", List.of("std", "tmp", "gdown"));
-        unit("strange.vfs.bytes_read", Quantity.BYTES, "kind", List.of("std", "tmp", "gdown"));
-        unit("strange.vfs.ops", Quantity.COUNT, "kind", List.of("std", "tmp", "gdown"));
+        unit("strange.vfs.bytes_written", Quantity.BYTES, "kind", List.of("std", "tmp", SERVICE_GDOWN));
+        unit("strange.vfs.bytes_read", Quantity.BYTES, "kind", List.of("std", "tmp", SERVICE_GDOWN));
+        unit("strange.vfs.ops", Quantity.COUNT, "kind", List.of("std", "tmp", SERVICE_GDOWN));
         unit("higgs.ingress.requests", Quantity.COUNT, "class", List.of("2xx", "3xx", "4xx", "5xx"));
         unit("higgs.ingress.bytes_in", Quantity.BYTES);
         unit("higgs.ingress.bytes_out", Quantity.BYTES);
@@ -48,7 +49,7 @@ public final class UsageCatalog {
         unit("higgs.acme.certificates", Quantity.COUNT);
         unit("higgs.storage.blob_bytes", Quantity.GB_HOURS);
         unit("higgs.locks.ops", Quantity.COUNT);
-        unit("rup.vfs.stored_bytes", Quantity.GB_HOURS, "kind", List.of("std", "tmp", "gdown"));
+        unit("rup.vfs.stored_bytes", Quantity.GB_HOURS, "kind", List.of("std", "tmp", SERVICE_GDOWN));
         unit("gdown.db.queries", Quantity.COUNT, "kind", List.of("read", "write"));
         unit("gdown.db.query_seconds", Quantity.SECONDS);
         unit("gdown.db.rows", Quantity.COUNT);

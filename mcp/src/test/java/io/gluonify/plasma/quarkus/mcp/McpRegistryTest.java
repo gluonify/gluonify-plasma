@@ -14,7 +14,8 @@ class McpRegistryTest {
     static final ObjectMapper M = new ObjectMapper();
 
     static String refusal(final Object... toolboxes) {
-        return assertThrows(IllegalStateException.class, () -> McpRegistry.of(List.of(toolboxes), M, w -> {})).getMessage();
+        final var declared = List.of(toolboxes);
+        return assertThrows(IllegalStateException.class, () -> McpRegistry.of(declared, M, w -> {})).getMessage();
     }
 
     static class BadName implements McpToolbox {

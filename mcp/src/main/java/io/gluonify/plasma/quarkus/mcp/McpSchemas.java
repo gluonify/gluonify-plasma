@@ -24,16 +24,19 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * JSON Schema derived from an arguments record, kept deliberately small (what an AI needs to fill the arguments):
  * <ul>
- *   <li>a record: {@code {"type":"object","properties":{...},"required":[...],"additionalProperties":false}}, every component required except
+ *   <li>a record: {@code {"type":TYPE_OBJECT,"properties":{...},"required":[...],"additionalProperties":false}}, every component required except
  *       the {@code Optional}, {@code OptionalInt}, {@code OptionalLong} and {@code OptionalDouble} ones; {@link McpParam} gives a {@code description};</li>
  *   <li>{@code String}, {@code char}: {@code string}; an enum: {@code string} with {@code enum} (the constant names); {@code boolean}: {@code boolean};
  *       {@code byte}, {@code short}, {@code int}, {@code long}, {@code BigInteger}: {@code integer}; {@code float}, {@code double}, {@code BigDecimal}: {@code number};</li>
  *   <li>an array, a {@code Collection}: {@code array} with {@code items}; a {@code Map<String, V>}: {@code object} with {@code additionalProperties};</li>
  *   <li>anything else ({@code Object}, {@code JsonNode}...): {@code {}} (any value).</li>
  * </ul>
- * A record that contains itself is cut at the second occurrence ({@code {"type":"object"}}). For anything richer, give {@link McpTool#inputSchema()}.
+ * A record that contains itself is cut at the second occurrence ({@code {"type":TYPE_OBJECT}}). For anything richer, give {@link McpTool#inputSchema()}.
  */
 public final class McpSchemas {
+    private static final String TYPE_ARRAY = "array";
+    private static final String KEY_ITEMS = "items";
+    private static final String TYPE_OBJECT = "object";
     private static final JsonNodeFactory F = JsonNodeFactory.instance;
 
     private McpSchemas() {}
@@ -66,23 +69,23 @@ public final class McpSchemas {
             return schema(w.getUpperBounds().length == 0 ? Object.class : w.getUpperBounds()[0], seen);
         }
         if (type instanceof GenericArrayType g) {
-            s.put("type", "array");
-            s.set("items", schema(g.getGenericComponentType(), seen));
+            s.put("type", TYPE_ARRAY);
+            s.set(KEY_ITEMS, schema(g.getGenericComponentType(), seen));
             return s;
         }
         if (type instanceof ParameterizedType p) {
             final Class<?> raw = (Class<?>) p.getRawType();
             final Type[] args = p.getActualTypeArguments();
             if (Collection.class.isAssignableFrom(raw)) {
-                s.put("type", "array");
-                s.set("items", schema(args[0], seen));
+                s.put("type", TYPE_ARRAY);
+                s.set(KEY_ITEMS, schema(args[0], seen));
                 if (Set.class.isAssignableFrom(raw)) {
                     s.put("uniqueItems", true);
                 }
                 return s;
             }
             if (Map.class.isAssignableFrom(raw)) {
-                s.put("type", "object");
+                s.put("type", TYPE_OBJECT);
                 s.set("additionalProperties", schema(args[1], seen));
                 return s;
             }
@@ -110,14 +113,14 @@ public final class McpSchemas {
                 values.add(((Enum<?>) e).name());
             }
         } else if (c.isArray()) {
-            s.put("type", "array");
-            s.set("items", schema(c.getComponentType(), seen));
+            s.put("type", TYPE_ARRAY);
+            s.set(KEY_ITEMS, schema(c.getComponentType(), seen));
         } else if (Collection.class.isAssignableFrom(c)) {
-            s.put("type", "array");
+            s.put("type", TYPE_ARRAY);
         } else if (Map.class.isAssignableFrom(c)) {
-            s.put("type", "object");
+            s.put("type", TYPE_OBJECT);
         } else if (c.isRecord()) {
-            s.put("type", "object");
+            s.put("type", TYPE_OBJECT);
             if (!seen.add(c)) {
                 return s;
             }
@@ -138,7 +141,7 @@ public final class McpSchemas {
             s.put("additionalProperties", false);
             seen.remove(c);
         } else if (!JsonNode.class.isAssignableFrom(c) && c != Object.class) {
-            s.put("type", "object");
+            s.put("type", TYPE_OBJECT);
         }
         return s;
     }

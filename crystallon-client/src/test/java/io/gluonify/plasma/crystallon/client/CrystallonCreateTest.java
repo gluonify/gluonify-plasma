@@ -62,10 +62,12 @@ class CrystallonCreateTest {
 
     @Test
     void createSansRienDeConnu() {
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> CrystallonClient.create(services()));
+        final var input2 = services();
+        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> CrystallonClient.create(input2));
         assertTrue(e.getMessage().contains("gluonify login") && e.getMessage().contains("GluonifyTestServices"), e.getMessage());
         env.put("GLUONIFY_ENVIRONMENT", "DEV");
-        final GluonifyServicesException p = assertThrows(GluonifyServicesException.class, () -> CrystallonClient.create(services()));
+        final var input = services();
+        final GluonifyServicesException p = assertThrows(GluonifyServicesException.class, () -> CrystallonClient.create(input));
         assertTrue(p.getMessage().contains("\"crystallon\"") && p.getMessage().contains("uses"), p.getMessage());
     }
 
@@ -75,7 +77,9 @@ class CrystallonCreateTest {
             throw new GluonifyServicesException("the developer session of zone x.lan has expired or was revoked: run gluonify login x.lan");
         }, Endpoint.Source.DEVELOPER, "gluonify-crystallon", "x.lan");
         final CrystallonClient client = CrystallonClient.builder().endpoint(e).build();
-        final CrystallonException ex = assertThrows(CrystallonException.class, () -> client.byId("t").render(Map.of()));
+        final var input = Map.of();
+        final var subject = client.byId("t");
+        final CrystallonException ex = assertThrows(CrystallonException.class, () -> subject.render(input));
         assertEquals(0, ex.status());
         assertTrue(ex.getMessage().contains("gluonify login x.lan"), ex.getMessage());
         assertTrue(fake.calls().isEmpty(), "no call without a valid token");

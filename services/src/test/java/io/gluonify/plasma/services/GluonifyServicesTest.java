@@ -93,9 +93,11 @@ class GluonifyServicesTest {
     @Test
     void adresseInvalide() {
         props.put("GLUONIFY_SERVICE_CRYSTALLON_URL", "ftp://x");
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> services().resolve("crystallon"));
+        final var subject2 = services();
+        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> subject2.resolve("crystallon"));
         assertTrue(e.getMessage().contains("GLUONIFY_SERVICE_CRYSTALLON_URL"), e.getMessage());
-        assertThrows(IllegalArgumentException.class, () -> services().resolve("../etc"));
+        final var subject = services();
+        assertThrows(IllegalArgumentException.class, () -> subject.resolve("../etc"));
     }
 
     // ------------------------------------------------------------------------------------------------ 2. platform
@@ -120,7 +122,8 @@ class GluonifyServicesTest {
     void plateformeServiceAbsentDeUses() {
         env.put("GLUONIFY_ENVIRONMENT", "DEV");
         login(3600); // ignored on the platform
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> services().resolve("crystallon"));
+        final var subject = services();
+        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> subject.resolve("crystallon"));
         assertTrue(e.getMessage().contains("\"crystallon\"") && e.getMessage().contains("uses") && e.getMessage().contains("gluonify.json"), e.getMessage());
         assertTrue(e.getMessage().contains("did not grant") && e.getMessage().contains("Bup") && e.getMessage().contains("GLUONIFY_SERVICE_CRYSTALLON_URL"), e.getMessage());
         assertTrue(services().resolveOptional("crystallon").isEmpty());
@@ -231,14 +234,16 @@ class GluonifyServicesTest {
     @Test
     void pasConnecte() {
         DeveloperConfig.empty().with(new DeveloperConfig.Zone("test.lan", cluster.discoveryUrl(), null, null)).write(home);
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> services().resolve("crystallon"));
+        final var subject = services();
+        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> subject.resolve("crystallon"));
         assertEquals("not logged in to zone test.lan: run gluonify login test.lan", e.getMessage());
     }
 
     @Test
     void serviceNonPublie() {
         login(3600);
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> services().resolve("interfero"));
+        final var subject = services();
+        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> subject.resolve("interfero"));
         assertTrue(e.getMessage().contains("does not publish the service interfero") && e.getMessage().contains("crystallon"), e.getMessage());
         assertTrue(services().resolveOptional("interfero").isEmpty());
         assertTrue(services().resolveOptional("crystallon").isPresent());
@@ -248,7 +253,8 @@ class GluonifyServicesTest {
     void audienceAbsenteDuJeton() {
         cluster.audiences = List.of("gluonify-fermion");
         login(3600);
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> services().resolve("crystallon"));
+        final var subject = services();
+        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> subject.resolve("crystallon"));
         assertTrue(e.getMessage().contains("gluonify-crystallon") && e.getMessage().contains("gluonify login test.lan"), e.getMessage());
         assertEquals(Endpoint.Source.DEVELOPER, services().resolve("fermion").source());
     }
@@ -257,7 +263,8 @@ class GluonifyServicesTest {
     void zoneChoisieParVariable() {
         login(3600);
         env.put("GLUONIFY_ZONE", "other.lan");
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> services().resolve("crystallon"));
+        final var subject = services();
+        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> subject.resolve("crystallon"));
         assertTrue(e.getMessage().contains("other.lan") && e.getMessage().contains("gluonify login other.lan"), e.getMessage());
         env.put("GLUONIFY_ZONE", "test.lan");
         assertEquals("test.lan", services().resolve("crystallon").zone());
@@ -266,14 +273,16 @@ class GluonifyServicesTest {
     @Test
     void decouverteInjoignable() {
         DeveloperConfig.empty().with(new DeveloperConfig.Zone("test.lan", URI.create("http://127.0.0.1:1/.well-known/gluonify"), null, null)).write(home);
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> services().resolve("crystallon"));
+        final var subject = services();
+        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> subject.resolve("crystallon"));
         assertTrue(e.getMessage().contains("is the cluster running"), e.getMessage());
     }
 
     @Test
     void decouverteEnClairRefusee() {
         DeveloperConfig.empty().with(new DeveloperConfig.Zone("test.lan", URI.create("http://cluster.example/.well-known/gluonify"), null, null)).write(home);
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> services().resolve("crystallon"));
+        final var subject = services();
+        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> subject.resolve("crystallon"));
         assertTrue(e.getMessage().contains("must be https"), e.getMessage());
     }
 
@@ -281,7 +290,8 @@ class GluonifyServicesTest {
 
     @Test
     void rienDeConnu() {
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> services().resolve("crystallon"));
+        final var subject = services();
+        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> subject.resolve("crystallon"));
         final String m = e.getMessage();
         assertTrue(m.contains("not the Gluonify platform") && m.contains("no cluster is known") && m.contains("gluonify login gluonify.lan")
                 && m.contains("GLUONIFY_SERVICE_CRYSTALLON_URL") && m.contains("GluonifyTestServices"), m);
