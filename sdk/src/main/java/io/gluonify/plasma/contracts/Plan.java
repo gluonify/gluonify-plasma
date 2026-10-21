@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Plan(String id, Map<String, String> name, Long createdAt, String createdBy, List<PlanVersion> versions) {
     /** Plan identifier: a-z, 0-9 and hyphen, 1 to 40 characters (the rule of {@link PriceList#ID_PATTERN}). */
+    private static final Pattern LANGUAGE = Pattern.compile("[a-z]{2}");
     public static final Pattern ID_PATTERN = PriceList.ID_PATTERN;
     /** @deprecated renamed {@link #ID_PATTERN} (SonarQube S1845); removed in the version after 0.7.2. */
     @Deprecated(forRemoval = true)
@@ -62,7 +63,7 @@ public record Plan(String id, Map<String, String> name, Long createdAt, String c
     /** True for a well-formed display name: an English name, every name 1 to 120 characters. */
     public static boolean validName(final Map<String, String> name) {
         if (name == null || !Organization.validName(name.get("en"))) return false;
-        for (var e : name.entrySet()) if (!e.getKey().matches("[a-z]{2}") || !Organization.validName(e.getValue())) return false;
+        for (var e : name.entrySet()) if (!LANGUAGE.matcher(e.getKey()).matches() || !Organization.validName(e.getValue())) return false;
         return true;
     }
 }

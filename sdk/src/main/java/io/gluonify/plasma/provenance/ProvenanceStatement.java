@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  */
 public record ProvenanceStatement(String app, Map<String, String> artifacts, String imageDigest, String keyId, Instant signedAt) {
     public static final String MAGIC = "gluonify-provenance 1";
-    static final Pattern APP = Pattern.compile("[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?");
+    static final Pattern APP_PATTERN = Pattern.compile("[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?");
     static final Pattern ARCH = Pattern.compile("[a-z0-9]{1,16}(-[a-z0-9]{1,16})?");
     static final Pattern SHA = Pattern.compile("[0-9a-f]{64}");
     static final Pattern DIGEST = Pattern.compile("sha256:[0-9a-f]{64}");
@@ -39,7 +39,7 @@ public record ProvenanceStatement(String app, Map<String, String> artifacts, Str
     public static final int MAX_BYTES = 2048;
 
     public ProvenanceStatement {
-        if (app == null || !APP.matcher(app).matches()) throw new IllegalArgumentException("provenance: invalid application name");
+        if (app == null || !APP_PATTERN.matcher(app).matches()) throw new IllegalArgumentException("provenance: invalid application name");
         TreeMap<String, String> a = new TreeMap<>();
         if (artifacts != null) for (var e : artifacts.entrySet()) {
             if (e.getKey() == null || !ARCH.matcher(e.getKey()).matches()) throw new IllegalArgumentException("provenance: invalid architecture");

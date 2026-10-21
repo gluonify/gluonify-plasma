@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 /** Declaration of an application. Everything is optional except the name and the image (or the per-architecture executables): the rest is inferred. */
@@ -173,6 +174,8 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
     public static final int DEFAULT_SCRATCH_MB = 64;
     public static final int MAX_SCRATCH_MB = 2048;
 
+    private static final Pattern ENV_NAME = Pattern.compile("[A-Z_][A-Z0-9_]{0,127}");
+
     /** Linux: {@code amd64}, {@code arm64}; development nodes of the {@code host} runtime: {@code darwin-*} (macOS) and {@code windows-*}. */
     public static final Set<String> ARCHITECTURES = Set.of("amd64", "arm64", "darwin-amd64", "darwin-arm64", "windows-amd64", "windows-arm64");
 
@@ -217,13 +220,13 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
         if (new java.util.HashSet<>(ports).size() != ports.size() || (port != null && ports.contains(port))) throw new IllegalArgumentException("duplicate ports");
         if (env.size() > 64) throw new IllegalArgumentException("too many variables (64 at most)");
         for (var e : env.entrySet()) {
-            if (!e.getKey().matches("[A-Z_][A-Z0-9_]{0,127}")) throw new IllegalArgumentException("invalid variable name: " + e.getKey());
+            if (!ENV_NAME.matcher(e.getKey()).matches()) throw new IllegalArgumentException("invalid variable name: " + e.getKey());
             if (RESERVED_ENV.contains(e.getKey()) || e.getKey().startsWith("GLUONIFY_SERVICE_") || ServiceToken.isReservedEnv(e.getKey()) || GdownBolt.RESERVED_ENV.contains(e.getKey())) throw new IllegalArgumentException("variable reserved to the PaaS: " + e.getKey());
             if (e.getValue() == null || e.getValue().length() > 4096) throw new IllegalArgumentException("invalid value for " + e.getKey());
         }
         if (generated.size() > 16) throw new IllegalArgumentException("too many generated secrets (16 at most)");
         for (String g : generated) {
-            if (!g.matches("[A-Z_][A-Z0-9_]{0,127}") || RESERVED_ENV.contains(g) || g.startsWith("GLUONIFY_SERVICE_") || ServiceToken.isReservedEnv(g) || GdownBolt.RESERVED_ENV.contains(g) || env.containsKey(g)) throw new IllegalArgumentException("invalid generated secret: " + g);
+            if (!ENV_NAME.matcher(g).matches() || RESERVED_ENV.contains(g) || g.startsWith("GLUONIFY_SERVICE_") || ServiceToken.isReservedEnv(g) || GdownBolt.RESERVED_ENV.contains(g) || env.containsKey(g)) throw new IllegalArgumentException("invalid generated secret: " + g);
         }
         if (uses.size() > 16) throw new IllegalArgumentException("too many services used (16 at most)");
         for (String u : uses) if (!u.matches("\\??[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?")) throw new IllegalArgumentException("invalid service: " + u); // "?name": optional (already ready or not)

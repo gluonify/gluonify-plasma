@@ -22,7 +22,7 @@ class CrystallonClientBuilderTest {
     @Test
     void theBaseUrlIsRequired() {
         final var subject = CrystallonClient.builder();
-        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> subject.build());
+        final IllegalStateException e = assertThrows(IllegalStateException.class, subject::build);
         assertTrue(e.getMessage().contains("base URL"));
     }
 

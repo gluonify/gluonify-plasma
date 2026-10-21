@@ -155,9 +155,9 @@ public final class Provenance {
         if (bin1 != bin2) return false;
         if (bin1) {
             if (!a1.keySet().equals(a2.keySet())) return false;
-            for (String k : a1.keySet()) {
-                String s1 = artifactSha256(a1.get(k));
-                if (s1 == null || !s1.equals(artifactSha256(a2.get(k)))) return false;
+            for (Map.Entry<String, String> e : a1.entrySet()) {
+                String s1 = artifactSha256(e.getValue());
+                if (s1 == null || !s1.equals(artifactSha256(a2.get(e.getKey())))) return false;
             }
             return true;
         }
@@ -170,8 +170,7 @@ public final class Provenance {
     public static PublicKey publicKey(final String text) {
         try {
             String b64 = text.replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "").replaceAll("\\s", "");
-            PublicKey k = KeyFactory.getInstance(ED25519).generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(b64)));
-            return k;
+            return KeyFactory.getInstance(ED25519).generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(b64)));
         } catch (GeneralSecurityException | IllegalArgumentException | NullPointerException e) {
             throw new IllegalArgumentException("provenance: unreadable Ed25519 public key");
         }

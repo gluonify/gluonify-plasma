@@ -119,10 +119,8 @@ public final class UsageSpool implements UsageMeter.SeqSource {
                     List<String> lines = new ArrayList<>();
                     for (String l : Files.readAllLines(p, StandardCharsets.UTF_8)) if (!l.isBlank()) lines.add(l);
                     out.add(new Batch(Long.parseLong(m.group(1)), lines, p));
-                } catch (NoSuchFileException e) {
-                    // sent in the meantime
                 } catch (IOException e) {
-                    // unreadable: left there, removed by age
+                    // sent in the meantime (NoSuchFileException) or unreadable: left there, removed by age
                 }
             }
         }

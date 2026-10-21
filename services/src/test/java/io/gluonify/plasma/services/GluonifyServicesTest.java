@@ -215,7 +215,7 @@ class GluonifyServicesTest {
     }
 
     @Test
-    void sessionExpiree() throws Exception {
+    void sessionExpiree() {
         final DeveloperTokens.Session s = login(0);
         // refresh token already used (revoked at Charm)
         DeveloperTokens.write(home, new DeveloperTokens.Session(s.zone(), s.clientId(), s.tokenEndpoint(), s.accessToken(), s.expiresAt(), "rt-unknown", 0,

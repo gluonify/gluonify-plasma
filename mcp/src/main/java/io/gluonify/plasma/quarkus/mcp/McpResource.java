@@ -81,7 +81,7 @@ public class McpResource {
                 s = server.get();
                 if (s == null) {
                     final List<Object> beans = new ArrayList<>();
-                    toolboxes.forEach(b -> beans.add(b));
+                    toolboxes.forEach(beans::add);
                     final ObjectMapper mapper = mappers.isResolvable() ? mappers.get() : new ObjectMapper();
                     final List<Object> targets = new ArrayList<>();
                     for (final Object b : beans) {

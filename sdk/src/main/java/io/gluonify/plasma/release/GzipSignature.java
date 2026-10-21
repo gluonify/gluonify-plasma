@@ -294,7 +294,9 @@ public final class GzipSignature {
                 v.initVerify(k);
                 v.update(s.claimsBytes());
                 if (v.verify(s.signature())) return true;
-            } catch (GeneralSecurityException ignored) { }
+            } catch (GeneralSecurityException ignored) {
+                // this key does not verify: try the next one
+            }
         }
         return false;
     }

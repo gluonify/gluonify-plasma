@@ -115,8 +115,8 @@ public final class Http {
         final TrustManagerFactory f = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         f.init(ks);
         for (final TrustManager t : f.getTrustManagers()) {
-            if (t instanceof X509TrustManager) {
-                return (X509TrustManager) t;
+            if (t instanceof X509TrustManager x509) {
+                return x509;
             }
         }
         throw new GeneralSecurityException("no X509TrustManager");

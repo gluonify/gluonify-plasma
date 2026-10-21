@@ -11,9 +11,8 @@ class TaskCatalogueTest {
     static final String B = TaskCatalogue.BOOTSTRAP, A = TaskCatalogue.AGENT;
 
     static Map<String, String> higgs() {
-        Map<String, String> p = new HashMap<>(Map.of("version", "1.2.3", "zone", "apps.example.org", "publicIp", "203.0.113.10,2001:db8::1", "httpUrl", "https://cp2.example.org:8081",
+        return new HashMap<>(Map.of("version", "1.2.3", "zone", "apps.example.org", "publicIp", "203.0.113.10,2001:db8::1", "httpUrl", "https://cp2.example.org:8081",
                 "nodeId", "cp2", "advertise", "cp2.example.org", "seed", "cp1.example.org:8081", "seedToken", "0123456789abcdef"));
-        return p;
     }
 
     @Test void validTasks() {

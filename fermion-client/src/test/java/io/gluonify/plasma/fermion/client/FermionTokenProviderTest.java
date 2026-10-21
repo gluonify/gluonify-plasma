@@ -63,7 +63,7 @@ class FermionTokenProviderTest {
     void gluonifySansRienDeConnu() {
         GluonifyServices services = GluonifyServices.builder().home(dir).properties(k -> null).environment(k -> null).build();
         final var subject = FermionTokenProvider.gluonify(services);
-        GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> subject.token());
+        GluonifyServicesException e = assertThrows(GluonifyServicesException.class, subject::token);
         assertTrue(e.getMessage().contains("gluonify login"), e.getMessage());
     }
 }

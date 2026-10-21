@@ -32,7 +32,7 @@ class OrganizationsTest {
 
     @Test
     void customerRoles() {
-        assertEquals(java.util.List.of("org:owner", "org:developer", "org:viewer", "org:billing"), Organizations.ROLES);
+        assertEquals(Organizations.ROLES, java.util.List.of("org:owner", "org:developer", "org:viewer", "org:billing"));
         assertTrue(Organizations.isCustomerRole("org:viewer"));
         assertFalse(Organizations.isCustomerRole("gluonify:higgs:apps:read"));
         assertFalse(Organizations.isCustomerRole(null));

@@ -184,7 +184,7 @@ public final class TermsValidator {
 
     private static void ha(final ContractTerms.Ha h, final String p, final List<String> e) {
         if (h.spreadNodes() != null && (h.spreadNodes() < 1 || h.spreadNodes() > MAX_SPREAD)) e.add(p + ".spreadNodes : from 1 to " + MAX_SPREAD);
-        if (h.antiAffinity() != null && !h.antiAffinity().equals(ContractTerms.Ha.PREFERRED) && !h.antiAffinity().equals(ContractTerms.Ha.REQUIRED))
+        if (h.antiAffinity() != null && !h.antiAffinity().equals(ContractTerms.Ha.PREFERRED) && !h.antiAffinity().equals(ContractTerms.Ha.REQUIRED_MODE))
             e.add(p + ".antiAffinity : preferred or required");
     }
 

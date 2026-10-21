@@ -32,7 +32,7 @@ class NoJacksonTest {
     void buildingWithoutACodecFailsEarlyWithTheSameExplanation() {
         final var subject = CrystallonClient.builder().baseUrl("http://crystallon");
         final IllegalStateException e = assertThrows(IllegalStateException.class,
-                () -> subject.build());
+                subject::build);
         assertTrue(e.getMessage().contains("No JSON library"), e.getMessage());
     }
 

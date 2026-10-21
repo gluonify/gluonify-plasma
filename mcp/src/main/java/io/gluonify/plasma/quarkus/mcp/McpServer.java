@@ -137,10 +137,10 @@ public final class McpServer {
         try {
             value = tool.method().invoke(tool.target(), values);
         } catch (InvocationTargetException e) {
-            LOG.log(Level.WARNING, "MCP tool " + tool.name() + " failed", e.getCause());
+            LOG.log(Level.WARNING, e.getCause(), () -> "MCP tool " + tool.name() + " failed");
             return toolError(id, "the tool failed");
         } catch (ReflectiveOperationException | RuntimeException e) {
-            LOG.log(Level.WARNING, "MCP tool " + tool.name() + " could not be called", e);
+            LOG.log(Level.WARNING, e, () -> "MCP tool " + tool.name() + " could not be called");
             return toolError(id, "the tool failed");
         }
         final ObjectNode r = mapper.createObjectNode();
@@ -160,7 +160,7 @@ public final class McpServer {
             }
             r.put("isError", false);
         } catch (JacksonException | IllegalArgumentException e) {
-            LOG.log(Level.WARNING, "MCP tool " + tool.name() + " returned a value that is not serialisable", e);
+            LOG.log(Level.WARNING, e, () -> "MCP tool " + tool.name() + " returned a value that is not serialisable");
             return toolError(id, "the tool returned a value that cannot be serialised");
         }
         if (McpContract.utf8Size(mapper.writeValueAsString(r)) > McpContract.MAX_RESPONSE_BYTES) {

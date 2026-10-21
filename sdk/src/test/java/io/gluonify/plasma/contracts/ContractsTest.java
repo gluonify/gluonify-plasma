@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -184,7 +185,8 @@ class ContractsTest {
         assertFalse(UsageCatalog.get("bup.jobs.seconds").priceable(), "interne");
         assertNull(UsageCatalog.get("nope.x"));
         assertEquals(new HashSet<>(UsageCatalog.names()).size(), UsageCatalog.names().size());
-        for (String n : UsageCatalog.names()) assertTrue(n.matches("[a-z]+\\.[a-z_]+(\\.[a-z_]+)?"), n);
+        final Pattern naming = Pattern.compile("[a-z]+\\.[a-z_]+(\\.[a-z_]+)?");
+        for (String n : UsageCatalog.names()) assertTrue(naming.matcher(n).matches(), n);
         assertEquals(0, new BigDecimal("720").compareTo(Quantity.MB_SECONDS.convert(new BigDecimal(1024L * 3600 * 720), "GB-hour")));
         assertEquals(0, BigDecimal.ONE.compareTo(Quantity.BYTES.convert(new BigDecimal(1L << 30), "GB")));
         assertEquals(0, new BigDecimal("2.5").compareTo(Quantity.COUNT.convert(new BigDecimal(2_500_000), "million")));

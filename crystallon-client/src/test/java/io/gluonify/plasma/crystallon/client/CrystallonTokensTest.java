@@ -88,7 +88,7 @@ class CrystallonTokensTest {
     @Test
     void aFileThatCannotBeReadIsAnError() {
         final var subject = CrystallonTokens.file(dir);
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> subject.token());
+        final CrystallonException e = assertThrows(CrystallonException.class, subject::token);
         assertEquals(0, e.status());
         assertTrue(e.getMessage().contains(dir.toString()));
     }

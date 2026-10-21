@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -156,8 +157,9 @@ class AnalysisFormatTest {
 
     @Test
     void unitsFollowTheCatalogueNaming() {
-        for (String u : AnalysisUnits.ALL) assertTrue(u.matches("(bup|geiger)\\.[a-z]+\\.[a-z]+"), u);
-        assertEquals(AnalysisUnits.ALL.size(), new HashSet<>(AnalysisUnits.ALL).size());
+        final Pattern naming = Pattern.compile("(bup|geiger)\\.[a-z]+\\.[a-z]+");
+        for (String u : AnalysisUnits.ALL) assertTrue(naming.matcher(u).matches(), u);
+        assertEquals(new HashSet<>(AnalysisUnits.ALL).size(), AnalysisUnits.ALL.size());
         assertEquals(List.of("native", "deps", "sonar"), AnalysisUnits.ANALYSIS_KINDS);
     }
 

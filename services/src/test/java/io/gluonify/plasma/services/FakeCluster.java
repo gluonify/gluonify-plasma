@@ -43,8 +43,8 @@ public final class FakeCluster implements AutoCloseable {
     /** Last form received by /token. */
     public volatile Map<String, String> lastToken;
 
-    private final Map<String, String[]> codes = new ConcurrentHashMap<>(); // code -> {challenge, redirect}
-    private final Map<String, Boolean> refreshTokens = new ConcurrentHashMap<>(); // token -> used
+    private final Map<String, String[]> codes = new ConcurrentHashMap<>(); // maps an authorization code to its challenge and redirect URI
+    private final Map<String, Boolean> refreshTokens = new ConcurrentHashMap<>(); // maps a refresh token to whether it was already used
     private final AtomicInteger seq = new AtomicInteger();
 
     public FakeCluster() throws IOException {

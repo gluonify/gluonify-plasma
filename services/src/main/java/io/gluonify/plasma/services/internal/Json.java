@@ -53,26 +53,26 @@ public final class Json {
     /** The value of {@code key} if it is a non-empty string, otherwise {@code null}. */
     public static String str(final Map<String, Object> m, final String key) {
         final Object v = m == null ? null : m.get(key);
-        return v instanceof String && !((String) v).isBlank() ? ((String) v).strip() : null;
+        return v instanceof String s && !s.isBlank() ? s.strip() : null;
     }
 
     /** The value of {@code key} if it is a number, otherwise {@code fallback}. */
     public static long num(final Map<String, Object> m, final String key, final long fallback) {
         final Object v = m == null ? null : m.get(key);
-        return v instanceof Number ? ((Number) v).longValue() : fallback;
+        return v instanceof Number n ? n.longValue() : fallback;
     }
 
     /** The strings of {@code key}: an array of strings, or a single string; otherwise an empty list. */
     public static List<String> strings(final Map<String, Object> m, final String key) {
         final Object v = m == null ? null : m.get(key);
         final List<String> out = new ArrayList<>();
-        if (v instanceof String) {
-            out.add((String) v);
+        if (v instanceof String s) {
+            out.add(s);
         }
-        else if (v instanceof Collection) {
-            for (final Object o : (Collection<?>) v) {
-                if (o instanceof String) {
-                    out.add((String) o);
+        else if (v instanceof Collection<?> c) {
+            for (final Object o : c) {
+                if (o instanceof String s) {
+                    out.add(s);
                 }
             }
         }
@@ -90,8 +90,8 @@ public final class Json {
         if (v == null) {
             out.append("null");
         }
-        else if (v instanceof String) {
-            quote(out, (String) v);
+        else if (v instanceof String s) {
+            quote(out, s);
         }
         else if (v instanceof Number || v instanceof Boolean) {
             out.append(v);

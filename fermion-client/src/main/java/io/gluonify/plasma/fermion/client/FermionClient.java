@@ -192,7 +192,7 @@ public class FermionClient {
                 try {
                     current.close().await().atMost(PING_TIMEOUT);
                 }
-                catch (final Exception ignored) {
+                catch (final Exception _) {
                     // already dead
                 }
                 connection.set(null);

@@ -41,7 +41,7 @@ public record Finding(Integer v, String id, FindingKind kind, String rule, Sever
     @Deprecated(forRemoval = true)
     public static final Pattern RULE = RULE_PATTERN;
     /** Argument name: simple identifier, usable as is in a translated string ({@code {type}}). */
-    public static final Pattern ARG = Pattern.compile("[a-zA-Z][a-zA-Z0-9_]{0,63}");
+    public static final Pattern ARG_PATTERN = Pattern.compile("[a-zA-Z][a-zA-Z0-9_]{0,63}");
     /** Maximum length of an argument value. */
     public static final int MAX_ARG_LENGTH = 1024;
     public static final int MAX_ARGS = 32;
@@ -90,7 +90,7 @@ public record Finding(Integer v, String id, FindingKind kind, String rule, Sever
         if (in.size() > MAX_ARGS) throw new IllegalArgumentException("more than " + MAX_ARGS + " arguments");
         Map<String, String> out = new LinkedHashMap<>();
         in.forEach((k, val) -> {
-            if (k == null || !ARG.matcher(k).matches()) throw new IllegalArgumentException("invalid argument name: " + k);
+            if (k == null || !ARG_PATTERN.matcher(k).matches()) throw new IllegalArgumentException("invalid argument name: " + k);
             out.put(k, arg(val));
         });
         return Collections.unmodifiableMap(out);

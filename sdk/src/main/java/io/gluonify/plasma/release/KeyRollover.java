@@ -28,8 +28,18 @@ public record KeyRollover(int schema, String version, long sequence, String mani
     static final Pattern B64 = Pattern.compile("[A-Za-z0-9+/]{40,120}={0,2}");
     static final Pattern SHA = Pattern.compile("[0-9a-f]{64}");
 
-    private static final Pattern FORMAT = Pattern.compile("\\{\n\"schema\":(\\d+),\n\"version\":\"([^\"]*)\",\n\"sequence\":(\\d{1,15}),\n\"manifestSha256\":\"([^\"]*)\",\n\"createdAt\":\"([^\"]*)\",\n"
-            + "\"nextKey\":\"([^\"]*)\",\n\"nextKeySha256\":\"([^\"]*)\",\n\"retireOldAfter\":\"([^\"]*)\"\n\\}\n");
+    private static final Pattern FORMAT = Pattern.compile("""
+            \\{
+            "schema":(\\d+),
+            "version":"([^"]*)",
+            "sequence":(\\d{1,15}),
+            "manifestSha256":"([^"]*)",
+            "createdAt":"([^"]*)",
+            "nextKey":"([^"]*)",
+            "nextKeySha256":"([^"]*)",
+            "retireOldAfter":"([^"]*)"
+            \\}
+            """);
 
     /** Structural check; the key must be a readable Ed25519 whose digest is the announced one. */
     public KeyRollover validate() {

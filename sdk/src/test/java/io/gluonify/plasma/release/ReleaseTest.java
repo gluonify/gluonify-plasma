@@ -91,7 +91,7 @@ class ReleaseTest {
     @Test void nameCriterionChosenByTheCaller() {
         String sha = "a".repeat(64);
         var nouveau = with("gluonify-nouveau-linux-arm64.gz", "gluonify-nouveau", sha);
-        assertThrows(ReleaseManifest.Invalid.class, () -> nouveau.validate(), "a client keeps its closed list: it only installs what it knows");
+        assertThrows(ReleaseManifest.Invalid.class, nouveau::validate, "a client keeps its closed list: it only installs what it knows");
         nouveau.validate(n -> ReleaseManifest.SAFE_NAME.matcher(n).matches()); // the reservoir accepts any safe name
         var dangereux = with("ok", "../evil", sha);
         assertThrows(ReleaseManifest.Invalid.class, () -> dangereux.validate(n -> ReleaseManifest.SAFE_NAME.matcher(n).matches()));

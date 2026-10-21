@@ -129,18 +129,18 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
 
     /**
      * Spread: the first {@code min(replicas, spreadNodes, eligible nodes)} replicas on pairwise distinct nodes.
-     * {@code antiAffinity} : {@value #PREFERRED} (falls back to a node that already has a replica) or {@value #REQUIRED} (replica left unplaced rather than sharing a failure).
+     * {@code antiAffinity} : {@value #PREFERRED} (falls back to a node that already has a replica) or {@value #REQUIRED_MODE} (replica left unplaced rather than sharing a failure).
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Ha(Integer spreadNodes, String antiAffinity) {
         public static final String PREFERRED = "preferred";
-        public static final String REQUIRED = "required";
+        public static final String REQUIRED_MODE = "required";
 
         /** Wanted number of distinct nodes (default 1). */
         public int spread() { return spreadNodes == null ? 1 : spreadNodes; }
 
-        public boolean required() { return REQUIRED.equals(antiAffinity); }
+        public boolean required() { return REQUIRED_MODE.equals(antiAffinity); }
 
         /** Field by field, this one wins over {@code base}. */
         public Ha over(final Ha base) {

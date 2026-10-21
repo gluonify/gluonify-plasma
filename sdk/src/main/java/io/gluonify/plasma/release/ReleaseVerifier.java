@@ -36,7 +36,9 @@ public final class ReleaseVerifier {
         try {
             byte[] raw = Base64.getMimeDecoder().decode(new String(sig, java.nio.charset.StandardCharsets.US_ASCII).trim());
             if (raw.length == 64) return raw;
-        } catch (IllegalArgumentException ignored) { }
+        } catch (IllegalArgumentException ignored) {
+            // not Base64: reported as unreadable below
+        }
         throw new ReleaseManifest.Invalid("unreadable signature");
     }
 

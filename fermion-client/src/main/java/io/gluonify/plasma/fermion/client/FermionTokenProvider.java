@@ -63,7 +63,7 @@ public interface FermionTokenProvider {
                 final String value = Files.readString(path, StandardCharsets.UTF_8).strip();
                 return value.isEmpty() ? null : value;
             }
-            catch (final NoSuchFileException e) {
+            catch (final NoSuchFileException _) {
                 return null;
             }
             catch (final IOException e) {
