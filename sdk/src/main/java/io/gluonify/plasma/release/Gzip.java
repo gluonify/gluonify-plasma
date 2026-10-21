@@ -31,17 +31,17 @@ public final class Gzip {
     public static final long RATIO_FLOOR = 1024L * 1024;
 
     /** Single compressed file: ends with {@code .gz} without being a {@code .tar.gz}. */
-    public static boolean isSingleFile(String file) {
+    public static boolean isSingleFile(final String file) {
         return file != null && file.length() > 3 && file.endsWith(".gz") && !file.endsWith(".tar.gz");
     }
 
     /** Name of the decompressed file: without {@code .gz} for a single compressed file, unchanged otherwise. */
-    public static String plainName(String file) {
+    public static String plainName(final String file) {
         return isSingleFile(file) ? file.substring(0, file.length() - 3) : file;
     }
 
     /** Maximum decompressed size allowed for a gzip of {@code compressedSize} bytes. */
-    public static long limit(long compressedSize, long maxBytes) {
+    public static long limit(final long compressedSize, final long maxBytes) {
         if (compressedSize <= 0) return maxBytes;
         return Math.min(maxBytes, Math.max(RATIO_FLOOR, compressedSize * MAX_RATIO));
     }
@@ -52,7 +52,7 @@ public final class Gzip {
      * @param compressedSize size of the gzip (for the ratio safeguard); 0 or less: no ratio check
      * @param maxBytes       absolute cap on the decompressed size
      */
-    public static long gunzip(InputStream in, long compressedSize, long maxBytes, OutputStream out) throws IOException {
+    public static long gunzip(final InputStream in, final long compressedSize, final long maxBytes, final OutputStream out) throws IOException {
         long limit = limit(compressedSize, maxBytes);
         byte[] h = in.readNBytes(10);
         if (h.length < 10 || (h[0] & 0xff) != 0x1f || (h[1] & 0xff) != 0x8b) throw new ReleaseManifest.Invalid("not a gzip file (magic bytes missing)");
@@ -67,14 +67,16 @@ public final class Gzip {
         }
         for (int bit : new int[] {8, 16}) { // FNAME, FCOMMENT: 0-terminated string, bounded
             if ((flags & bit) == 0) continue;
-            int c, n = 0;
+            int c;
+            int n = 0;
             while ((c = in.read()) > 0) if (++n > 4096) throw new ReleaseManifest.Invalid("gzip: header too long");
             if (c < 0) throw new ReleaseManifest.Invalid("gzip truncated");
         }
         if ((flags & 2) != 0 && in.readNBytes(2).length < 2) throw new ReleaseManifest.Invalid("gzip truncated"); // FHCRC
         Inflater inf = new Inflater(true);
         CRC32 crc = new CRC32();
-        byte[] ib = new byte[65536], ob = new byte[65536];
+        byte[] ib = new byte[65536];
+        byte[] ob = new byte[65536];
         long total = 0;
         int fed = 0;
         try {

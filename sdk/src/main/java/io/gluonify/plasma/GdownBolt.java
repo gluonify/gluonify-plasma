@@ -28,7 +28,7 @@ public final class GdownBolt {
     public static final Set<String> RESERVED_ENV = Set.of(URL_ENV, CA_FILE_ENV);
 
     /** True if the application uses gdown (mandatory or optional). */
-    public static boolean usesGdown(java.util.List<String> uses) {
+    public static boolean usesGdown(final java.util.List<String> uses) {
         return uses != null && (uses.contains("gdown") || uses.contains("?gdown"));
     }
 }

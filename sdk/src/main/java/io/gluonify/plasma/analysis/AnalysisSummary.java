@@ -26,15 +26,15 @@ public record AnalysisSummary(AnalysisStatus status, @JsonProperty("native") Nat
     }
 
     /** Overall status: the most serious of the tracks present ({@link AnalysisStatus#SKIPPED} if there are none). */
-    public static AnalysisStatus overall(NativeSummary n, DepsSummary d, SonarSummary s) {
+    public static AnalysisStatus overall(final NativeSummary n, final DepsSummary d, final SonarSummary s) {
         return AnalysisStatus.worst(n == null ? null : n.status(), d == null ? null : d.status(), s == null ? null : s.status());
     }
 
-    public AnalysisSummary withNative(NativeSummary n) {
+    public AnalysisSummary withNative(final NativeSummary n) {
         return new AnalysisSummary(overall(n, deps, sonar), n, deps, sonar, findings);
     }
 
-    public AnalysisSummary withFindings(Integer count) {
+    public AnalysisSummary withFindings(final Integer count) {
         return new AnalysisSummary(status, nativeImage, deps, sonar, count);
     }
 
@@ -60,7 +60,7 @@ public record AnalysisSummary(AnalysisStatus status, @JsonProperty("native") Nat
             if (status == null) status = AnalysisStatus.OK;
         }
 
-        public NativeSummary withStartup(Startup s, AnalysisStatus newStatus) {
+        public NativeSummary withStartup(final Startup s, final AnalysisStatus newStatus) {
             return new NativeSummary(newStatus, reason, arch, sizeBytes, sizeDelta, glibc, graalvm, reflectionTypes, resources, s);
         }
     }

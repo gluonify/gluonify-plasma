@@ -54,12 +54,12 @@ public record Violation(String code, String field, Long limit, Long used, Long r
     public static final String SOURCE_TOP = "top";
 
     /** A cap is exceeded. */
-    public static Violation over(String code, String field, long limit, Long used, long requested, String source, String message) {
+    public static Violation over(final String code, final String field, final long limit, final Long used, final long requested, final String source, final String message) {
         return new Violation(code, field, limit, used, requested, null, source, message);
     }
 
     /** Value not allowed. */
-    public static Violation refused(String code, String field, String value, String message) {
+    public static Violation refused(final String code, final String field, final String value, final String message) {
         return new Violation(code, field, null, null, null, value, SOURCE_ORGANIZATION, message);
     }
 

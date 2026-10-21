@@ -24,14 +24,14 @@ public enum AnalysisStatus {
     }
 
     /** The more serious of the two ({@code null} ignored). */
-    public static AnalysisStatus worst(AnalysisStatus a, AnalysisStatus b) {
+    public static AnalysisStatus worst(final AnalysisStatus a, final AnalysisStatus b) {
         if (a == null) return b;
         if (b == null) return a;
         return a.ordinal() >= b.ordinal() ? a : b;
     }
 
     /** The most serious of the list; {@link #SKIPPED} if it is empty or contains only {@code null}. */
-    public static AnalysisStatus worst(AnalysisStatus... all) {
+    public static AnalysisStatus worst(final AnalysisStatus... all) {
         AnalysisStatus w = null;
         for (AnalysisStatus s : all) w = worst(w, s);
         return w == null ? SKIPPED : w;

@@ -37,11 +37,11 @@ public record ContractVersion(Integer version, Long effectiveFrom, Long createdA
     /** Awaiting approval (never effective until approved). */
     public boolean awaitingApproval() { return Boolean.TRUE.equals(pending) && approvedAt == null; }
 
-    public ContractVersion cancel(long at, String by) {
+    public ContractVersion cancel(final long at, final String by) {
         return new ContractVersion(version, effectiveFrom, createdAt, createdBy, note, fingerprint, terms, at, by, pending, approvedAt, approvedBy);
     }
 
-    public ContractVersion approve(long at, String by) {
+    public ContractVersion approve(final long at, final String by) {
         return new ContractVersion(version, effectiveFrom, createdAt, createdBy, note, fingerprint, terms, cancelledAt, cancelledBy, pending, at, by);
     }
 }

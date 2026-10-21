@@ -17,12 +17,12 @@ public enum Severity {
     }
 
     /** True if this severity is at least as serious as {@code other} ({@code CRITICAL.atLeast(MAJOR)} is true). */
-    public boolean atLeast(Severity other) {
+    public boolean atLeast(final Severity other) {
         return ordinal() <= other.ordinal();
     }
 
     /** Reads the JSON name (case-insensitive); {@link IllegalArgumentException} if unknown. */
-    public static Severity parse(String s) {
+    public static Severity parse(final String s) {
         if (s == null) throw new IllegalArgumentException("severity missing");
         return valueOf(s.trim().toUpperCase(Locale.ROOT));
     }

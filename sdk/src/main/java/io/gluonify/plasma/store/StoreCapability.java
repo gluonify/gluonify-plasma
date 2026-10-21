@@ -21,7 +21,7 @@ public final class StoreCapability {
     /** op: "put" or "get"; max: bytes allowed for writing (0 for reading); exp: seconds since the epoch. */
     public record Cap(String op, String sha, long max, long exp, String ns) {}
 
-    public static String sign(String key, Cap c) {
+    public static String sign(final String key, final Cap c) {
         String payload = c.op() + "|" + c.sha() + "|" + c.max() + "|" + c.exp() + "|" + c.ns();
         Base64.Encoder b = Base64.getUrlEncoder().withoutPadding();
         String p = b.encodeToString(payload.getBytes(StandardCharsets.UTF_8));
@@ -29,7 +29,7 @@ public final class StoreCapability {
     }
 
     /** The capability if the token is properly signed by {@code key} and has not expired, otherwise null. */
-    public static Cap verify(String key, String token, long nowSeconds) {
+    public static Cap verify(final String key, final String token, final long nowSeconds) {
         try {
             if (token == null || !token.startsWith(PREFIX)) return null;
             String[] parts = token.substring(PREFIX.length()).split("\\.");
@@ -45,7 +45,7 @@ public final class StoreCapability {
         }
     }
 
-    private static byte[] mac(String key, String data) {
+    private static byte[] mac(final String key, final String data) {
         try {
             Mac m = Mac.getInstance("HmacSHA256");
             m.init(new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));

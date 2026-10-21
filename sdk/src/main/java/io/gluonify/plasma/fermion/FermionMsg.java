@@ -44,7 +44,7 @@ public sealed interface FermionMsg {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Auth(String token, int protocol) implements FermionMsg {
-        public Auth(String token) {
+        public Auth(final String token) {
             this(token, PROTOCOL);
         }
     }
@@ -109,11 +109,11 @@ public sealed interface FermionMsg {
             payload = payload == null ? Map.of() : payload;
         }
 
-        public Start(String workflow, String correlationId, String globalTransactionId, Map<String, Object> payload) {
+        public Start(final String workflow, final String correlationId, final String globalTransactionId, final Map<String, Object> payload) {
             this(workflow, correlationId, globalTransactionId, payload, null);
         }
 
-        public Start(String workflow, String correlationId, Map<String, Object> payload) {
+        public Start(final String workflow, final String correlationId, final Map<String, Object> payload) {
             this(workflow, correlationId, null, payload, null);
         }
     }
@@ -131,7 +131,7 @@ public sealed interface FermionMsg {
             payload = payload == null ? Map.of() : payload;
         }
 
-        public Command(String correlationId, String globalTransactionId, String action, Map<String, Object> payload) {
+        public Command(final String correlationId, final String globalTransactionId, final String action, final Map<String, Object> payload) {
             this(correlationId, globalTransactionId, action, payload, null);
         }
     }
@@ -148,25 +148,25 @@ public sealed interface FermionMsg {
             payload = payload == null ? Map.of() : payload;
         }
 
-        public Result(String correlationId, String globalTransactionId, String action, boolean success, String error, String errorKind, Map<String, Object> payload) {
+        public Result(final String correlationId, final String globalTransactionId, final String action, final boolean success, final String error, final String errorKind, final Map<String, Object> payload) {
             this(correlationId, globalTransactionId, action, success, error, errorKind, payload, null);
         }
 
-        public static Result ok(String correlationId, String action, Map<String, Object> payload) {
+        public static Result ok(final String correlationId, final String action, final Map<String, Object> payload) {
             return new Result(correlationId, null, action, true, null, null, payload, null);
         }
 
-        public static Result failure(String correlationId, String action, String error, String errorKind) {
+        public static Result failure(final String correlationId, final String action, final String error, final String errorKind) {
             return new Result(correlationId, null, action, false, error, errorKind, null, null);
         }
 
         /** Success in response to {@code command}: repeats its transaction, its action and its {@code stepId}. */
-        public static Result ok(Command command, Map<String, Object> payload) {
+        public static Result ok(final Command command, final Map<String, Object> payload) {
             return new Result(command.correlationId(), command.globalTransactionId(), command.action(), true, null, null, payload, command.stepId());
         }
 
         /** Failure in response to {@code command}: repeats its transaction, its action and its {@code stepId}. */
-        public static Result failure(Command command, String error, String errorKind) {
+        public static Result failure(final Command command, final String error, final String errorKind) {
             return new Result(command.correlationId(), command.globalTransactionId(), command.action(), false, error, errorKind, null, command.stepId());
         }
     }

@@ -32,7 +32,7 @@ public final class TermsValidator {
     public static final String HIGGS = "higgs";
 
     /** Errors of the terms (empty list: valid). */
-    public static List<String> validate(ContractTerms t) {
+    public static List<String> validate(final ContractTerms t) {
         List<String> e = new ArrayList<>();
         if (t == null) {
             e.add("terms required");
@@ -41,7 +41,8 @@ public final class TermsValidator {
         if (t.enforcement() != null && !t.enforcement().equals(ContractTerms.ENFORCE) && !t.enforcement().equals(ContractTerms.WARN))
             e.add("enforcement : enforce or warn");
         if (t.validity() != null) {
-            LocalDate from = date(t.validity().from(), "validity.from", e), until = date(t.validity().until(), "validity.until", e);
+            LocalDate from = date(t.validity().from(), "validity.from", e);
+            LocalDate until = date(t.validity().until(), "validity.until", e);
             if (from != null && until != null && until.isBefore(from)) e.add("validity : until precedes from");
         }
         if (t.environments() != null) for (String env : t.environments()) if (env == null || !ENV.matcher(env).matches()) e.add("environments : invalid name (" + env + ")");
@@ -84,7 +85,7 @@ public final class TermsValidator {
     }
 
     /** Errors of the lines of a price list. */
-    public static List<String> validateLines(List<PriceLine> lines) {
+    public static List<String> validateLines(final List<PriceLine> lines) {
         List<String> e = new ArrayList<>();
         if (lines == null) {
             e.add("lines required");
@@ -111,7 +112,7 @@ public final class TermsValidator {
     }
 
     /** Contract to list link: the list exists, so does the pinned version, and the currency is the same. Errors for a 422 refusal. */
-    public static List<String> validateLink(ContractTerms t, PriceList list) {
+    public static List<String> validateLink(final ContractTerms t, final PriceList list) {
         List<String> e = new ArrayList<>();
         if (t == null || t.pricing() == null || t.pricing().priceList() == null) return e;
         ContractTerms.PriceListRef ref = t.pricing().priceList();
@@ -125,7 +126,7 @@ public final class TermsValidator {
         return e;
     }
 
-    private static void services(ContractTerms.Services s, List<String> e) {
+    private static void services(final ContractTerms.Services s, final List<String> e) {
         if (s.uses() != null) for (String u : s.uses()) {
             if (u == null || !NAME.matcher(u).matches()) e.add("services.uses : invalid name (" + u + ")");
             else if (u.equals(HIGGS)) e.add("services.uses : higgs is never allowed to a customer");
@@ -139,14 +140,14 @@ public final class TermsValidator {
     }
 
     /** Errors of a plan reference: identifier and version >= 1 (null: valid, no plan). */
-    static void planRef(ContractTerms.PlanRef r, List<String> e) {
+    static void planRef(final ContractTerms.PlanRef r, final List<String> e) {
         if (r == null) return;
         if (r.id() == null || !Plan.ID.matcher(r.id()).matches()) e.add("plan.id : invalid identifier (" + r.id() + ")");
         if (r.version() == null || r.version() < 1) e.add("plan.version : integer >= 1 required");
     }
 
     /** Errors of a plan version's terms: the terms of a contract, without a plan of their own; {@code billing} none or usage. */
-    public static List<String> validatePlan(String billing, ContractTerms t) {
+    public static List<String> validatePlan(final String billing, final ContractTerms t) {
         List<String> e = validate(t);
         if (t != null && t.plan() != null) e.add("plan : the terms of a plan follow no plan");
         if (!PlanVersion.BILLING_NONE.equals(billing) && !PlanVersion.BILLING_USAGE.equals(billing)) e.add("billing : none or usage");
@@ -154,7 +155,7 @@ public final class TermsValidator {
         return e;
     }
 
-    private static void quotas(ContractTerms.Quotas q, String p, List<String> e) {
+    private static void quotas(final ContractTerms.Quotas q, final String p, final List<String> e) {
         nonNegative(q.apps(), p + ".apps", e);
         nonNegative(q.reservedMemoryMb(), p + ".reservedMemoryMb", e);
         positive(q.replicasPerApp(), p + ".replicasPerApp", e);
@@ -168,13 +169,13 @@ public final class TermsValidator {
             e.add(p + ".defaultDistributedQuotaMb : exceeds distributedQuotaMbPerApp");
     }
 
-    private static void ha(ContractTerms.Ha h, String p, List<String> e) {
+    private static void ha(final ContractTerms.Ha h, final String p, final List<String> e) {
         if (h.spreadNodes() != null && (h.spreadNodes() < 1 || h.spreadNodes() > MAX_SPREAD)) e.add(p + ".spreadNodes : from 1 to " + MAX_SPREAD);
         if (h.antiAffinity() != null && !h.antiAffinity().equals(ContractTerms.Ha.PREFERRED) && !h.antiAffinity().equals(ContractTerms.Ha.REQUIRED))
             e.add(p + ".antiAffinity : preferred or required");
     }
 
-    private static void pricing(ContractTerms.PricingTerms pr, List<String> e) {
+    private static void pricing(final ContractTerms.PricingTerms pr, final List<String> e) {
         if (pr.currency() != null && !Decimals.CURRENCY.matcher(pr.currency()).matches()) e.add("pricing.currency : ISO 4217 code (three uppercase letters)");
         if (pr.priceList() != null) {
             if (pr.priceList().id() == null || !PriceList.ID.matcher(pr.priceList().id()).matches()) e.add("pricing.priceList.id : invalid identifier");
@@ -229,7 +230,7 @@ public final class TermsValidator {
         }
     }
 
-    private static UsageUnit unit(String name, String p, List<String> e) {
+    private static UsageUnit unit(final String name, final String p, final List<String> e) {
         UsageUnit u = UsageCatalog.get(name);
         if (u == null) {
             e.add(p + ".unit : unit not in the catalogue (" + name + ")");
@@ -242,7 +243,7 @@ public final class TermsValidator {
         return u;
     }
 
-    private static void dims(UsageUnit u, Map<String, String> dims, String p, List<String> e) {
+    private static void dims(final UsageUnit u, final Map<String, String> dims, final String p, final List<String> e) {
         if (dims == null) return;
         if (dims.size() > MAX_DIMS) e.add(p + ".dims : at most " + MAX_DIMS + " dimensions");
         dims.forEach((k, v) -> {
@@ -252,19 +253,19 @@ public final class TermsValidator {
         });
     }
 
-    private static void decimal(String v, String p, List<String> e) {
+    private static void decimal(final String v, final String p, final List<String> e) {
         if (v != null && !Decimals.valid(v)) e.add(p + " : positive decimal expected (at most 9 decimal places)");
     }
 
-    private static void positive(Long v, String p, List<String> e) {
+    private static void positive(final Long v, final String p, final List<String> e) {
         if (v != null && v < 1) e.add(p + " : strictly positive");
     }
 
-    private static void nonNegative(Long v, String p, List<String> e) {
+    private static void nonNegative(final Long v, final String p, final List<String> e) {
         if (v != null && v < 0) e.add(p + " : positive or zero");
     }
 
-    private static LocalDate date(String s, String p, List<String> e) {
+    private static LocalDate date(final String s, final String p, final List<String> e) {
         if (s == null) return null;
         try {
             return LocalDate.parse(s);

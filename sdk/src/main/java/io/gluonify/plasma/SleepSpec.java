@@ -36,7 +36,7 @@ public record SleepSpec(@Schema(description = "true: enable sleep mode (default 
     }
 
     /** Compatibility: no own wake-up policy (cluster values). */
-    public SleepSpec(Boolean enabled, Integer freezeAfterSeconds, Integer stopAfterSeconds, Integer wakeTimeoutMs) {
+    public SleepSpec(final Boolean enabled, final Integer freezeAfterSeconds, final Integer stopAfterSeconds, final Integer wakeTimeoutMs) {
         this(enabled, freezeAfterSeconds, stopAfterSeconds, wakeTimeoutMs, null);
     }
 
@@ -70,7 +70,7 @@ public record SleepSpec(@Schema(description = "true: enable sleep mode (default 
             nonNeg("cooldownSeconds", cooldownSeconds, 86400);
         }
 
-        private static void nonNeg(String name, Integer v, int max) {
+        private static void nonNeg(final String name, final Integer v, final int max) {
             if (v != null && (v < 0 || v > max)) throw new IllegalArgumentException("sleep.wake.additionalWhen." + name + ": 0 to " + max);
         }
     }

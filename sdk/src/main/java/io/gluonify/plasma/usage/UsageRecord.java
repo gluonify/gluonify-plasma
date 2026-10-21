@@ -48,11 +48,11 @@ public record UsageRecord(String id, long seq, Emitter emitter, String env, long
             kind = kind == null ? "service" : kind;
         }
 
-        public Subject(String org, String app, String appUuid, String kind) { this(org, app, appUuid, kind, null); }
+        public Subject(final String org, final String app, final String appUuid, final String kind) { this(org, app, appUuid, kind, null); }
     }
 
     /** Key of the aggregate (without the emitter or the window). */
-    public static String key(String env, Subject s, String unit, Map<String, String> dims) {
+    public static String key(final String env, final Subject s, final String unit, final Map<String, String> dims) {
         StringBuilder b = new StringBuilder().append(env).append('|').append(s.org()).append('|').append(s.app() == null ? "" : s.app()).append('|')
                 .append(s.appUuid() == null ? "" : s.appUuid()).append('|').append(s.kind()).append('|').append(s.resource() == null ? "" : s.resource()).append('|').append(unit);
         new TreeMap<>(dims == null ? Map.of() : dims).forEach((k, v) -> b.append('|').append(k).append('=').append(v));
@@ -60,7 +60,7 @@ public record UsageRecord(String id, long seq, Emitter emitter, String env, long
     }
 
     /** Deterministic identifier: {@code sha256(service|replica|windowStart|key)}. */
-    public static String id(String service, String replica, long windowStart, String key) {
+    public static String id(final String service, final String replica, final long windowStart, final String key) {
         try {
             MessageDigest d = MessageDigest.getInstance("SHA-256");
             return HexFormat.of().formatHex(d.digest((service + '|' + replica + '|' + windowStart + '|' + key).getBytes(StandardCharsets.UTF_8)));
@@ -103,7 +103,7 @@ public record UsageRecord(String id, long seq, Emitter emitter, String env, long
         return b.toString();
     }
 
-    static String q(String s) {
+    static String q(final String s) {
         if (s == null) return "null";
         StringBuilder b = new StringBuilder(s.length() + 2).append('"');
         for (int i = 0; i < s.length(); i++) {

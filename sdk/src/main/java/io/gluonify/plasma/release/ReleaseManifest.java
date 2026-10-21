@@ -39,13 +39,13 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
     /** Safe component name: lowercase letters, digits and hyphens (never a path nor a special character). */
     public static final Pattern SAFE_NAME = Pattern.compile("[a-z][a-z0-9-]{1,63}");
     public static final java.util.Set<String> ARCHS = java.util.Set.of("amd64", "arm64", "all");
-    public static final Pattern VERSION = Pattern.compile("[0-9]{1,4}\\.[0-9]{1,4}\\.[0-9]{1,4}(-[0-9A-Za-z.]{1,16})?");
+    public static final Pattern VERSION = Pattern.compile("\\d{1,4}\\.\\d{1,4}\\.\\d{1,4}(-[\\dA-Za-z.]{1,16})?");
     /** Simple file name: no separator, no "..", no leading dot. */
     public static final Pattern FILE = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,127}");
     static final Pattern SHA = Pattern.compile("[0-9a-f]{64}");
 
     public static final class Invalid extends RuntimeException {
-        public Invalid(String message) {
+        public Invalid(final String message) {
             super(message);
         }
     }
@@ -59,7 +59,7 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
      * Like {@link #validate()} with the component-name criterion chosen by the caller: a client (Strange, install.sh) keeps the closed list {@link #NAMES} (it only installs what
      * it knows); the store (sea) accepts any safe name ({@link #SAFE_NAME}), because it only stores and serves files already covered by the signature.
      */
-    public ReleaseManifest validate(java.util.function.Predicate<String> nameOk) {
+    public ReleaseManifest validate(final java.util.function.Predicate<String> nameOk) {
         if (schema != SCHEMA) throw new Invalid("unsupported manifest schema: " + schema);
         if (version == null || !VERSION.matcher(version).matches()) throw new Invalid("invalid version");
         if (sequence < 1) throw new Invalid("invalid sequence");
@@ -87,20 +87,20 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
      * The header, up to "\"artifacts\":[". The body (one line per artifact) and the footer ({@link #FOOT}) are read WITHOUT a regular expression: the repetition of a group
      * ({@code (?:[^\n]*\n)*}) is recursive in {@code java.util.regex} and overflowed the stack from ~5,000 lines (well below {@link #MAX_MANIFEST_BYTES}).
      */
-    private static final Pattern HEAD = Pattern.compile("\\{\n\"schema\":([0-9]+),\n\"version\":\"([^\"]*)\",\n\"sequence\":([0-9]{1,15}),\n\"createdAt\":\"([^\"]*)\",\n\"expires\":\"([^\"]*)\",\n\"artifacts\":\\[\n");
+    private static final Pattern HEAD = Pattern.compile("\\{\n\"schema\":(\\d+),\n\"version\":\"([^\"]*)\",\n\"sequence\":(\\d{1,15}),\n\"createdAt\":\"([^\"]*)\",\n\"expires\":\"([^\"]*)\",\n\"artifacts\":\\[\n");
     private static final String FOOT = "]\n}\n";
-    private static final Pattern LINE = Pattern.compile("\\{\"name\":\"([^\"]*)\",\"arch\":\"([^\"]*)\",\"file\":\"([^\"]*)\",\"sha256\":\"([^\"]*)\",\"size\":([0-9]{1,15})\\},?");
+    private static final Pattern LINE = Pattern.compile("\\{\"name\":\"([^\"]*)\",\"arch\":\"([^\"]*)\",\"file\":\"([^\"]*)\",\"sha256\":\"([^\"]*)\",\"size\":(\\d{1,15})\\},?");
 
     /**
      * Reads the exact format produced by {@link #toJson()} (and bin/sign-release.sh); any other text is refused, and the result must re-serialize identically (no
      * ambiguity between what the publisher signs and what the node reads). To be called only after the signature is verified.
      */
-    public static ReleaseManifest parse(byte[] bytes) {
+    public static ReleaseManifest parse(final byte[] bytes) {
         return parse(bytes, NAMES::contains);
     }
 
     /** Like {@link #parse(byte[])} with the caller's component-name criterion (see {@link #validate(java.util.function.Predicate)}). */
-    public static ReleaseManifest parse(byte[] bytes, java.util.function.Predicate<String> nameOk) {
+    public static ReleaseManifest parse(final byte[] bytes, final java.util.function.Predicate<String> nameOk) {
         if (bytes.length > MAX_MANIFEST_BYTES) throw new Invalid("manifest too large"); // bounds the memory and the work of the parsing
         String text = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
         java.util.regex.Matcher m = HEAD.matcher(text);
@@ -120,7 +120,7 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
     }
 
     /** Artifact of a component for an architecture (or "all"). */
-    public java.util.Optional<Artifact> find(String name, String arch) {
+    public java.util.Optional<Artifact> find(final String name, final String arch) {
         return artifacts.stream().filter(a -> a.name().equals(name) && (a.arch().equals(arch) || a.arch().equals("all"))).findFirst();
     }
 

@@ -29,17 +29,19 @@ public final class UsageEmitter {
 
     /** Batches of at most 1,000 (the calorimeter accepts 5,000). */
     public static final int MAX_BATCH = 1000;
-    static final long MIN_BACKOFF = 5_000, MAX_BACKOFF = 300_000;
+    static final long MIN_BACKOFF = 5_000;
+    static final long MAX_BACKOFF = 300_000;
 
     private final UsageMeter meter;
     private final UsageSpool spool;
     private final Supplier<Transport> transport;
     private final LongSupplier clock;
-    private long nextTry, backoff;
+    private long nextTry;
+    private long backoff;
     private volatile int lastStatus;
     private final AtomicLong sent = new AtomicLong();
 
-    public UsageEmitter(UsageMeter meter, UsageSpool spool, Supplier<Transport> transport, LongSupplier clock) {
+    public UsageEmitter(final UsageMeter meter, final UsageSpool spool, final Supplier<Transport> transport, final LongSupplier clock) {
         this.meter = meter;
         this.spool = spool;
         this.transport = transport;
@@ -112,7 +114,7 @@ public final class UsageEmitter {
         }
     }
 
-    static String body(List<String> lines) {
+    static String body(final List<String> lines) {
         StringBuilder b = new StringBuilder(lines.size() * 400 + 16).append("{\"records\":[");
         for (int i = 0; i < lines.size(); i++) {
             if (i > 0) b.append(',');
@@ -125,13 +127,13 @@ public final class UsageEmitter {
      * HTTP transport to {@code <url>/v1/usage/records} with the token re-read on each send from {@code tokenFile} (a service token is renewed by
      * the platform without a restart). HTTP client created on the first send (native image: never in a static field). The token is never logged.
      */
-    public static Transport http(String url, Path tokenFile, Duration timeout) {
+    public static Transport http(final String url, final Path tokenFile, final Duration timeout) {
         String target = url.replaceAll("/+$", "") + "/v1/usage/records";
         return new Transport() {
             private HttpClient client;
 
             @Override
-            public synchronized int post(String body) throws IOException, InterruptedException {
+            public synchronized int post(final String body) throws IOException, InterruptedException {
                 if (client == null) client = HttpClient.newBuilder().connectTimeout(timeout).build();
                 HttpRequest.Builder r = HttpRequest.newBuilder(URI.create(target)).timeout(timeout).header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
@@ -148,7 +150,7 @@ public final class UsageEmitter {
      * Transport taken from the platform environment: {@code GLUONIFY_SERVICE_CALORIMETER_URL} and {@code GLUONIFY_CALORIMETER_TOKEN_FILE}
      * ({@code uses: ["calorimeter"]}); null without an address. Re-read on each call by the emitter (the token file may arrive after startup).
      */
-    public static Supplier<Transport> fromEnvironment(java.util.function.Function<String, String> env, Duration timeout) {
+    public static Supplier<Transport> fromEnvironment(final java.util.function.Function<String, String> env, final Duration timeout) {
         Transport[] cached = new Transport[1];
         String[] key = new String[1];
         return () -> {
@@ -165,7 +167,7 @@ public final class UsageEmitter {
     }
 
     /** For tests: the body of a batch. */
-    static List<String> lines(List<UsageRecord> records) {
+    static List<String> lines(final List<UsageRecord> records) {
         List<String> out = new ArrayList<>();
         for (UsageRecord r : records) out.add(r.toJson());
         return out;

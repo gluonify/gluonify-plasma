@@ -26,9 +26,9 @@ public record Plan(String id, Map<String, String> name, Long createdAt, String c
         versions = versions == null ? List.of() : List.copyOf(versions);
     }
 
-    public Plan withName(Map<String, String> n) { return new Plan(id, n, createdAt, createdBy, versions); }
+    public Plan withName(final Map<String, String> n) { return new Plan(id, n, createdAt, createdBy, versions); }
 
-    public Plan withVersion(PlanVersion v) {
+    public Plan withVersion(final PlanVersion v) {
         List<PlanVersion> out = new ArrayList<>(versions);
         out.add(v);
         return new Plan(id, name, createdAt, createdBy, out);
@@ -41,13 +41,13 @@ public record Plan(String id, Map<String, String> name, Long createdAt, String c
     }
 
     /** The version with this number, or null. */
-    public PlanVersion version(int v) {
+    public PlanVersion version(final int v) {
         for (PlanVersion x : versions) if (x.version() == v) return x;
         return null;
     }
 
     /** Effective version at {@code t}: greatest {@code effectiveFrom <= t} (on a tie, the greatest number); null if there is none. */
-    public PlanVersion effective(long t) {
+    public PlanVersion effective(final long t) {
         PlanVersion best = null;
         for (PlanVersion v : versions) {
             if (v.effectiveFrom() > t) continue;
@@ -57,7 +57,7 @@ public record Plan(String id, Map<String, String> name, Long createdAt, String c
     }
 
     /** True for a well-formed display name: an English name, every name 1 to 120 characters. */
-    public static boolean validName(Map<String, String> name) {
+    public static boolean validName(final Map<String, String> name) {
         if (name == null || !Organization.validName(name.get("en"))) return false;
         for (var e : name.entrySet()) if (!e.getKey().matches("[a-z]{2}") || !Organization.validName(e.getValue())) return false;
         return true;

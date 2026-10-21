@@ -36,8 +36,8 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
     }
 
     /** Terms without a plan (the form before {@code subscriptions.md}). */
-    public ContractTerms(Validity validity, String enforcement, List<String> environments, Services services, Quotas quotas, Map<String, Quotas> quotasByEnv,
-                         Ha ha, Map<String, AppOverride> apps, PricingTerms pricing, Budget budget) {
+    public ContractTerms(final Validity validity, final String enforcement, final List<String> environments, final Services services, final Quotas quotas, final Map<String, Quotas> quotasByEnv,
+                         final Ha ha, final Map<String, AppOverride> apps, final PricingTerms pricing, final Budget budget) {
         this(validity, enforcement, environments, services, quotas, quotasByEnv, ha, apps, pricing, budget, null);
     }
 
@@ -45,22 +45,22 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
     public boolean enforcing() { return !WARN.equals(enforcement); }
 
     /** Copy with another enforcement mode. */
-    public ContractTerms withEnforcement(String e) {
+    public ContractTerms withEnforcement(final String e) {
         return new ContractTerms(validity, e, environments, services, quotas, quotasByEnv, ha, apps, pricing, budget, plan);
     }
 
     /** Copy with other per-application overrides. */
-    public ContractTerms withApps(Map<String, AppOverride> a) {
+    public ContractTerms withApps(final Map<String, AppOverride> a) {
         return new ContractTerms(validity, enforcement, environments, services, quotas, quotasByEnv, ha, a, pricing, budget, plan);
     }
 
     /** Copy following another plan. */
-    public ContractTerms withPlan(PlanRef p) {
+    public ContractTerms withPlan(final PlanRef p) {
         return new ContractTerms(validity, enforcement, environments, services, quotas, quotasByEnv, ha, apps, pricing, budget, p);
     }
 
     /** Effective quotas of an application {@code app} on a cluster of environment {@code env}: {@code quotas} + {@code quotasByEnv[env]} + {@code apps[app]}. */
-    public Quotas quotasFor(String env, String app) {
+    public Quotas quotasFor(final String env, final String app) {
         Quotas q = quotas == null ? Quotas.NONE : quotas;
         if (env != null && quotasByEnv != null && quotasByEnv.get(env) != null) q = q.merge(quotasByEnv.get(env));
         AppOverride o = app == null || apps == null ? null : apps.get(app);
@@ -69,7 +69,7 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
     }
 
     /** Wanted spread for {@code app}: that of its override, otherwise that of the contract; null: legacy placement. */
-    public Ha haFor(String app) {
+    public Ha haFor(final String app) {
         AppOverride o = app == null || apps == null ? null : apps.get(app);
         if (o != null && o.ha() != null) return o.ha().over(ha);
         return ha;
@@ -102,8 +102,8 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
         }
 
         /** Services without consoles (the form before {@code subscriptions.md}). */
-        public Services(List<String> uses, Boolean gdownDatabase, List<String> distributed, Boolean distributedLocks, Boolean sleep, Boolean extraPorts, Boolean nas,
-                        List<String> routeKinds, Boolean memory) {
+        public Services(final List<String> uses, final Boolean gdownDatabase, final List<String> distributed, final Boolean distributedLocks, final Boolean sleep, final Boolean extraPorts, final Boolean nas,
+                        final List<String> routeKinds, final Boolean memory) {
             this(uses, gdownDatabase, distributed, distributedLocks, sleep, extraPorts, nas, routeKinds, memory, null);
         }
     }
@@ -116,7 +116,7 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
         public static final Quotas NONE = new Quotas(null, null, null, null, null, null, null, null, null);
 
         /** Key by key: a value of {@code o} replaces this one. */
-        public Quotas merge(Quotas o) {
+        public Quotas merge(final Quotas o) {
             if (o == null) return this;
             return new Quotas(o.apps != null ? o.apps : apps, o.reservedMemoryMb != null ? o.reservedMemoryMb : reservedMemoryMb,
                     o.replicasPerApp != null ? o.replicasPerApp : replicasPerApp, o.memoryMbPerReplica != null ? o.memoryMbPerReplica : memoryMbPerReplica,
@@ -143,7 +143,7 @@ public record ContractTerms(Validity validity, String enforcement, List<String> 
         public boolean required() { return REQUIRED.equals(antiAffinity); }
 
         /** Field by field, this one wins over {@code base}. */
-        public Ha over(Ha base) {
+        public Ha over(final Ha base) {
             if (base == null) return this;
             return new Ha(spreadNodes != null ? spreadNodes : base.spreadNodes, antiAffinity != null ? antiAffinity : base.antiAffinity);
         }

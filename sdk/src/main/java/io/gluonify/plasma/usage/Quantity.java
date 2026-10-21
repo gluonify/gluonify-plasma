@@ -27,7 +27,7 @@ public enum Quantity {
     private final String base;
     private final Map<String, BigDecimal> per;
 
-    Quantity(String base, Map<String, String> per) {
+    Quantity(final String base, final Map<String, String> per) {
         this.base = base;
         Map<String, BigDecimal> m = new LinkedHashMap<>();
         per.forEach((k, v) -> m.put(k, new BigDecimal(v)));
@@ -41,10 +41,10 @@ public enum Quantity {
     public Map<String, BigDecimal> perUnits() { return per; }
 
     /** True if {@code per} is a billing unit of this quantity kind. */
-    public boolean accepts(String unit) { return unit != null && per.containsKey(unit); }
+    public boolean accepts(final String unit) { return unit != null && per.containsKey(unit); }
 
     /** Converts a base quantity into the unit {@code unit} (34-digit precision, no monetary rounding). */
-    public BigDecimal convert(BigDecimal quantity, String unit) {
+    public BigDecimal convert(final BigDecimal quantity, final String unit) {
         BigDecimal f = per.get(unit);
         if (f == null) throw new IllegalArgumentException("unit " + unit + " incompatible with " + base);
         return quantity.divide(f, MathContext.DECIMAL128);

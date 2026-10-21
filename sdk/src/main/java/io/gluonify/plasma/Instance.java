@@ -19,32 +19,32 @@ public record Instance(@Schema(description = "Application name", example = "shop
                        @Schema(description = "Organization owning the application (usage attribution by the agent; absent: _unassigned)", example = "acme") String organization,
                        @Schema(description = "UUID of the application (usage attribution)", example = "0b6f7c1e-0000-4000-8000-000000000001") String uuid) {
     /** Compatibility: no organization or UUID. */
-    public Instance(String app, int index, String image, int port, int hostPort, int memoryMb, String topNamespace, long generation, int scratchMb, boolean nas,
-                    java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks) {
+    public Instance(final String app, final int index, final String image, final int port, final int hostPort, final int memoryMb, final String topNamespace, final long generation, final int scratchMb, final boolean nas,
+                    final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final java.util.List<Integer> ports, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks) {
         this(app, index, image, port, hostPort, memoryMb, topNamespace, generation, scratchMb, nas, env, generated, uses, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, null, null);
     }
 
     /** Compatibility: no cross-node locks. */
-    public Instance(String app, int index, String image, int port, int hostPort, int memoryMb, String topNamespace, long generation, int scratchMb, boolean nas,
-                    java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb) {
+    public Instance(final String app, final int index, final String image, final int port, final int hostPort, final int memoryMb, final String topNamespace, final long generation, final int scratchMb, final boolean nas,
+                    final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final java.util.List<Integer> ports, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb) {
         this(app, index, image, port, hostPort, memoryMb, topNamespace, generation, scratchMb, nas, env, generated, uses, ports, distributed, pullSecret, distributedQuotaMb, null);
     }
 
     /** Compatibility: no quota. */
-    public Instance(String app, int index, String image, int port, int hostPort, int memoryMb, String topNamespace, long generation, int scratchMb, boolean nas,
-                    java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret) {
+    public Instance(final String app, final int index, final String image, final int port, final int hostPort, final int memoryMb, final String topNamespace, final long generation, final int scratchMb, final boolean nas,
+                    final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final java.util.List<Integer> ports, final java.util.List<String> distributed, final String pullSecret) {
         this(app, index, image, port, hostPort, memoryMb, topNamespace, generation, scratchMb, nas, env, generated, uses, ports, distributed, pullSecret, null);
     }
 
     /** Compatibility: no download secret. */
-    public Instance(String app, int index, String image, int port, int hostPort, int memoryMb, String topNamespace, long generation, int scratchMb, boolean nas,
-                    java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, java.util.List<Integer> ports, java.util.List<String> distributed) {
+    public Instance(final String app, final int index, final String image, final int port, final int hostPort, final int memoryMb, final String topNamespace, final long generation, final int scratchMb, final boolean nas,
+                    final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final java.util.List<Integer> ports, final java.util.List<String> distributed) {
         this(app, index, image, port, hostPort, memoryMb, topNamespace, generation, scratchMb, nas, env, generated, uses, ports, distributed, null);
     }
 
     /** Compatibility: no distributed file systems. */
-    public Instance(String app, int index, String image, int port, int hostPort, int memoryMb, String topNamespace, long generation, int scratchMb, boolean nas,
-                    java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, java.util.List<Integer> ports) {
+    public Instance(final String app, final int index, final String image, final int port, final int hostPort, final int memoryMb, final String topNamespace, final long generation, final int scratchMb, final boolean nas,
+                    final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final java.util.List<Integer> ports) {
         this(app, index, image, port, hostPort, memoryMb, topNamespace, generation, scratchMb, nas, env, generated, uses, ports, null);
     }
 
@@ -57,23 +57,23 @@ public record Instance(@Schema(description = "Application name", example = "shop
     }
 
     /** Compatibility: instance without generation (0). */
-    public Instance(String app, int index, String image, int port, int hostPort, int memoryMb, String topNamespace) {
+    public Instance(final String app, final int index, final String image, final int port, final int hostPort, final int memoryMb, final String topNamespace) {
         this(app, index, image, port, hostPort, memoryMb, topNamespace, 0);
     }
 
     /** Compatibility: default workspace, no NAS. */
-    public Instance(String app, int index, String image, int port, int hostPort, int memoryMb, String topNamespace, long generation) {
+    public Instance(final String app, final int index, final String image, final int port, final int hostPort, final int memoryMb, final String topNamespace, final long generation) {
         this(app, index, image, port, hostPort, memoryMb, topNamespace, generation, AppSpec.DEFAULT_SCRATCH_MB, false);
     }
 
     /** Compatibility: no variables, generated secrets or services. */
-    public Instance(String app, int index, String image, int port, int hostPort, int memoryMb, String topNamespace, long generation, int scratchMb, boolean nas) {
+    public Instance(final String app, final int index, final String image, final int port, final int hostPort, final int memoryMb, final String topNamespace, final long generation, final int scratchMb, final boolean nas) {
         this(app, index, image, port, hostPort, memoryMb, topNamespace, generation, scratchMb, nas, null, null, null, null);
     }
 
     /** Compatibility: no additional ports. */
-    public Instance(String app, int index, String image, int port, int hostPort, int memoryMb, String topNamespace, long generation, int scratchMb, boolean nas,
-                    java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses) {
+    public Instance(final String app, final int index, final String image, final int port, final int hostPort, final int memoryMb, final String topNamespace, final long generation, final int scratchMb, final boolean nas,
+                    final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses) {
         this(app, index, image, port, hostPort, memoryMb, topNamespace, generation, scratchMb, nas, env, generated, uses, null);
     }
 

@@ -38,7 +38,9 @@ import java.util.stream.IntStream;
 public final class GzipSignature {
     private GzipSignature() {}
 
-    public static final int SI1 = 'G', SI2 = 'L', FORMAT = 1;
+    public static final int SI1 = 'G';
+    public static final int SI2 = 'L';
+    public static final int FORMAT = 1;
     static final String MAGIC = "gluonify-file 1";
     private static final Pattern TOKEN = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,127}");
 
@@ -48,10 +50,15 @@ public final class GzipSignature {
             return (MAGIC + "\nname=" + name + "\narch=" + arch + "\nversion=" + version + "\nsequence=" + sequence + "\nexpires=" + expires + "\ndigest=" + digest + "\n").getBytes(StandardCharsets.UTF_8);
         }
 
-        static Claims parse(byte[] b) {
+        static Claims parse(final byte[] b) {
             String[] l = new String(b, StandardCharsets.UTF_8).split("\n", -1);
             if (l.length != 8 || !l[0].equals(MAGIC) || !l[7].isEmpty()) throw new ReleaseManifest.Invalid("file signature: unreadable claims");
-            String name = value(l[1], "name"), arch = value(l[2], "arch"), version = value(l[3], "version"), seq = value(l[4], "sequence"), expires = value(l[5], "expires"), digest = value(l[6], "digest");
+            String name = value(l[1], "name");
+            String arch = value(l[2], "arch");
+            String version = value(l[3], "version");
+            String seq = value(l[4], "sequence");
+            String expires = value(l[5], "expires");
+            String digest = value(l[6], "digest");
             if (!TOKEN.matcher(name).matches() || !ReleaseManifest.ARCHS.contains(arch) || !ReleaseManifest.VERSION.matcher(version).matches() || !digest.matches("[0-9a-f]{64}"))
                 throw new ReleaseManifest.Invalid("file signature: invalid claims");
             try {
@@ -62,7 +69,7 @@ public final class GzipSignature {
             }
         }
 
-        private static String value(String line, String key) {
+        private static String value(final String line, final String key) {
             if (!line.startsWith(key + "=")) throw new ReleaseManifest.Invalid("file signature: \"" + key + "\" expected");
             return line.substring(key.length() + 1);
         }
@@ -73,7 +80,7 @@ public final class GzipSignature {
 
     /** Subfield read: claims (exact bytes) and signature. */
     public record Signed(byte[] claimsBytes, byte[] signature) {
-        @Override public boolean equals(Object o) {
+        @Override public boolean equals(final Object o) {
             return o instanceof Signed s && java.util.Arrays.equals(claimsBytes, s.claimsBytes) && java.util.Arrays.equals(signature, s.signature);
         }
 
@@ -113,7 +120,7 @@ public final class GzipSignature {
         }
     }
 
-    private static Header header(InputStream in) throws IOException {
+    private static Header header(final InputStream in) throws IOException {
         byte[] h = in.readNBytes(10);
         if (h.length < 10 || (h[0] & 0xff) != 0x1f || (h[1] & 0xff) != 0x8b) throw new ReleaseManifest.Invalid("not a gzip file (magic bytes missing)");
         int flags = h[3] & 0xff;
@@ -145,7 +152,7 @@ public final class GzipSignature {
     }
 
     /** Header of the unsigned form (GL subfield removed, FEXTRA removed if empty). */
-    private static byte[] unsignedHeader(Header h) {
+    private static byte[] unsignedHeader(final Header h) {
         byte[] f = h.fixed().clone();
         ByteArrayOutputStream o = new ByteArrayOutputStream();
         int extraLen = h.subfields().stream().mapToInt(s -> s.length).sum();
@@ -162,7 +169,7 @@ public final class GzipSignature {
         return o.toByteArray();
     }
 
-    private static String digest(Path gz) throws IOException {
+    private static String digest(final Path gz) throws IOException {
         try (InputStream in = new java.io.BufferedInputStream(Files.newInputStream(gz), 65536)) {
             Header h = header(in);
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -176,12 +183,12 @@ public final class GzipSignature {
     }
 
     /** SHA-256 of the unsigned form of the file (the one the signature covers). */
-    public static String unsignedDigest(Path gz) throws IOException {
+    public static String unsignedDigest(final Path gz) throws IOException {
         return digest(gz);
     }
 
     /** The signature carried by the file, or null if it has none. Raises {@link ReleaseManifest.Invalid} if the gzip or the subfield is malformed. */
-    public static Signed read(Path gz) throws IOException {
+    public static Signed read(final Path gz) throws IOException {
         try (InputStream in = new java.io.BufferedInputStream(Files.newInputStream(gz), 65536)) {
             Header h = header(in);
             if (h.gl() == null) return null;
@@ -197,7 +204,7 @@ public final class GzipSignature {
      * Signs an UNSIGNED gzip: writes to {@code out} the same gzip with the GL subfield. Refuses an already signed file. {@code name}, {@code arch}, {@code version}, {@code sequence} and
      * {@code expires} become the claims.
      */
-    public static void sign(Path unsigned, Path out, String name, String arch, String version, long sequence, Instant expires, PrivateKey key) throws IOException {
+    public static void sign(final Path unsigned, final Path out, final String name, final String arch, final String version, final long sequence, final Instant expires, final PrivateKey key) throws IOException {
         Header h;
         try (InputStream in = new java.io.BufferedInputStream(Files.newInputStream(unsigned), 65536)) {
             h = header(in);
@@ -238,7 +245,7 @@ public final class GzipSignature {
      * Verifies a signed file: signature valid for one of the keys, not expired, digest equal to that of the recomputed unsigned form, and claims matching
      * {@code expected}. Returns the claims; raises {@link ReleaseManifest.Invalid} otherwise (including if the file is not signed).
      */
-    public static Claims verify(Path gz, Collection<PublicKey> keys, Instant now, Expected expected) throws IOException {
+    public static Claims verify(final Path gz, final Collection<PublicKey> keys, final Instant now, final Expected expected) throws IOException {
         Signed s = read(gz);
         if (s == null) throw new ReleaseManifest.Invalid("the file carries no signature");
         boolean valid = false;

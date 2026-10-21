@@ -39,112 +39,112 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
                       @Schema(description = "true: the application exposes MCP tools on POST /mcp (SDK module gluonify-plasma-mcp or gluonify.fastapi.mcp, gluonify-codex/app-mcp.md): "
                               + "Prism discovers and relays them to the organization's AI assistants; the public ingress never serves /mcp in PRD. Written by Bup from the SDK marker; absent or false: no MCP tools, Prism relays nothing.", example = "true") Boolean mcp) {
     /** Compatibility: no MCP tools. */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, String organization, String provenance, String artifactLevel, String pythonVersion) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas, final Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal, final java.util.List<Integer> ports, final String role, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks, final SleepSpec sleep, final String organization, final String provenance, final String artifactLevel, final String pythonVersion) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, null);
     }
 
     /** Compatibility: not a Python application. */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, String organization, String provenance, String artifactLevel) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas, final Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal, final java.util.List<Integer> ports, final String role, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks, final SleepSpec sleep, final String organization, final String provenance, final String artifactLevel) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, null);
     }
 
     /** Compatibility: no executable level (v1). */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, String organization, String provenance) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas, final Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal, final java.util.List<Integer> ports, final String role, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks, final SleepSpec sleep, final String organization, final String provenance) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, null);
     }
 
     /** Compatibility: no provenance token. */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, String organization) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas, final Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal, final java.util.List<Integer> ports, final String role, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks, final SleepSpec sleep, final String organization) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, null);
     }
 
     /** Compatibility: no organization. */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas, final Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal, final java.util.List<Integer> ports, final String role, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks, final SleepSpec sleep) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, null);
     }
 
     /** Compatibility: no sleep mode. */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas, final Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal, final java.util.List<Integer> ports, final String role, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, null);
     }
 
 
     /** Compatibility: no cross-node locks. */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas, final Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal, final java.util.List<Integer> ports, final String role, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, null);
     }
 
     /** Compatibility: no quota. */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed, String pullSecret) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas, final Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal, final java.util.List<Integer> ports, final String role, final java.util.List<String> distributed, final String pullSecret) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, null);
     }
 
     /** Compatibility: no download secret. */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role, java.util.List<String> distributed) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas, final Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal, final java.util.List<Integer> ports, final String role, final java.util.List<String> distributed) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, null);
     }
 
     /** Compatibility: no distributed file systems. */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports, String role) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas, final Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal, final java.util.List<Integer> ports, final String role) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, null, null);
     }
 
     /** Compatibility: no node role. */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal, java.util.List<Integer> ports) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas, final Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal, final java.util.List<Integer> ports) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, null, null);
     }
 
     /** Compatibility: no additional ports. */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas, Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas, final Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, null, null);
     }
 
     /** Compatibility: no identifier (the control-plane assigns one). */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, null);
     }
 
     /** Compatibility: default workspace, no NAS. */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, null, null);
     }
 
     /** Compatibility: no variables, generated secrets, services, pinned node or internal mode. */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, Map<String, String> artifacts, String uuid, Integer scratchMb, Boolean nas) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, null, null, null, null, null, null);
     }
     /** Compatibility: single-deliverable application (OCI image or executable valid for any node). */
-    public AppSpec(String name, String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace) {
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace) {
         this(name, image, replicas, port, memoryMb, topNamespace, null);
     }
 
     /** Copy of the specification attached to another organization (null: to none). */
-    public AppSpec withOrganization(String org) {
+    public AppSpec withOrganization(final String org) {
         return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, org, provenance, artifactLevel, pythonVersion, mcp);
     }
 
     /** Copy with another quota per distributed file system (MB; null: none). Higgs writes the default quota of the organization's contract into it. */
-    public AppSpec withDistributedQuotaMb(Integer mb) {
+    public AppSpec withDistributedQuotaMb(final Integer mb) {
         return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, mb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, mcp);
     }
 
     /** Copy with another provenance token (null: none). */
-    public AppSpec withProvenance(String token) {
+    public AppSpec withProvenance(final String token) {
         return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, token, artifactLevel, pythonVersion, mcp);
     }
 
     /** Copy with another executable level (null: v1). */
-    public AppSpec withArtifactLevel(String level) {
+    public AppSpec withArtifactLevel(final String level) {
         return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, level, pythonVersion, mcp);
     }
 
     /** Copy with another Python version (null: not a Python application). */
-    public AppSpec withPythonVersion(String version) {
+    public AppSpec withPythonVersion(final String version) {
         return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, version, mcp);
     }
 
     /** Copy with the MCP flag set or cleared (false or null: no MCP tools). */
-    public AppSpec withMcp(Boolean value) {
+    public AppSpec withMcp(final Boolean value) {
         return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, value);
     }
 
@@ -152,7 +152,7 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
     public boolean mcpEnabled() { return Boolean.TRUE.equals(mcp); }
 
     /** x86-64 level required on a node of architecture {@code arch}: that of {@link #artifactLevel} for amd64, otherwise 1 (no requirement). */
-    public int requiredX86Level(String arch) {
+    public int requiredX86Level(final String arch) {
         return artifactLevel != null && "amd64".equals(arch) ? X86Levels.parse(artifactLevel.substring(artifactLevel.indexOf(':') + 1)) : 1;
     }
 

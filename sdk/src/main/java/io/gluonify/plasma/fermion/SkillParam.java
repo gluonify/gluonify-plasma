@@ -17,11 +17,11 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record SkillParam(String name, String type, boolean required, boolean store, String docUrl, List<String> enumValues) {
-    public static SkillParam of(String name, String type) {
+    public static SkillParam of(final String name, final String type) {
         return new SkillParam(name, type, true, true, null, null);
     }
 
-    public static SkillParam optional(String name, String type) {
+    public static SkillParam optional(final String name, final String type) {
         return new SkillParam(name, type, false, true, null, null);
     }
 }

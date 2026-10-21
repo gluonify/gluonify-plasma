@@ -23,7 +23,7 @@ public final class Contracts {
      * Effective version at {@code t}: the non-cancelled version (and approved if it had to be) with the greatest {@code effectiveFrom <= t}; on a tie, the
      * greatest number. Null if none.
      */
-    public static ContractVersion effective(List<ContractVersion> versions, long t) {
+    public static ContractVersion effective(final List<ContractVersion> versions, final long t) {
         ContractVersion best = null;
         if (versions == null) return null;
         for (ContractVersion v : versions) {
@@ -34,7 +34,7 @@ public final class Contracts {
     }
 
     /** Computed state of {@code v} among {@code versions} at instant {@code t}. */
-    public static String state(ContractVersion v, List<ContractVersion> versions, long t) {
+    public static String state(final ContractVersion v, final List<ContractVersion> versions, final long t) {
         if (v.cancelled()) return CANCELLED;
         if (v.awaitingApproval()) return PENDING;
         ContractVersion e = effective(versions, t);
@@ -44,7 +44,7 @@ public final class Contracts {
     }
 
     /** Next upcoming version (the nearest effective date after {@code t}), or null. */
-    public static ContractVersion next(List<ContractVersion> versions, long t) {
+    public static ContractVersion next(final List<ContractVersion> versions, final long t) {
         ContractVersion best = null;
         for (ContractVersion v : versions) {
             if (v.cancelled() || v.awaitingApproval() || v.effectiveFrom() <= t) continue;
@@ -58,9 +58,10 @@ public final class Contracts {
      * the plan's value; {@code services} and {@code quotas} are merged field by field. {@code plan} keeps the contract's reference. A null {@code planTerms} (no plan,
      * or an unknown one): the contract as it is.
      */
-    public static ContractTerms resolve(ContractTerms contract, ContractTerms planTerms) {
+    public static ContractTerms resolve(final ContractTerms contract, final ContractTerms planTerms) {
         if (contract == null || planTerms == null) return contract;
-        ContractTerms c = contract, p = planTerms;
+        ContractTerms c = contract;
+        ContractTerms p = planTerms;
         ContractTerms.Quotas q = p.quotas() == null ? c.quotas() : c.quotas() == null ? p.quotas() : p.quotas().merge(c.quotas());
         java.util.Map<String, ContractTerms.Quotas> byEnv = p.quotasByEnv();
         if (c.quotasByEnv() != null) {
@@ -72,7 +73,7 @@ public final class Contracts {
                 services(c.services(), p.services()), q, byEnv, or(c.ha(), p.ha()), or(c.apps(), p.apps()), or(c.pricing(), p.pricing()), or(c.budget(), p.budget()), c.plan());
     }
 
-    private static ContractTerms.Services services(ContractTerms.Services c, ContractTerms.Services p) {
+    private static ContractTerms.Services services(final ContractTerms.Services c, final ContractTerms.Services p) {
         if (c == null) return p;
         if (p == null) return c;
         return new ContractTerms.Services(or(c.uses(), p.uses()), or(c.gdownDatabase(), p.gdownDatabase()), or(c.distributed(), p.distributed()),
@@ -80,12 +81,12 @@ public final class Contracts {
                 or(c.routeKinds(), p.routeKinds()), or(c.memory(), p.memory()), or(c.consoles(), p.consoles()));
     }
 
-    private static <T> T or(T own, T fromPlan) {
+    private static <T> T or(final T own, final T fromPlan) {
         return own != null ? own : fromPlan;
     }
 
     /** Consoles the terms open: {@code services.consoles} restricted to {@code services.uses} (absent uses: all of them); absent consoles: none. Sorted. */
-    public static java.util.List<String> consoles(ContractTerms t) {
+    public static java.util.List<String> consoles(final ContractTerms t) {
         if (t == null || t.services() == null || t.services().consoles() == null) return java.util.List.of();
         java.util.TreeSet<String> out = new java.util.TreeSet<>(t.services().consoles());
         if (t.services().uses() != null) out.retainAll(t.services().uses());
@@ -93,12 +94,12 @@ public final class Contracts {
     }
 
     /** Canonical JSON of the terms ({@link Canonical}). */
-    public static String canonical(ContractTerms terms) {
+    public static String canonical(final ContractTerms terms) {
         return Canonical.json(terms);
     }
 
     /** {@code sha256:<hex>} of the canonical JSON of the terms (no number, no dates, no author, no reason: comparable from one cluster to another). */
-    public static String fingerprint(ContractTerms terms) {
+    public static String fingerprint(final ContractTerms terms) {
         try {
             byte[] d = MessageDigest.getInstance("SHA-256").digest(canonical(terms).getBytes(StandardCharsets.UTF_8));
             return "sha256:" + HexFormat.of().formatHex(d);

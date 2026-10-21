@@ -38,22 +38,22 @@ public final class Organizations {
     private static final Set<String> ROLE_SET = Set.copyOf(ROLES);
 
     /** True if {@code org} is a valid organization identifier (null is not). */
-    public static boolean isValid(String org) { return org != null && PATTERN.matcher(org).matches(); }
+    public static boolean isValid(final String org) { return org != null && PATTERN.matcher(org).matches(); }
 
     /** Rejects an invalid identifier; null (no organization) is accepted. */
-    public static void requireValid(String org) {
+    public static void requireValid(final String org) {
         if (org != null && !isValid(org)) throw new IllegalArgumentException("invalid organization (DNS label: a-z, 0-9 and -, neither leading nor trailing, 1 to 40 characters)");
     }
 
     /** Organization for display: {@link #UNASSIGNED} by default. */
-    public static String orUnassigned(String org) { return org == null ? UNASSIGNED : org; }
+    public static String orUnassigned(final String org) { return org == null ? UNASSIGNED : org; }
 
     /**
      * True if a resource of organization {@code org} (null: none) passes the filter {@code filter};
      * a null filter lets everything through, {@value #UNASSIGNED} keeps only the resources without an organization.
      */
-    public static boolean matches(String filter, String org) { return filter == null || filter.equals(orUnassigned(org)); }
+    public static boolean matches(final String filter, final String org) { return filter == null || filter.equals(orUnassigned(org)); }
 
     /** True if {@code role} is one of the customer roles. */
-    public static boolean isCustomerRole(String role) { return role != null && ROLE_SET.contains(role); }
+    public static boolean isCustomerRole(final String role) { return role != null && ROLE_SET.contains(role); }
 }

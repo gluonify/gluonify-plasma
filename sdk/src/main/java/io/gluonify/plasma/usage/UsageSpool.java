@@ -33,12 +33,13 @@ public final class UsageSpool implements UsageMeter.SeqSource {
     private final AtomicLong dropped = new AtomicLong();
     private final List<Batch> memory = new ArrayList<>();
     private long counter;
-    private long epoch, seq;
+    private long epoch;
+    private long seq;
 
     /** A pending batch: its JSON lines, its write date, and its file (null in memory). */
     public record Batch(long at, List<String> lines, Path file) {}
 
-    public UsageSpool(Path dir, int maxRecords, long maxAgeMs, LongSupplier clock) {
+    public UsageSpool(final Path dir, final int maxRecords, final long maxAgeMs, final LongSupplier clock) {
         this.dir = dir;
         this.maxRecords = Math.max(1, maxRecords);
         this.maxAgeMs = Math.max(60_000, maxAgeMs);
@@ -76,7 +77,7 @@ public final class UsageSpool implements UsageMeter.SeqSource {
     public long dropped() { return dropped.get(); }
 
     /** Appends a batch (never an exception: a failing disk keeps the batch in memory). */
-    public synchronized void append(List<UsageRecord> records) {
+    public synchronized void append(final List<UsageRecord> records) {
         if (records.isEmpty()) return;
         List<String> lines = new ArrayList<>(records.size());
         for (UsageRecord r : records) lines.add(r.toJson());
@@ -137,7 +138,7 @@ public final class UsageSpool implements UsageMeter.SeqSource {
     }
 
     /** The batch has been acknowledged by the calorimeter. */
-    public synchronized void remove(Batch b) {
+    public synchronized void remove(final Batch b) {
         memory.remove(b);
         if (b.file() != null) {
             try {
@@ -149,13 +150,13 @@ public final class UsageSpool implements UsageMeter.SeqSource {
     }
 
     /** Drops a batch refused as a whole (400: it will never go through), counting it. */
-    public synchronized void drop(Batch b) {
+    public synchronized void drop(final Batch b) {
         addDropped(b.lines().size());
         remove(b);
     }
 
     /** Applies the bounds: age, then number of records, removing the oldest. */
-    public synchronized void trim(long now) {
+    public synchronized void trim(final long now) {
         List<Batch> all = pending();
         int total = 0;
         for (Batch b : all) total += b.lines().size();
@@ -166,7 +167,7 @@ public final class UsageSpool implements UsageMeter.SeqSource {
         }
     }
 
-    private void addDropped(long n) {
+    private void addDropped(final long n) {
         long v = dropped.addAndGet(n);
         if (dir != null) {
             try {
@@ -177,13 +178,13 @@ public final class UsageSpool implements UsageMeter.SeqSource {
         }
     }
 
-    private static long seqOf(Path p) {
+    private static long seqOf(final Path p) {
         if (p == null) return -1;
         Matcher m = NAME.matcher(p.getFileName().toString());
         return m.matches() ? Long.parseLong(m.group(2)) : -1;
     }
 
-    private void write(Path target, byte[] data) throws IOException {
+    private void write(final Path target, final byte[] data) throws IOException {
         Path tmp = Files.createTempFile(dir, ".w-", ".tmp");
         try {
             Files.write(tmp, data);

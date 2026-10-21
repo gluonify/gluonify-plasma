@@ -65,7 +65,7 @@ public record ProvenanceStatement(String app, Map<String, String> artifacts, Str
     }
 
     /** Strict parsing: any unexpected line, any different order or spacing is rejected (the bytes must be canonical). */
-    public static ProvenanceStatement parse(byte[] bytes) {
+    public static ProvenanceStatement parse(final byte[] bytes) {
         if (bytes == null || bytes.length == 0 || bytes.length > MAX_BYTES) throw new IllegalArgumentException("provenance: unreadable statement");
         String[] l = new String(bytes, StandardCharsets.UTF_8).split("\n", -1);
         if (l.length < 6 || !l[0].equals(MAGIC) || !l[l.length - 1].isEmpty()) throw new IllegalArgumentException("provenance: unreadable statement");
@@ -91,7 +91,7 @@ public record ProvenanceStatement(String app, Map<String, String> artifacts, Str
         return s;
     }
 
-    private static String value(String line, String key) {
+    private static String value(final String line, final String key) {
         if (!line.startsWith(key + " ")) throw new IllegalArgumentException("provenance: line \"" + key + "\" expected");
         String v = line.substring(key.length() + 1);
         if (v.isEmpty() || v.contains(" ")) throw new IllegalArgumentException("provenance: invalid value for \"" + key + "\"");
@@ -102,7 +102,7 @@ public record ProvenanceStatement(String app, Map<String, String> artifacts, Str
      * Statement of an application's deliverables, as they appear in its specification: SHA-256 read from {@code url#sha256=<hex>} of each executable, digest
      * {@code @sha256:<hex>} of the image. A deliverable without a digest (executable without {@code #sha256=}, image designated by a tag) cannot be signed.
      */
-    public static ProvenanceStatement of(String app, Map<String, String> artifacts, String image, String keyId, Instant signedAt) {
+    public static ProvenanceStatement of(final String app, final Map<String, String> artifacts, final String image, final String keyId, final Instant signedAt) {
         Map<String, String> shas = new TreeMap<>();
         if (artifacts != null) for (var e : artifacts.entrySet()) {
             String sha = Provenance.artifactSha256(e.getValue());

@@ -83,16 +83,18 @@ public final class Pricing {
     public record Statement(String currency, List<SectionResult> sections, String usage, String fixed, String minimum, String total) {}
 
     /** Key of a usage line (grouping and comparison of the test vectors). */
-    public static String key(String unit, Map<String, String> dims, String env) {
+    public static String key(final String unit, final Map<String, String> dims, final String env) {
         return unit + (dims == null || dims.isEmpty() ? "" : new TreeMap<>(dims).toString()) + (env == null ? "" : "@" + env);
     }
 
     /** Prices a month ({@code daysInMonth}: 28 to 31) in the currency {@code currency}. */
-    public static Statement value(String currency, int daysInMonth, List<Section> sections) {
+    public static Statement value(final String currency, final int daysInMonth, final List<Section> sections) {
         if (daysInMonth < 28 || daysInMonth > 31) throw new IllegalArgumentException("daysInMonth: 28 to 31");
         if (currency == null || !Decimals.CURRENCY.matcher(currency).matches()) throw new IllegalArgumentException("devise ISO 4217 attendue");
         List<SectionResult> out = new ArrayList<>();
-        BigDecimal usage = BigDecimal.ZERO, fixed = BigDecimal.ZERO, minimum = BigDecimal.ZERO;
+        BigDecimal usage = BigDecimal.ZERO;
+        BigDecimal fixed = BigDecimal.ZERO;
+        BigDecimal minimum = BigDecimal.ZERO;
         for (Section s : sections) {
             SectionResult r = section(currency, daysInMonth, s);
             out.add(r);
@@ -105,7 +107,7 @@ public final class Pricing {
         return new Statement(currency, out, money(usage, currency), money(fixed, currency), money(minimum, currency), money(total, currency));
     }
 
-    private static SectionResult section(String currency, int days, Section s) {
+    private static SectionResult section(final String currency, final int days, final Section s) {
         BigDecimal share = s.share() == null ? BigDecimal.ONE : Decimals.quantity(new BigDecimal(s.share()));
         if (share.signum() < 0 || share.compareTo(BigDecimal.ONE) > 0) throw new IllegalArgumentException("share: from 0 to 1");
         ContractTerms.PricingTerms pr = s.pricing();
@@ -137,12 +139,12 @@ public final class Pricing {
         return new SectionResult(s.contractVersion(), lines, money(sum, currency), money(discounted, currency), money(fixed, currency));
     }
 
-    private static BigDecimal part(String price, String count, BigDecimal days) {
+    private static BigDecimal part(final String price, final String count, final BigDecimal days) {
         if (price == null || count == null) return BigDecimal.ZERO;
         return new BigDecimal(price).multiply(new BigDecimal(count)).divide(days, Decimals.QUANTITY_SCALE, RoundingMode.HALF_UP);
     }
 
-    private static Line line(String currency, BigDecimal share, Usage u, ContractTerms.PricingTerms pr, List<PriceLine> list) {
+    private static Line line(final String currency, final BigDecimal share, final Usage u, final ContractTerms.PricingTerms pr, final List<PriceLine> list) {
         UsageUnit unit = UsageCatalog.get(u.unit());
         ContractTerms.PriceOverride o = pr == null || pr.overrides() == null ? null : bestOverride(pr.overrides(), u);
         PriceLine l = bestLine(list, u);
@@ -181,7 +183,7 @@ public final class Pricing {
     }
 
     /** Most specific override: dimensions contained in those of the usage, environment equal or absent; on a tie, the first. */
-    static ContractTerms.PriceOverride bestOverride(List<ContractTerms.PriceOverride> overrides, Usage u) {
+    static ContractTerms.PriceOverride bestOverride(final List<ContractTerms.PriceOverride> overrides, final Usage u) {
         ContractTerms.PriceOverride best = null;
         int bestScore = -1;
         for (ContractTerms.PriceOverride o : overrides) {
@@ -197,7 +199,7 @@ public final class Pricing {
     }
 
     /** Most specific list line. */
-    static PriceLine bestLine(List<PriceLine> lines, Usage u) {
+    static PriceLine bestLine(final List<PriceLine> lines, final Usage u) {
         PriceLine best = null;
         int bestScore = -1;
         for (PriceLine l : lines) {
@@ -211,13 +213,13 @@ public final class Pricing {
         return best;
     }
 
-    private static boolean within(Map<String, String> dims, Map<String, String> of) {
+    private static boolean within(final Map<String, String> dims, final Map<String, String> of) {
         if (dims == null) return true;
         for (var e : dims.entrySet()) if (!e.getValue().equals(of.get(e.getKey()))) return false;
         return true;
     }
 
-    private static String money(BigDecimal v, String currency) {
+    private static String money(final BigDecimal v, final String currency) {
         return Decimals.money(v, currency).toPlainString();
     }
 }

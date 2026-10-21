@@ -52,12 +52,12 @@ public final class Provenance {
     }
 
     /** Valid shape of a token (without verifying the signature): this is what {@code AppSpec} checks. */
-    public static boolean wellFormed(String token) {
+    public static boolean wellFormed(final String token) {
         return token != null && token.length() <= MAX_TOKEN && TOKEN.matcher(token).matches();
     }
 
     /** Signs the statement with an Ed25519 private key and returns the token. */
-    public static String sign(ProvenanceStatement s, PrivateKey key) {
+    public static String sign(final ProvenanceStatement s, final PrivateKey key) {
         byte[] b = s.canonicalBytes();
         try {
             Signature sig = Signature.getInstance("Ed25519");
@@ -71,7 +71,7 @@ public final class Provenance {
     }
 
     /** Splits the token without verifying anything; the statement is NOT read here (it is read only after the signature). */
-    static byte[][] split(String token) {
+    static byte[][] split(final String token) {
         if (!wellFormed(token)) throw new IllegalArgumentException("provenance: unreadable token");
         int dot = token.indexOf('.');
         try {
@@ -88,7 +88,7 @@ public final class Provenance {
     /**
      * Key identifier claimed by the token, read WITHOUT verification (to choose the public key); never to be used for a decision. Null if unreadable.
      */
-    public static String claimedKeyId(String token) {
+    public static String claimedKeyId(final String token) {
         try {
             return ProvenanceStatement.parse(split(token)[0]).keyId();
         } catch (IllegalArgumentException e) {
@@ -97,7 +97,7 @@ public final class Provenance {
     }
 
     /** Verifies the signature with {@code key}, then reads the statement. {@link IllegalArgumentException} if the token is unreadable or the signature is wrong. */
-    public static Signed verify(String token, PublicKey key) {
+    public static Signed verify(final String token, final PublicKey key) {
         byte[][] p = split(token);
         boolean ok;
         try {
@@ -117,7 +117,7 @@ public final class Provenance {
      * has the same digest in the statement (the statement may list others); without executables: the image is designated by the same digest. Returns the reason for
      * the refusal, or null.
      */
-    public static String mismatch(ProvenanceStatement s, String app, Map<String, String> artifacts, String image) {
+    public static String mismatch(final ProvenanceStatement s, final String app, final Map<String, String> artifacts, final String image) {
         if (!s.app().equals(app)) return "the statement is for another application";
         if (artifacts != null && !artifacts.isEmpty()) {
             for (var e : artifacts.entrySet()) {
@@ -134,22 +134,23 @@ public final class Provenance {
     }
 
     /** SHA-256 (lowercase) of an executable reference {@code url#sha256=<hex>}, or null. */
-    public static String artifactSha256(String ref) {
+    public static String artifactSha256(final String ref) {
         if (ref == null) return null;
         Matcher m = ARTIFACT_SHA.matcher(ref);
         return m.find() ? m.group(1).toLowerCase(java.util.Locale.ROOT) : null;
     }
 
     /** Digest {@code sha256:<hex>} of an image designated by {@code repository@sha256:<hex>}, or null (tag only). */
-    public static String imageDigest(String image) {
+    public static String imageDigest(final String image) {
         if (image == null) return null;
         Matcher m = IMAGE_DIGEST.matcher(image.trim());
         return m.find() ? m.group(1) : null;
     }
 
     /** True if both specifications run the same bytes: same architectures and same digests, or same image (the URLs may differ). */
-    public static boolean sameDeliverable(Map<String, String> a1, String i1, Map<String, String> a2, String i2) {
-        boolean bin1 = a1 != null && !a1.isEmpty(), bin2 = a2 != null && !a2.isEmpty();
+    public static boolean sameDeliverable(final Map<String, String> a1, final String i1, final Map<String, String> a2, final String i2) {
+        boolean bin1 = a1 != null && !a1.isEmpty();
+        boolean bin2 = a2 != null && !a2.isEmpty();
         if (bin1 != bin2) return false;
         if (bin1) {
             if (!a1.keySet().equals(a2.keySet())) return false;
@@ -165,7 +166,7 @@ public final class Provenance {
     // ------------------------------------------------------------------ keys
 
     /** Ed25519 public key: SubjectPublicKeyInfo in Base64 (DER) or PEM "PUBLIC KEY". */
-    public static PublicKey publicKey(String text) {
+    public static PublicKey publicKey(final String text) {
         try {
             String b64 = text.replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "").replaceAll("\\s", "");
             PublicKey k = KeyFactory.getInstance("Ed25519").generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(b64)));
@@ -176,7 +177,7 @@ public final class Provenance {
     }
 
     /** Ed25519 private key: PEM "PRIVATE KEY" (PKCS#8, as produced by {@code openssl genpkey -algorithm ed25519}). The content appears in no message. */
-    public static PrivateKey privateKey(String pem) {
+    public static PrivateKey privateKey(final String pem) {
         try {
             String b64 = pem.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replaceAll("\\s", "");
             return KeyFactory.getInstance("Ed25519").generatePrivate(new PKCS8EncodedKeySpec(Base64.getDecoder().decode(b64)));
@@ -186,7 +187,7 @@ public final class Provenance {
     }
 
     /** Reads a private key from a file (PEM PKCS#8); only the path appears in the error. */
-    public static PrivateKey readPrivateKey(Path file) throws IOException {
+    public static PrivateKey readPrivateKey(final Path file) throws IOException {
         String pem = Files.readString(file, StandardCharsets.US_ASCII);
         try {
             return privateKey(pem);
@@ -196,7 +197,7 @@ public final class Provenance {
     }
 
     /** Public key of an Ed25519 private key (Base64 of the DER SubjectPublicKeyInfo), to declare in {@code gluonify.higgs.provenance.trusted-keys.<id>}. */
-    public static String publicKeyBase64(PublicKey k) {
+    public static String publicKeyBase64(final PublicKey k) {
         return Base64.getEncoder().encodeToString(k.getEncoded());
     }
 }

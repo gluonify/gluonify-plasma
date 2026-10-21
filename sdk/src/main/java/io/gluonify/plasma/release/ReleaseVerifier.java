@@ -21,7 +21,7 @@ import java.util.HexFormat;
 public final class ReleaseVerifier {
     private ReleaseVerifier() {}
 
-    public static PublicKey publicKey(String pem) {
+    public static PublicKey publicKey(final String pem) {
         try {
             String b64 = pem.replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "").replaceAll("\\s", "");
             return KeyFactory.getInstance("Ed25519").generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(b64)));
@@ -31,7 +31,7 @@ public final class ReleaseVerifier {
     }
 
     /** Detached signature: 64 raw bytes, or their Base64 encoding (text .sig file). */
-    static byte[] decodeSignature(byte[] sig) {
+    static byte[] decodeSignature(final byte[] sig) {
         if (sig.length == 64) return sig;
         try {
             byte[] raw = Base64.getMimeDecoder().decode(new String(sig, java.nio.charset.StandardCharsets.US_ASCII).trim());
@@ -40,7 +40,7 @@ public final class ReleaseVerifier {
         throw new ReleaseManifest.Invalid("unreadable signature");
     }
 
-    public static boolean signatureValid(byte[] manifest, byte[] signature, PublicKey key) {
+    public static boolean signatureValid(final byte[] manifest, final byte[] signature, final PublicKey key) {
         try {
             Signature s = Signature.getInstance("Ed25519");
             s.initVerify(key);
@@ -56,12 +56,12 @@ public final class ReleaseVerifier {
      *
      * @param minSequence highest sequence already seen (or required); the manifest must be at least at this level
      */
-    public static ReleaseManifest verify(byte[] manifest, byte[] signature, PublicKey key, java.util.function.Function<byte[], ReleaseManifest> parser, long minSequence, Instant now) {
+    public static ReleaseManifest verify(final byte[] manifest, final byte[] signature, final PublicKey key, final java.util.function.Function<byte[], ReleaseManifest> parser, final long minSequence, final Instant now) {
         return verify(manifest, signature, key, parser, minSequence, now, ReleaseManifest.NAMES::contains);
     }
 
     /** Like {@link #verify(byte[], byte[], PublicKey, java.util.function.Function, long, Instant)} with the caller's component-name criterion (see {@link ReleaseManifest#validate(java.util.function.Predicate)}). */
-    public static ReleaseManifest verify(byte[] manifest, byte[] signature, PublicKey key, java.util.function.Function<byte[], ReleaseManifest> parser, long minSequence, Instant now, java.util.function.Predicate<String> nameOk) {
+    public static ReleaseManifest verify(final byte[] manifest, final byte[] signature, final PublicKey key, final java.util.function.Function<byte[], ReleaseManifest> parser, final long minSequence, final Instant now, final java.util.function.Predicate<String> nameOk) {
         if (!signatureValid(manifest, signature, key)) throw new ReleaseManifest.Invalid("invalid manifest signature");
         ReleaseManifest m = parser.apply(manifest).validate(nameOk);
         if (now.isAfter(Instant.parse(m.expires()))) throw new ReleaseManifest.Invalid("manifest expired (" + m.expires() + ")");
@@ -70,7 +70,7 @@ public final class ReleaseVerifier {
     }
 
     /** Hexadecimal SHA-256 of in-memory bytes. */
-    public static String sha256(byte[] data) {
+    public static String sha256(final byte[] data) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(data));
         } catch (java.security.NoSuchAlgorithmException e) {
@@ -78,7 +78,7 @@ public final class ReleaseVerifier {
         }
     }
 
-    public static String sha256(Path file) throws IOException {
+    public static String sha256(final Path file) throws IOException {
         try (InputStream in = Files.newInputStream(file)) {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] buf = new byte[65536];
@@ -90,7 +90,7 @@ public final class ReleaseVerifier {
     }
 
     /** The downloaded file has the declared size and digest (constant-time comparison). */
-    public static void checkFile(Path file, ReleaseManifest.Artifact a) throws IOException {
+    public static void checkFile(final Path file, final ReleaseManifest.Artifact a) throws IOException {
         if (Files.size(file) != a.size()) throw new ReleaseManifest.Invalid("unexpected size for " + a.file());
         if (!MessageDigest.isEqual(sha256(file).getBytes(), a.sha256().getBytes())) throw new ReleaseManifest.Invalid("invalid SHA-256 digest for " + a.file());
     }

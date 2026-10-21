@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 public record Requires(Map<String, List<String>> packages) {
     public static final int MAX_PACKAGES = 64;
     public static final Requires NONE = new Requires(Map.of());
-    private static final Pattern DISTRO = Pattern.compile("[a-z][a-z0-9]{0,31}([.][0-9]{1,8}){0,2}");
+    private static final Pattern DISTRO = Pattern.compile("[a-z][a-z0-9]{0,31}([.]\\d{1,8}){0,2}");
     private static final Pattern PACKAGE = Pattern.compile("[a-z0-9][a-z0-9+.-]{1,63}");
 
     public Requires {
@@ -38,7 +38,7 @@ public record Requires(Map<String, List<String>> packages) {
     }
 
     /** Packages to install for this distribution (empty if nothing is declared for it). */
-    public List<String> forDistro(String distro) {
+    public List<String> forDistro(final String distro) {
         return packages.getOrDefault(distro, List.of());
     }
 
@@ -47,7 +47,7 @@ public record Requires(Map<String, List<String>> packages) {
     }
 
     /** Distribution identifier from the {@code ID} and {@code VERSION_ID} keys of {@code /etc/os-release}: {@code debian} + {@code 13} = {@code debian13}. */
-    public static String distroId(String id, String versionId) {
+    public static String distroId(final String id, final String versionId) {
         String i = id == null ? "" : id.toLowerCase().replaceAll("[^a-z0-9]", "");
         String v = versionId == null ? "" : versionId.toLowerCase().replaceAll("[^a-z0-9.]", "");
         return i + v;

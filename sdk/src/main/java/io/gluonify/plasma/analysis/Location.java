@@ -17,7 +17,7 @@ public record Location(String file, Integer line) {
         if (line != null && line < 1) throw new IllegalArgumentException("location.line < 1 : " + line);
     }
 
-    public static Location of(String file) {
+    public static Location of(final String file) {
         return new Location(file, null);
     }
 

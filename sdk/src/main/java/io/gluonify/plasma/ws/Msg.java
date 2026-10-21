@@ -63,7 +63,7 @@ public sealed interface Msg {
 
     /** First message from a new node: consumes a single-use token; empty address = source address of the connection. */
     record Enroll(String token, String address, int memoryMb, String arch, String role) implements Msg {
-        public Enroll(String token, String address, int memoryMb, String arch) {
+        public Enroll(final String token, final String address, final int memoryMb, final String arch) {
             this(token, address, memoryMb, arch, null);
         }
     }
@@ -95,27 +95,27 @@ public sealed interface Msg {
         }
 
         /** Compatibility: state without image digests. */
-        public State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures, Host host, Map<String, Startup> startups) {
+        public State(final List<String> running, final List<String> ready, final Map<String, Long> generations, final Map<String, Double> metrics, final Map<String, String> failures, final Host host, final Map<String, Startup> startups) {
             this(running, ready, generations, metrics, failures, host, startups, Map.of());
         }
 
         /** Compatibility: state without startup times. */
-        public State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures, Host host) {
+        public State(final List<String> running, final List<String> ready, final Map<String, Long> generations, final Map<String, Double> metrics, final Map<String, String> failures, final Host host) {
             this(running, ready, generations, metrics, failures, host, Map.of());
         }
 
         /** Compatibility: state without host description. */
-        public State(List<String> running, List<String> ready, Map<String, Long> generations, Map<String, Double> metrics, Map<String, String> failures) {
+        public State(final List<String> running, final List<String> ready, final Map<String, Long> generations, final Map<String, Double> metrics, final Map<String, String> failures) {
             this(running, ready, generations, metrics, failures, null, Map.of());
         }
 
         /** Compatibility: state without measurements. */
-        public State(List<String> running, List<String> ready, Map<String, Long> generations) {
+        public State(final List<String> running, final List<String> ready, final Map<String, Long> generations) {
             this(running, ready, generations, Map.of(), Map.of(), null, Map.of());
         }
 
         /** Compatibility: state without generations. */
-        public State(List<String> running, List<String> ready) {
+        public State(final List<String> running, final List<String> ready) {
             this(running, ready, Map.of(), Map.of(), Map.of(), null, Map.of());
         }
     }
@@ -159,12 +159,12 @@ public sealed interface Msg {
      */
     record Host(String version, int cpuCount, int memoryUsedMb, double load, int diskFreeMb, long uptimeSec, String x86Level, String pythonVersion) {
         /** Compatibility: without Python version. */
-        public Host(String version, int cpuCount, int memoryUsedMb, double load, int diskFreeMb, long uptimeSec, String x86Level) {
+        public Host(final String version, final int cpuCount, final int memoryUsedMb, final double load, final int diskFreeMb, final long uptimeSec, final String x86Level) {
             this(version, cpuCount, memoryUsedMb, load, diskFreeMb, uptimeSec, x86Level, null);
         }
 
         /** Compatibility: without x86-64 level. */
-        public Host(String version, int cpuCount, int memoryUsedMb, double load, int diskFreeMb, long uptimeSec) {
+        public Host(final String version, final int cpuCount, final int memoryUsedMb, final double load, final int diskFreeMb, final long uptimeSec) {
             this(version, cpuCount, memoryUsedMb, load, diskFreeMb, uptimeSec, null);
         }
     }
@@ -174,7 +174,7 @@ public sealed interface Msg {
      * /q/metrics; empty or "logs": the log). Reply: {@link Logs}.
      */
     record LogsRequest(long id, String instance, int tail, String what) implements Msg {
-        public LogsRequest(long id, String instance, int tail) {
+        public LogsRequest(final long id, final String instance, final int tail) {
             this(id, instance, tail, null);
         }
     }
@@ -213,7 +213,7 @@ public sealed interface Msg {
         }
 
         /** Every instance of the node. */
-        public UsageRequest(long id) {
+        public UsageRequest(final long id) {
             this(id, null);
         }
     }
@@ -301,7 +301,7 @@ public sealed interface Msg {
             features = features == null ? List.of() : List.copyOf(features);
         }
 
-        public Welcome(String node) { this(node, null); }
+        public Welcome(final String node) { this(node, null); }
     }
 
     record Enrolled(String node, String secret, List<String> features) implements Msg {
@@ -309,7 +309,7 @@ public sealed interface Msg {
             features = features == null ? List.of() : List.copyOf(features);
         }
 
-        public Enrolled(String node, String secret) { this(node, secret, null); }
+        public Enrolled(final String node, final String secret) { this(node, secret, null); }
     }
 
     /** {@code sleeping}: desired sleep state of THIS node's instances (instance -> "frozen" or "stopped"; an absent instance is active): the agent freezes or stops, never restarts a "stopped" instance, and thaws or starts it when it becomes active again. Sleep mode: see gluonify-codex/ARCHITECTURE.md.
@@ -326,40 +326,40 @@ public sealed interface Msg {
          * application-to-service token policy; when it changes, the agent forgets the tokens it holds and requests them again.
          * Absent ({@code null}, older control-plane): the agent behaves as before (renewal as the expiry approaches).
          */
-        public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store, Map<String, String> sleeping,
-                       Map<String, ImagePin> pins) {
+        public Desired(final List<Instance> desired, final List<String> controlPlanes, final String envName, final Map<String, String> services, final Map<String, String> secrets, final String nodeAddress, final List<String> nodes, final Wg wireguard, final List<String> overlayControlPlanes, final Store store, final Map<String, String> sleeping,
+                       final Map<String, ImagePin> pins) {
             this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, store, sleeping, pins, null);
         }
 
         /** Compatibility: without image digests pinned for the cluster. */
-        public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store, Map<String, String> sleeping) {
+        public Desired(final List<Instance> desired, final List<String> controlPlanes, final String envName, final Map<String, String> services, final Map<String, String> secrets, final String nodeAddress, final List<String> nodes, final Wg wireguard, final List<String> overlayControlPlanes, final Store store, final Map<String, String> sleeping) {
             this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, store, sleeping, Map.of(), null);
         }
 
         /** Compatibility: without sleeping instances. */
-        public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes, Store store) {
+        public Desired(final List<Instance> desired, final List<String> controlPlanes, final String envName, final Map<String, String> services, final Map<String, String> secrets, final String nodeAddress, final List<String> nodes, final Wg wireguard, final List<String> overlayControlPlanes, final Store store) {
             this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, store, Map.of(), Map.of(), null);
         }
 
         /** Compatibility: without storage nodes. */
-        public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets, String nodeAddress, List<String> nodes, Wg wireguard, List<String> overlayControlPlanes) {
+        public Desired(final List<Instance> desired, final List<String> controlPlanes, final String envName, final Map<String, String> services, final Map<String, String> secrets, final String nodeAddress, final List<String> nodes, final Wg wireguard, final List<String> overlayControlPlanes) {
             this(desired, controlPlanes, envName, services, secrets, nodeAddress, nodes, wireguard, overlayControlPlanes, null);
         }
 
         /** Compatibility: without environment name or service addresses. */
-        public Desired(List<Instance> desired, List<String> controlPlanes) {
+        public Desired(final List<Instance> desired, final List<String> controlPlanes) {
             this(desired, controlPlanes, null, Map.of(), Map.of(), null, List.of(), null, List.of(), null);
         }
 
-        public Desired(List<Instance> desired, List<String> controlPlanes, String envName) {
+        public Desired(final List<Instance> desired, final List<String> controlPlanes, final String envName) {
             this(desired, controlPlanes, envName, Map.of(), Map.of(), null, List.of(), null, List.of(), null);
         }
 
-        public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services) {
+        public Desired(final List<Instance> desired, final List<String> controlPlanes, final String envName, final Map<String, String> services) {
             this(desired, controlPlanes, envName, services, Map.of(), null, List.of(), null, List.of(), null);
         }
 
-        public Desired(List<Instance> desired, List<String> controlPlanes, String envName, Map<String, String> services, Map<String, String> secrets) {
+        public Desired(final List<Instance> desired, final List<String> controlPlanes, final String envName, final Map<String, String> services, final Map<String, String> secrets) {
             this(desired, controlPlanes, envName, services, secrets, null, List.of(), null, List.of(), null);
         }
     }
@@ -392,7 +392,7 @@ public sealed interface Msg {
         }
 
         /** Compatibility: without {@code policy}, the digest of the policy under which the tokens were issued (see {@link Desired#tokenPolicy()}). */
-        public ServiceTokens(long id, int status, Map<String, List<ServiceToken>> tokens, String error) {
+        public ServiceTokens(final long id, final int status, final Map<String, List<ServiceToken>> tokens, final String error) {
             this(id, status, tokens, error, null);
         }
     }

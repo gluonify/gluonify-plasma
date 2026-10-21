@@ -51,20 +51,20 @@ public record Finding(Integer v, String id, FindingKind kind, String rule, Sever
     }
 
     /** Open finding, identifier computed from the target ({@code target}: build, application, site…; never written in the finding). */
-    public static Finding open(FindingKind kind, String target, String rule, Severity severity, boolean blocking, Location location, Map<String, String> args) {
+    public static Finding open(final FindingKind kind, final String target, final String rule, final Severity severity, final boolean blocking, final Location location, final Map<String, String> args) {
         return new Finding(VERSION, idOf(kind, target, rule, location), kind, rule, severity, blocking, location, args, null, FindingStatus.OPEN);
     }
 
-    public Finding withRef(String newRef) {
+    public Finding withRef(final String newRef) {
         return new Finding(v, id, kind, rule, severity, blocking, location, args, newRef, status);
     }
 
-    public Finding withStatus(FindingStatus newStatus) {
+    public Finding withStatus(final FindingStatus newStatus) {
         return new Finding(v, id, kind, rule, severity, blocking, location, args, ref, newStatus);
     }
 
     /** {@code sha256(kind|target|rule|location)} in lowercase hexadecimal; absent {@code target} and {@code location} count as the empty string. */
-    public static String idOf(FindingKind kind, String target, String rule, Location location) {
+    public static String idOf(final FindingKind kind, final String target, final String rule, final Location location) {
         String s = kind.wire() + "|" + (target == null ? "" : target) + "|" + rule + "|" + (location == null ? "" : location.key());
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(s.getBytes(StandardCharsets.UTF_8)));
@@ -74,12 +74,12 @@ public record Finding(Integer v, String id, FindingKind kind, String rule, Sever
     }
 
     /** An argument value truncated to {@link #MAX_ARG_LENGTH} characters, {@code null} giving the empty string. */
-    public static String arg(Object value) {
+    public static String arg(final Object value) {
         String s = value == null ? "" : String.valueOf(value);
         return s.length() > MAX_ARG_LENGTH ? s.substring(0, MAX_ARG_LENGTH) : s;
     }
 
-    private static Map<String, String> copyArgs(Map<String, String> in) {
+    private static Map<String, String> copyArgs(final Map<String, String> in) {
         if (in == null || in.isEmpty()) return Map.of();
         if (in.size() > MAX_ARGS) throw new IllegalArgumentException("more than " + MAX_ARGS + " arguments");
         Map<String, String> out = new LinkedHashMap<>();

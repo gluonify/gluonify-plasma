@@ -21,13 +21,13 @@ public final class UsageCatalog {
 
     private static final Map<String, UsageUnit> UNITS = new LinkedHashMap<>();
 
-    private static void unit(String name, Quantity q, boolean billable, boolean internal, Map<String, List<String>> dims) {
+    private static void unit(final String name, final Quantity q, final boolean billable, final boolean internal, final Map<String, List<String>> dims) {
         UNITS.put(name, new UsageUnit(name, name.substring(0, name.indexOf('.')), q, billable, internal, dims));
     }
 
-    private static void unit(String name, Quantity q) { unit(name, q, true, false, Map.of()); }
+    private static void unit(final String name, final Quantity q) { unit(name, q, true, false, Map.of()); }
 
-    private static void unit(String name, Quantity q, String dim, List<String> values) { unit(name, q, true, false, Map.of(dim, values)); }
+    private static void unit(final String name, final Quantity q, final String dim, final List<String> values) { unit(name, q, true, false, Map.of(dim, values)); }
 
     static {
         unit("strange.instance.memory_reserved", Quantity.MB_SECONDS, "state", List.of("active", "frozen"));
@@ -102,7 +102,7 @@ public final class UsageCatalog {
     private static final Map<String, UsageUnit> VIEW = Collections.unmodifiableMap(UNITS);
 
     /** The unit with this name, or null if not in the catalog. */
-    public static UsageUnit get(String name) { return name == null ? null : VIEW.get(name); }
+    public static UsageUnit get(final String name) { return name == null ? null : VIEW.get(name); }
 
     /** All the units, in catalog order. */
     public static Collection<UsageUnit> all() { return VIEW.values(); }

@@ -20,7 +20,7 @@ public final class WireGuard {
 
     private final Path keyFile;
 
-    public WireGuard(Path keyFile) {
+    public WireGuard(final Path keyFile) {
         this.keyFile = keyFile;
     }
 
@@ -42,7 +42,7 @@ public final class WireGuard {
     }
 
     /** Brings the interface to: address {@code self}, listen port, and exactly these peers. */
-    public synchronized void apply(String self, int port, List<Peer> peers) throws IOException, InterruptedException {
+    public synchronized void apply(final String self, final int port, final List<Peer> peers) throws IOException, InterruptedException {
         if (exec(List.of("ip", "link", "show", Overlay.INTERFACE)) != 0) {
             for (List<String> c : createCommands(self, keyFile.toString(), port)) run(c);
         }
@@ -58,7 +58,7 @@ public final class WireGuard {
 
     // ---------- pure functions (tested)
 
-    static List<List<String>> createCommands(String self, String keyFile, int port) {
+    static List<List<String>> createCommands(final String self, final String keyFile, final int port) {
         return List.of(
                 List.of("ip", "link", "add", Overlay.INTERFACE, "type", "wireguard"),
                 List.of("wg", "set", Overlay.INTERFACE, "private-key", keyFile, "listen-port", String.valueOf(port)),
@@ -67,7 +67,7 @@ public final class WireGuard {
     }
 
     /** A peer: only its mesh address is routed to it ({@code allowed-ips} as /32), keepalive to traverse NATs. */
-    static List<String> peerCommand(Peer p) {
+    static List<String> peerCommand(final Peer p) {
         List<String> c = new ArrayList<>(List.of("wg", "set", Overlay.INTERFACE, "peer", p.publicKey(), "allowed-ips", p.overlay() + "/32", "persistent-keepalive", "25"));
         if (p.endpoint() != null && !p.endpoint().isBlank()) {
             c.add("endpoint");
@@ -76,14 +76,14 @@ public final class WireGuard {
         return c;
     }
 
-    private static String run(List<String> cmd) throws IOException, InterruptedException {
+    private static String run(final List<String> cmd) throws IOException, InterruptedException {
         Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();
         String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
         if (p.waitFor() != 0) throw new IOException(String.join(" ", cmd).replaceAll("private-key \\S+", "private-key …") + " : " + out.trim());
         return out;
     }
 
-    private static int exec(List<String> cmd) throws IOException, InterruptedException {
+    private static int exec(final List<String> cmd) throws IOException, InterruptedException {
         Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();
         p.getInputStream().readAllBytes();
         return p.waitFor();

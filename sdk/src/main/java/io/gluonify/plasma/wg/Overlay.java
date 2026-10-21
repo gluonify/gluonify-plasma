@@ -10,18 +10,18 @@ public final class Overlay {
     public static final String INTERFACE = "wg0";
 
     /** Address no. {@code n} of the subnet (1 = first machine); IllegalStateException when it is full. */
-    public static String address(long n) {
+    public static String address(final long n) {
         if (n < 1 || n > 65_533) throw new IllegalStateException("overlay network full (" + SUBNET + ")");
         return "10.77." + ((n >> 8) & 255) + "." + (n & 255);
     }
 
     /** True if {@code ip} is in the mesh subnet (a connection coming from it came through the tunnel). */
-    public static boolean contains(String ip) {
+    public static boolean contains(final String ip) {
         return ip != null && ip.startsWith("10.77.");
     }
 
     /** WireGuard public key: 32 bytes in base64 (44 characters). */
-    public static boolean validKey(String k) {
+    public static boolean validKey(final String k) {
         return k != null && k.matches("[A-Za-z0-9+/]{43}=");
     }
 }

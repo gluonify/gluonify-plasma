@@ -29,17 +29,17 @@ public record ServiceToken(@Schema(description = "Target service (name in uses)"
     public static final String DIR = "/run/gluonify-tokens";
 
     /** {@code crystallon} -> {@code GLUONIFY_CRYSTALLON_TOKEN_FILE} ; {@code my-svc} -> {@code GLUONIFY_MY_SVC_TOKEN_FILE}. */
-    public static String envName(String service) {
+    public static String envName(final String service) {
         return "GLUONIFY_" + service.toUpperCase(Locale.ROOT).replace('-', '_') + "_TOKEN_FILE";
     }
 
     /** {@code crystallon} -> {@code crystallon.token}. */
-    public static String fileName(String service) {
+    public static String fileName(final String service) {
         return service + ".token";
     }
 
     /** True for {@code GLUONIFY_<X>_TOKEN_FILE}: variable provided by the platform, never by the application. */
-    public static boolean isReservedEnv(String name) {
+    public static boolean isReservedEnv(final String name) {
         return name != null && name.startsWith("GLUONIFY_") && name.endsWith("_TOKEN_FILE") && name.length() > "GLUONIFY__TOKEN_FILE".length();
     }
 

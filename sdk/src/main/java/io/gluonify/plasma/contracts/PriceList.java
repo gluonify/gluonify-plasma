@@ -24,9 +24,9 @@ public record PriceList(String id, String name, String currency, Long createdAt,
         versions = versions == null ? List.of() : List.copyOf(versions);
     }
 
-    public PriceList withName(String n) { return new PriceList(id, n, currency, createdAt, createdBy, versions); }
+    public PriceList withName(final String n) { return new PriceList(id, n, currency, createdAt, createdBy, versions); }
 
-    public PriceList withVersion(PriceListVersion v) {
+    public PriceList withVersion(final PriceListVersion v) {
         List<PriceListVersion> out = new ArrayList<>(versions);
         out.add(v);
         return new PriceList(id, name, currency, createdAt, createdBy, out);
@@ -39,13 +39,13 @@ public record PriceList(String id, String name, String currency, Long createdAt,
     }
 
     /** The version with this number, or null. */
-    public PriceListVersion version(int v) {
+    public PriceListVersion version(final int v) {
         for (PriceListVersion x : versions) if (x.version() == v) return x;
         return null;
     }
 
     /** Effective version at {@code t}: greatest {@code effectiveFrom <= t} (on a tie, the greatest number); null if there is none. */
-    public PriceListVersion effective(long t) {
+    public PriceListVersion effective(final long t) {
         PriceListVersion best = null;
         for (PriceListVersion v : versions) {
             if (v.effectiveFrom() > t) continue;

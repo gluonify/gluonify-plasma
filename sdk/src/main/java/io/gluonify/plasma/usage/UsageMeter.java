@@ -19,12 +19,17 @@ import java.util.function.LongSupplier;
 public final class UsageMeter {
     public static final String OVERFLOW = "_overflow";
 
-    private final String service, replica, node, version, env;
+    private final String service;
+    private final String replica;
+    private final String node;
+    private final String version;
+    private final String env;
     private final int maxKeysPerWindow;
     private final LongSupplier clock;
     private final SeqSource seqs;
     private final ConcurrentHashMap<Long, ConcurrentHashMap<String, Cell>> windows = new ConcurrentHashMap<>();
-    private final AtomicLong invalid = new AtomicLong(), overflowed = new AtomicLong();
+    private final AtomicLong invalid = new AtomicLong();
+    private final AtomicLong overflowed = new AtomicLong();
 
     /** Source of sequence numbers (persisted by {@link UsageSpool}, in memory otherwise). */
     public interface SeqSource {
@@ -34,7 +39,7 @@ public final class UsageMeter {
     }
 
     /** In-memory sequence, restarting from 1 at each startup (epoch = creation date). */
-    public static SeqSource memorySeq(long epoch) {
+    public static SeqSource memorySeq(final long epoch) {
         AtomicLong n = new AtomicLong();
         return new SeqSource() {
             @Override
@@ -53,7 +58,7 @@ public final class UsageMeter {
         final String onBehalfOf;
         BigDecimal sum = BigDecimal.ZERO;
 
-        Cell(UsageRecord.Subject subject, String unit, TreeMap<String, String> dims, boolean internal, String onBehalfOf) {
+        Cell(final UsageRecord.Subject subject, final String unit, final TreeMap<String, String> dims, final boolean internal, final String onBehalfOf) {
             this.subject = subject;
             this.unit = unit;
             this.dims = dims;
@@ -61,10 +66,10 @@ public final class UsageMeter {
             this.onBehalfOf = onBehalfOf;
         }
 
-        synchronized void add(BigDecimal q) { sum = sum.add(q); }
+        synchronized void add(final BigDecimal q) { sum = sum.add(q); }
     }
 
-    public UsageMeter(String service, String replica, String node, String version, String env, int maxKeysPerWindow, LongSupplier clock, SeqSource seqs) {
+    public UsageMeter(final String service, final String replica, final String node, final String version, final String env, final int maxKeysPerWindow, final LongSupplier clock, final SeqSource seqs) {
         this.service = service;
         this.replica = replica;
         this.node = node;
@@ -81,12 +86,12 @@ public final class UsageMeter {
     private static final BigDecimal MB = BigDecimal.valueOf(1L << 20);
 
     /** GB x h of a volume of {@code bytes} kept for {@code seconds} s (GB = 2^30 bytes), 9 decimal places, rounded down. */
-    public static BigDecimal gbHours(long bytes, long seconds) {
+    public static BigDecimal gbHours(final long bytes, final long seconds) {
         return BigDecimal.valueOf(bytes).multiply(BigDecimal.valueOf(seconds)).divide(GB_HOUR_BYTE_SECONDS, 9, java.math.RoundingMode.DOWN);
     }
 
     /** MB x s of {@code bytes} kept for {@code seconds} s (MB = 2^20 bytes), 9 decimal places, rounded down. */
-    public static BigDecimal mbSeconds(long bytes, double seconds) {
+    public static BigDecimal mbSeconds(final long bytes, final double seconds) {
         return BigDecimal.valueOf(bytes).multiply(BigDecimal.valueOf(seconds)).divide(MB, 9, java.math.RoundingMode.DOWN);
     }
 
@@ -97,11 +102,11 @@ public final class UsageMeter {
     public long overflowed() { return overflowed.get(); }
 
     /** Adds {@code quantity} to the current window. */
-    public boolean add(UsageRecord.Subject subject, String unit, Map<String, String> dims, BigDecimal quantity) {
+    public boolean add(final UsageRecord.Subject subject, final String unit, final Map<String, String> dims, final BigDecimal quantity) {
         return add(clock.getAsLong(), subject, unit, dims, quantity, false, null);
     }
 
-    public boolean add(UsageRecord.Subject subject, String unit, Map<String, String> dims, long quantity) {
+    public boolean add(final UsageRecord.Subject subject, final String unit, final Map<String, String> dims, final long quantity) {
         return add(subject, unit, dims, BigDecimal.valueOf(quantity));
     }
 
@@ -109,7 +114,7 @@ public final class UsageMeter {
      * Adds {@code quantity} to the window that contains {@code at} (ms). {@code internal}/{@code onBehalfOf}: usage by a platform service (§ 3.5).
      * False if the unit is refused.
      */
-    public boolean add(long at, UsageRecord.Subject subject, String unit, Map<String, String> dims, BigDecimal quantity, boolean internal, String onBehalfOf) {
+    public boolean add(final long at, final UsageRecord.Subject subject, final String unit, final Map<String, String> dims, final BigDecimal quantity, final boolean internal, final String onBehalfOf) {
         UsageUnit u = UsageCatalog.get(unit);
         if (u == null || !u.service().equals(service) || quantity == null || quantity.signum() < 0 || subject == null || !dimsAllowed(u, dims)) {
             invalid.incrementAndGet();
@@ -138,7 +143,7 @@ public final class UsageMeter {
         return true;
     }
 
-    private static boolean dimsAllowed(UsageUnit u, Map<String, String> dims) {
+    private static boolean dimsAllowed(final UsageUnit u, final Map<String, String> dims) {
         if (dims == null || dims.isEmpty()) return true;
         if (dims.size() > 3) return false;
         for (var e : dims.entrySet()) {
@@ -154,7 +159,7 @@ public final class UsageMeter {
     }
 
     /** All the windows closed at {@code now}; with {@code now = Long.MAX_VALUE}, the current window too (service shutdown). */
-    public synchronized List<UsageRecord> drain(long now) {
+    public synchronized List<UsageRecord> drain(final long now) {
         List<UsageRecord> out = new ArrayList<>();
         List<Long> closed = new ArrayList<>();
         for (Long w : windows.keySet()) if (now == Long.MAX_VALUE || w + UsageRecord.WINDOW_MS <= now) closed.add(w);

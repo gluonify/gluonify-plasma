@@ -35,21 +35,21 @@ public record Organization(String id, String name, String status, String externa
     }
 
     /** Identifier accepted for an organization created through the API (Charm's pattern; {@value #DEFAULT} is not one). */
-    public static boolean validId(String id) { return Organizations.isValid(id); }
+    public static boolean validId(final String id) { return Organizations.isValid(id); }
 
     /** Valid display name: 1 to 120 characters, no control character. */
-    public static boolean validName(String name) {
+    public static boolean validName(final String name) {
         return name != null && !name.isBlank() && name.length() <= MAX_NAME && name.chars().noneMatch(c -> c < 0x20 || c == 0x7f);
     }
 
-    public Organization withName(String n, String ref) { return new Organization(id, n, status, ref, createdAt, createdBy, versions); }
+    public Organization withName(final String n, final String ref) { return new Organization(id, n, status, ref, createdAt, createdBy, versions); }
 
-    public Organization withStatus(String s) { return new Organization(id, name, s, externalRef, createdAt, createdBy, versions); }
+    public Organization withStatus(final String s) { return new Organization(id, name, s, externalRef, createdAt, createdBy, versions); }
 
-    public Organization withVersions(List<ContractVersion> v) { return new Organization(id, name, status, externalRef, createdAt, createdBy, v); }
+    public Organization withVersions(final List<ContractVersion> v) { return new Organization(id, name, status, externalRef, createdAt, createdBy, v); }
 
     /** Copy with a version added (or replaced if the number exists). */
-    public Organization withVersion(ContractVersion v) {
+    public Organization withVersion(final ContractVersion v) {
         List<ContractVersion> out = new ArrayList<>();
         boolean replaced = false;
         for (ContractVersion x : versions) {
@@ -65,7 +65,7 @@ public record Organization(String id, String name, String status, String externa
     }
 
     /** The version with this number, or null. */
-    public ContractVersion version(int v) {
+    public ContractVersion version(final int v) {
         for (ContractVersion x : versions) if (x.version() == v) return x;
         return null;
     }

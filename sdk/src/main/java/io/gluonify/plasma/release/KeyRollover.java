@@ -25,7 +25,7 @@ public record KeyRollover(int schema, String version, long sequence, String mani
     static final Pattern B64 = Pattern.compile("[A-Za-z0-9+/]{40,120}={0,2}");
     static final Pattern SHA = Pattern.compile("[0-9a-f]{64}");
 
-    private static final Pattern FORMAT = Pattern.compile("\\{\n\"schema\":([0-9]+),\n\"version\":\"([^\"]*)\",\n\"sequence\":([0-9]{1,15}),\n\"manifestSha256\":\"([^\"]*)\",\n\"createdAt\":\"([^\"]*)\",\n"
+    private static final Pattern FORMAT = Pattern.compile("\\{\n\"schema\":(\\d+),\n\"version\":\"([^\"]*)\",\n\"sequence\":(\\d{1,15}),\n\"manifestSha256\":\"([^\"]*)\",\n\"createdAt\":\"([^\"]*)\",\n"
             + "\"nextKey\":\"([^\"]*)\",\n\"nextKeySha256\":\"([^\"]*)\",\n\"retireOldAfter\":\"([^\"]*)\"\n\\}\n");
 
     /** Structural check; the key must be a readable Ed25519 whose digest is the announced one. */
@@ -34,7 +34,8 @@ public record KeyRollover(int schema, String version, long sequence, String mani
         if (version == null || !ReleaseManifest.VERSION.matcher(version).matches()) throw new ReleaseManifest.Invalid("announcement: invalid version");
         if (sequence < 1) throw new ReleaseManifest.Invalid("announcement: invalid sequence");
         if (manifestSha256 == null || !SHA.matcher(manifestSha256).matches()) throw new ReleaseManifest.Invalid("announcement: invalid manifest digest");
-        java.time.Instant created, retire;
+        java.time.Instant created;
+        java.time.Instant retire;
         try {
             created = java.time.Instant.parse(createdAt);
             retire = java.time.Instant.parse(retireOldAfter);
@@ -57,7 +58,7 @@ public record KeyRollover(int schema, String version, long sequence, String mani
     }
 
     /** Reads the exact format of {@link #toJson()} (identical re-serialization required); to be called only AFTER the signatures are verified. */
-    public static KeyRollover parse(byte[] bytes) {
+    public static KeyRollover parse(final byte[] bytes) {
         if (bytes.length > MAX_BYTES) throw new ReleaseManifest.Invalid("key announcement too large");
         String text = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
         java.util.regex.Matcher m = FORMAT.matcher(text);

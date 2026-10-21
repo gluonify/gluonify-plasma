@@ -14,13 +14,13 @@ import java.util.TreeMap;
 public final class Canonical {
     private Canonical() {}
 
-    public static String json(Object o) {
+    public static String json(final Object o) {
         StringBuilder sb = new StringBuilder();
         write(sb, o);
         return sb.toString();
     }
 
-    private static void write(StringBuilder sb, Object o) {
+    private static void write(final StringBuilder sb, final Object o) {
         if (o == null) {
             sb.append("null");
         } else if (o instanceof String s) {
@@ -61,7 +61,7 @@ public final class Canonical {
         }
     }
 
-    private static void object(StringBuilder sb, Map<String, Object> m) {
+    private static void object(final StringBuilder sb, final Map<String, Object> m) {
         sb.append('{');
         boolean first = true;
         for (var e : m.entrySet()) {
@@ -74,7 +74,7 @@ public final class Canonical {
         sb.append('}');
     }
 
-    private static void string(StringBuilder sb, String s) {
+    private static void string(final StringBuilder sb, final String s) {
         sb.append('"');
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);

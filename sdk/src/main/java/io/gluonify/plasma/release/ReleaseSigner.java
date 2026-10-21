@@ -20,7 +20,7 @@ public final class ReleaseSigner {
     private ReleaseSigner() {}
 
     /** Parcourt {@code dir} : gluonify-strange-linux-amd64, gluonify-higgs-linux-arm64, gluonify-node-image.tar.gz (arch all)… */
-    public static ReleaseManifest build(Path dir, String version, long sequence, Instant createdAt, Instant expires) throws java.io.IOException {
+    public static ReleaseManifest build(final Path dir, final String version, final long sequence, final Instant createdAt, final Instant expires) throws java.io.IOException {
         List<ReleaseManifest.Artifact> out = new ArrayList<>();
         try (Stream<Path> files = Files.list(dir)) {
             for (Path f : files.sorted(Comparator.comparing(Path::getFileName)).toList()) {
@@ -40,7 +40,7 @@ public final class ReleaseSigner {
     }
 
     /** Raw Ed25519 signature (64 bytes) of the manifest bytes. */
-    public static byte[] sign(byte[] manifest, PrivateKey key) {
+    public static byte[] sign(final byte[] manifest, final PrivateKey key) {
         try {
             Signature s = Signature.getInstance("Ed25519");
             s.initSign(key);
@@ -51,12 +51,12 @@ public final class ReleaseSigner {
         }
     }
 
-    public static String signBase64(byte[] manifest, PrivateKey key) {
+    public static String signBase64(final byte[] manifest, final PrivateKey key) {
         return Base64.getEncoder().encodeToString(sign(manifest, key)) + "\n";
     }
 
     /** Key change announcement bound to {@code manifest} (signed bytes); to be signed with the current key then countersigned with the new one. */
-    public static KeyRollover rollover(byte[] manifestBytes, ReleaseManifest manifest, java.security.PublicKey nextKey, Instant createdAt, Instant retireOldAfter) {
+    public static KeyRollover rollover(final byte[] manifestBytes, final ReleaseManifest manifest, final java.security.PublicKey nextKey, final Instant createdAt, final Instant retireOldAfter) {
         TrustedKeys.Key k = TrustedKeys.Key.ofDer(Base64.getEncoder().encodeToString(nextKey.getEncoded()));
         return new KeyRollover(KeyRollover.SCHEMA, manifest.version(), manifest.sequence(), ReleaseVerifier.sha256(manifestBytes), createdAt.toString(), k.der(), k.sha256(), retireOldAfter.toString()).validate();
     }

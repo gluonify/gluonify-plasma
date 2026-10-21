@@ -27,90 +27,91 @@ public record DeployRequest(@Schema(description = "OCI image of the native Quark
         @Schema(description = "Python application: targeted python3 minor version, \"3.13\" (Bup sends it with a python framework archive); placed only on nodes that advertise the same version. Absent: not a Python application", example = "3.13") String pythonVersion,
         @Schema(description = "true: the application exposes MCP tools on POST /mcp, relayed by Prism to the organization's AI assistants (gluonify-codex/app-mcp.md); Bup sends it when the SDK marker is present. Absent or false: no MCP tools", example = "true") Boolean mcp) {
     /** Compatibility: no MCP tools. */
-    public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
-                         Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
-                         java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, Boolean gdownDatabase, String organization, String provenance, String artifactLevel, String pythonVersion) {
+    public DeployRequest(final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final java.util.Map<String, String> artifacts, final Boolean top, final Integer scratchMb,
+                         final Boolean nas, final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal,
+                         final java.util.List<Integer> ports, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks, final SleepSpec sleep, final Boolean gdownDatabase, final String organization, final String provenance, final String artifactLevel, final String pythonVersion) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, gdownDatabase, organization, provenance, artifactLevel, pythonVersion, null);
     }
 
     /** Compatibility: not a Python application. */
-    public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
-                         Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
-                         java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, Boolean gdownDatabase, String organization, String provenance, String artifactLevel) {
+    public DeployRequest(final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final java.util.Map<String, String> artifacts, final Boolean top, final Integer scratchMb,
+                         final Boolean nas, final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal,
+                         final java.util.List<Integer> ports, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks, final SleepSpec sleep, final Boolean gdownDatabase, final String organization, final String provenance, final String artifactLevel) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, gdownDatabase, organization, provenance, artifactLevel, null);
     }
 
     /** Compatibility: no executable level. */
-    public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
-                         Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
-                         java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, Boolean gdownDatabase, String organization, String provenance) {
+    public DeployRequest(final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final java.util.Map<String, String> artifacts, final Boolean top, final Integer scratchMb,
+                         final Boolean nas, final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal,
+                         final java.util.List<Integer> ports, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks, final SleepSpec sleep, final Boolean gdownDatabase, final String organization, final String provenance) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, gdownDatabase, organization, provenance, null);
     }
 
     /** Compatibility: no provenance token. */
-    public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
-                         Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
-                         java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, Boolean gdownDatabase, String organization) {
+    public DeployRequest(final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final java.util.Map<String, String> artifacts, final Boolean top, final Integer scratchMb,
+                         final Boolean nas, final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal,
+                         final java.util.List<Integer> ports, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks, final SleepSpec sleep, final Boolean gdownDatabase, final String organization) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, gdownDatabase, organization, null);
     }
 
     /** Compatibility: no organization. */
-    public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
-                         Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
-                         java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep, Boolean gdownDatabase) {
+    public DeployRequest(final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final java.util.Map<String, String> artifacts, final Boolean top, final Integer scratchMb,
+                         final Boolean nas, final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal,
+                         final java.util.List<Integer> ports, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks, final SleepSpec sleep, final Boolean gdownDatabase) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, gdownDatabase, null);
     }
 
     /** Compatibility: no dedicated database. */
-    public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
-                         Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
-                         java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks, SleepSpec sleep) {
+    public DeployRequest(final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final java.util.Map<String, String> artifacts, final Boolean top, final Integer scratchMb,
+                         final Boolean nas, final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal,
+                         final java.util.List<Integer> ports, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks, final SleepSpec sleep) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, null);
     }
 
     /** Compatibility: no sleep mode. */
-    public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
-                         Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
-                         java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb, Boolean distributedLocks) {
+    public DeployRequest(final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final java.util.Map<String, String> artifacts, final Boolean top, final Integer scratchMb,
+                         final Boolean nas, final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal,
+                         final java.util.List<Integer> ports, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, null);
     }
 
     /** Compatibility: no cross-node locks. */
-    public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
-                         Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
-                         java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret, Integer distributedQuotaMb) {
+    public DeployRequest(final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final java.util.Map<String, String> artifacts, final Boolean top, final Integer scratchMb,
+                         final Boolean nas, final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal,
+                         final java.util.List<Integer> ports, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, distributedQuotaMb, null);
     }
 
     /** Compatibility: no quota. */
-    public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
-                         Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
-                         java.util.List<Integer> ports, java.util.List<String> distributed, String pullSecret) {
+    public DeployRequest(final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final java.util.Map<String, String> artifacts, final Boolean top, final Integer scratchMb,
+                         final Boolean nas, final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal,
+                         final java.util.List<Integer> ports, final java.util.List<String> distributed, final String pullSecret) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, pullSecret, null);
     }
 
     /** Compatibility: no download secret. */
-    public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top, Integer scratchMb,
-                         Boolean nas, java.util.Map<String, String> env, java.util.List<String> generated, java.util.List<String> uses, String pin, Boolean internal,
-                         java.util.List<Integer> ports, java.util.List<String> distributed) {
+    public DeployRequest(final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final java.util.Map<String, String> artifacts, final Boolean top, final Integer scratchMb,
+                         final Boolean nas, final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal,
+                         final java.util.List<Integer> ports, final java.util.List<String> distributed) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, scratchMb, nas, env, generated, uses, pin, internal, ports, distributed, null);
     }
 
     /** Compatibility: no explicit workspace or NAS. */
-    public DeployRequest(String image, Integer replicas, Integer port, Integer memoryMb, String topNamespace, java.util.Map<String, String> artifacts, Boolean top) {
+    public DeployRequest(final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final java.util.Map<String, String> artifacts, final Boolean top) {
         this(image, replicas, port, memoryMb, topNamespace, artifacts, top, null, null, null, null, null, null, null, null, null, null);
     }
 
     /** Specification of the application; {@code organization} is {@link Organizations#UNASSIGNED}: none (the control-plane tells "absent" from "removed" through {@link #organization()}). */
-    public AppSpec toSpec(String name) {
+    public AppSpec toSpec(final String name) {
         return toSpec(name, null);
     }
 
     /** uuid: identifier of the application (kept from one deployment to the next); with top=true, the namespace is "<uuid>.app". */
-    public AppSpec toSpec(String name, String uuid) {
+    public AppSpec toSpec(final String name, final String uuid) {
         String ns = Boolean.TRUE.equals(top) && uuid != null ? uuid + ".app" : topNamespace;
         java.util.Map<String, String> e = env;
-        java.util.List<String> g = generated, u = uses;
+        java.util.List<String> g = generated;
+        java.util.List<String> u = uses;
         if (Boolean.TRUE.equals(gdownDatabase) && uuid != null) { // dedicated database: everything the application needs is derived from the specification (the control-plane only has to create the database)
             String db = gdownDatabaseName(uuid);
             e = new java.util.TreeMap<>(env == null ? java.util.Map.of() : env);
@@ -127,12 +128,12 @@ public record DeployRequest(@Schema(description = "OCI image of the native Quark
     }
 
     /** Name of the startup secret that carries the password of the dedicated database: specific to the application, value generated and kept by the control-plane. */
-    public static String gdownPasswordSecret(String uuid) {
+    public static String gdownPasswordSecret(final String uuid) {
         return "GLUONIFY_GDOWN_PASSWORD_" + gdownDatabaseName(uuid).substring(3).toUpperCase(java.util.Locale.ROOT);
     }
 
     /** Name of the dedicated database of an application: stable (derived from the uuid), valid for gDown. */
-    public static String gdownDatabaseName(String uuid) {
+    public static String gdownDatabaseName(final String uuid) {
         return "app" + uuid.replace("-", "").substring(0, 16);
     }
 }

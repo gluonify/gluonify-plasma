@@ -22,13 +22,13 @@ public final class TaskCatalogue {
 
     /** @param modes "bootstrap" (installation agent) and/or "agent" (installed node). */
     public record Type(String name, Set<String> modes, List<Param> params, int timeoutSec) {
-        public Param param(String n) {
+        public Param param(final String n) {
             return params.stream().filter(p -> p.name().equals(n)).findFirst().orElse(null);
         }
     }
 
     public static final class Invalid extends RuntimeException {
-        public Invalid(String message) {
+        public Invalid(final String message) {
             super(message);
         }
     }
@@ -43,8 +43,8 @@ public final class TaskCatalogue {
     static final Pattern HOST = Pattern.compile("[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?");
     static final Pattern ADDRESS = Pattern.compile("([A-Za-z0-9][A-Za-z0-9.-]{0,251}|[0-9A-Fa-f:]{2,45})");
     static final Pattern IPS = Pattern.compile("[0-9A-Fa-f:.]{2,45}(,[0-9A-Fa-f:.]{2,45}){0,7}");
-    static final Pattern HOSTPORT = Pattern.compile("[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?:[0-9]{1,5}");
-    static final Pattern URL = Pattern.compile("https?://[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?(:[0-9]{1,5})?");
+    static final Pattern HOSTPORT = Pattern.compile("[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?:\\d{1,5}");
+    static final Pattern URL = Pattern.compile("https?://[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?(:\\d{1,5})?");
     static final Pattern TOKEN = Pattern.compile("[A-Za-z0-9._~-]{8,256}");
     static final Pattern EMAIL = Pattern.compile("[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,200}");
     static final Pattern ROLE = Pattern.compile("worker|storage");
@@ -54,13 +54,15 @@ public final class TaskCatalogue {
     static final Pattern COMPONENT = Pattern.compile("strange|higgs");
     static final Pattern UNINSTALL = Pattern.compile("strange|higgs|all");
 
-    private static Param req(String n, Pattern p) { return new Param(n, p, true, false); }
-    private static Param opt(String n, Pattern p) { return new Param(n, p, false, false); }
+    private static Param req(final String n, final Pattern p) { return new Param(n, p, true, false); }
+    private static Param opt(final String n, final Pattern p) { return new Param(n, p, false, false); }
 
     public static final Map<String, Type> TYPES;
 
     static {
-        Set<String> both = Set.of(BOOTSTRAP, AGENT), boot = Set.of(BOOTSTRAP), agent = Set.of(AGENT);
+        Set<String> both = Set.of(BOOTSTRAP, AGENT);
+        Set<String> boot = Set.of(BOOTSTRAP);
+        Set<String> agent = Set.of(AGENT);
         Map<String, Type> t = new LinkedHashMap<>();
         t.put("report-status", new Type("report-status", both, List.of(), 30));
         t.put("install-wireguard", new Type("install-wireguard", both, List.of(req("version", VERSION)), 600));
@@ -82,7 +84,7 @@ public final class TaskCatalogue {
      * Validates a task for an execution mode; returns the parameters (copy). Rejects: unknown type or type not allowed in this mode, unknown or missing parameter, too long
      * or outside the pattern, too many parameters.
      */
-    public static Map<String, String> validate(String type, Map<String, String> params, String mode) {
+    public static Map<String, String> validate(final String type, final Map<String, String> params, final String mode) {
         Type t = type == null ? null : TYPES.get(type);
         if (t == null) throw new Invalid("unknown task type");
         if (!t.modes().contains(mode)) throw new Invalid("task \"" + type + "\" not allowed in mode " + mode);
@@ -104,7 +106,7 @@ public final class TaskCatalogue {
     }
 
     /** Parameters without the secret values (log, events, results). */
-    public static Map<String, String> masked(String type, Map<String, String> params) {
+    public static Map<String, String> masked(final String type, final Map<String, String> params) {
         Type t = TYPES.get(type);
         Map<String, String> out = new LinkedHashMap<>();
         if (params == null) return out;

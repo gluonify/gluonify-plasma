@@ -47,7 +47,10 @@ public final class McpContract {
     public static final String MARKER = "META-INF/gluonify/mcp";
 
     /** JSON-RPC error codes used by the server. */
-    public static final int PARSE_ERROR = -32700, INVALID_REQUEST = -32600, METHOD_NOT_FOUND = -32601, INVALID_PARAMS = -32602;
+    public static final int PARSE_ERROR = -32700;
+    public static final int INVALID_REQUEST = -32600;
+    public static final int METHOD_NOT_FOUND = -32601;
+    public static final int INVALID_PARAMS = -32602;
 
     /** True when {@code name} follows {@link #TOOL_NAME}. */
     public static boolean isValidToolName(final String name) {

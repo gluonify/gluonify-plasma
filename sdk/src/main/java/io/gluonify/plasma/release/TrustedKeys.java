@@ -23,7 +23,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
     public record Key(String sha256, String der) {
         static final Pattern B64 = Pattern.compile("[A-Za-z0-9+/]{40,120}={0,2}");
 
-        public static Key ofDer(String b64) {
+        public static Key ofDer(final String b64) {
             if (b64 == null || !B64.matcher(b64).matches()) throw new ReleaseManifest.Invalid("unreadable public key");
             byte[] d;
             try {
@@ -35,7 +35,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
             return new Key(sha(d), b64);
         }
 
-        public static Key ofPem(String pem) {
+        public static Key ofPem(final String pem) {
             PublicKey k = ReleaseVerifier.publicKey(pem);
             return ofDer(Base64.getEncoder().encodeToString(k.getEncoded()));
         }
@@ -53,7 +53,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
         }
     }
 
-    static String sha(byte[] d) {
+    static String sha(final byte[] d) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(d));
         } catch (java.security.NoSuchAlgorithmException e) {
@@ -65,7 +65,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
     private static final Pattern SHA_P = Pattern.compile("[0-9a-f]{64}");
 
     /** Original state: a single key (the {@code release.pub} file of a node installed before the rotation). */
-    public static TrustedKeys single(Key k) {
+    public static TrustedKeys single(final Key k) {
         return new TrustedKeys(k, null, null, 0);
     }
 
@@ -75,7 +75,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
     }
 
     /** Keys accepted at {@code now}: {@code current} until the switch date, {@code next} during the overlap. */
-    public List<Key> accepted(Instant now) {
+    public List<Key> accepted(final Instant now) {
         List<Key> out = new ArrayList<>();
         if (next == null || now.isBefore(retireCurrentAfter)) out.add(current);
         if (next != null) out.add(next);
@@ -92,12 +92,13 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
     }
 
     /** Strict reading of the {@code release.keys} file; any unexpected line or inconsistent digest is refused. */
-    public static TrustedKeys parse(String text) {
+    public static TrustedKeys parse(final String text) {
         String[] lines = text.split("\n", -1);
         if (lines.length < 4 || !lines[0].equals(HEADER)) throw new ReleaseManifest.Invalid("unreadable keys file");
-        if (!lines[1].matches("sequence [0-9]{1,15}")) throw new ReleaseManifest.Invalid("keys file: unreadable sequence");
+        if (!lines[1].matches("sequence \\d{1,15}")) throw new ReleaseManifest.Invalid("keys file: unreadable sequence");
         long seq = Long.parseLong(lines[1].substring(9));
-        Key cur = null, nxt = null;
+        Key cur = null;
+        Key nxt = null;
         Instant retire = null;
         int i = 2;
         String[] p = lines[i++].split(" ");
@@ -117,7 +118,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
         return new TrustedKeys(cur, nxt, retire, seq);
     }
 
-    private static Key checked(String sha, String der) {
+    private static Key checked(final String sha, final String der) {
         if (!SHA_P.matcher(sha).matches()) throw new ReleaseManifest.Invalid("keys file: invalid digest");
         Key k = Key.ofDer(der);
         if (!k.sha256().equals(sha)) throw new ReleaseManifest.Invalid("keys file: inconsistent digest");
@@ -133,7 +134,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
      * Verifies the manifest with the keys accepted at {@code now}: {@code sig} first, then {@code sig2} (countersignature by the new key, optional). Structure, expiration and
      * sequence ({@code >= minSequence}) as in {@link ReleaseVerifier#verify}. A manifest signed ONLY by the retired key is refused with an explicit message.
      */
-    public Verified verify(byte[] manifest, byte[] sig, byte[] sig2, java.util.function.Function<byte[], ReleaseManifest> parser, long minSequence, Instant now) {
+    public Verified verify(final byte[] manifest, final byte[] sig, final byte[] sig2, final java.util.function.Function<byte[], ReleaseManifest> parser, final long minSequence, final Instant now) {
         List<Key> ok = accepted(now);
         for (int pass = 0; pass < 2; pass++) {
             byte[] s = pass == 0 ? sig : sig2;
@@ -168,7 +169,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
      * (3) the new key countersigned the announcement ({@code rolloverSig2}) and, if present, the manifest ({@code sig2}); (4) the sequence exceeds that of the last key change;
      * (5) the new key differs from the signing key, the switch date is in the future; (6) no concurrent rotation: if a next key is already installed, it is the same one.
      */
-    public Applied applyRollover(byte[] manifest, byte[] sig, byte[] sig2, byte[] rollover, byte[] rolloverSig, byte[] rolloverSig2, long highestSeen, Instant now) {
+    public Applied applyRollover(final byte[] manifest, final byte[] sig, final byte[] sig2, final byte[] rollover, final byte[] rolloverSig, final byte[] rolloverSig2, final long highestSeen, final Instant now) {
         if (sig == null || rollover == null || rolloverSig == null || rolloverSig2 == null) throw new ReleaseManifest.Invalid("incomplete key announcement (manifest, announcement and countersignature required)");
         Verified v = verify(manifest, sig, null, ReleaseManifest::parse, highestSeen, now); // only the main signature, never sig2, carries the announcement
         if (!ReleaseVerifier.signatureValid(rollover, rolloverSig, v.signer().publicKey())) throw new ReleaseManifest.Invalid("key announcement: invalid signature (not that of the key that signs the manifest)");
@@ -191,7 +192,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
      * Finishes the rotation: the next key becomes the only key (the old one is retired). Requires a valid manifest signed by the NEXT key (proof that it works in practice),
      * not expired, sequence {@code >= highestSeen}.
      */
-    public Applied finish(byte[] manifest, byte[] sig, byte[] sig2, long highestSeen, Instant now) {
+    public Applied finish(final byte[] manifest, final byte[] sig, final byte[] sig2, final long highestSeen, final Instant now) {
         if (next == null) return new Applied(this, false, null); // nothing to finish: already the only key
         TrustedKeys onlyNext = new TrustedKeys(next, null, null, sequence);
         Verified v = onlyNext.verify(manifest, sig, sig2, ReleaseManifest::parse, highestSeen, now);
