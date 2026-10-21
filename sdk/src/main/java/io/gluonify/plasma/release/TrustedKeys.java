@@ -133,8 +133,17 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
     /**
      * Verifies the manifest with the keys accepted at {@code now}: {@code sig} first, then {@code sig2} (countersignature by the new key, optional). Structure, expiration and
      * sequence ({@code >= minSequence}) as in {@link ReleaseVerifier#verify}. A manifest signed ONLY by the retired key is refused with an explicit message.
+     *
+     * @param signed      the manifest with its signature and optional countersignature
+     * @param parser      reads the manifest
+     * @param minSequence the lowest accepted sequence
+     * @param now         the time of the check
+     * @return the verified manifest and its signer
      */
-    public Verified verify(byte[] manifest, byte[] sig, byte[] sig2, java.util.function.Function<byte[], ReleaseManifest> parser, long minSequence, Instant now) {
+    public Verified verify(final Signed signed, final java.util.function.Function<byte[], ReleaseManifest> parser, final long minSequence, final Instant now) {
+        final byte[] manifest = signed.manifest();
+        final byte[] sig = signed.sig();
+        final byte[] sig2 = signed.sig2();
         List<Key> ok = accepted(now);
         for (int pass = 0; pass < 2; pass++) {
             byte[] s = pass == 0 ? sig : sig2;
@@ -144,6 +153,21 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
         }
         refuseRetired(manifest, sig, ok);
         throw new ReleaseManifest.Invalid("invalid manifest signature");
+    }
+
+    /** A manifest with its signature and its optional countersignature ({@code sig2}, by the new key). */
+    public record Signed(byte[] manifest, byte[] sig, byte[] sig2) {
+    }
+
+    /**
+     * Verifies the manifest with the keys accepted at {@code now}.
+     *
+     * @deprecated since 0.7.2, use {@link #verify(Signed, java.util.function.Function, long, Instant)}; removed in the version after.
+     */
+    @Deprecated(since = "0.7.2", forRemoval = true)
+    @SuppressWarnings({"java:S107", "gluonify-native:GN13"})
+    public Verified verify(byte[] manifest, byte[] sig, byte[] sig2, java.util.function.Function<byte[], ReleaseManifest> parser, long minSequence, Instant now) {
+        return verify(new Signed(manifest, sig, sig2), parser, minSequence, now);
     }
 
     /** The accepted key whose signature {@code s} of the manifest is valid, null when none. */
@@ -179,10 +203,22 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
      * currently accepted, not expired, sequence {@code >= highestSeen}; (2) the announcement is signed by THAT SAME key, bound to the manifest (digest, version, sequence);
      * (3) the new key countersigned the announcement ({@code rolloverSig2}) and, if present, the manifest ({@code sig2}); (4) the sequence exceeds that of the last key change;
      * (5) the new key differs from the signing key, the switch date is in the future; (6) no concurrent rotation: if a next key is already installed, it is the same one.
+     *
+     * @param signed       the manifest with its signature and countersignature
+     * @param announcement the key announcement with its signature and the new key's countersignature
+     * @param highestSeen  the highest sequence seen so far
+     * @param now          the time of the check
+     * @return the new set of keys, and whether it changed
      */
-    public Applied applyRollover(byte[] manifest, byte[] sig, byte[] sig2, byte[] rollover, byte[] rolloverSig, byte[] rolloverSig2, long highestSeen, Instant now) {
+    public Applied applyRollover(final Signed signed, final Announcement announcement, final long highestSeen, final Instant now) {
+        final byte[] manifest = signed.manifest();
+        final byte[] sig = signed.sig();
+        final byte[] sig2 = signed.sig2();
+        final byte[] rollover = announcement.rollover();
+        final byte[] rolloverSig = announcement.sig();
+        final byte[] rolloverSig2 = announcement.sig2();
         if (sig == null || rollover == null || rolloverSig == null || rolloverSig2 == null) throw new ReleaseManifest.Invalid("incomplete key announcement (manifest, announcement and countersignature required)");
-        Verified v = verify(manifest, sig, null, ReleaseManifest::parse, highestSeen, now); // only the main signature, never sig2, carries the announcement
+        Verified v = verify(new Signed(manifest, sig, null), ReleaseManifest::parse, highestSeen, now); // only the main signature, never sig2, carries the announcement
         if (!ReleaseVerifier.signatureValid(rollover, rolloverSig, v.signer().publicKey())) throw new ReleaseManifest.Invalid("key announcement: invalid signature (not that of the key that signs the manifest)");
         KeyRollover r = KeyRollover.parse(rollover);
         checkBinding(r, v, manifest);
@@ -198,6 +234,21 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
         return new Applied(new TrustedKeys(current, nk, r.retireAt(), r.sequence()), true, v.manifest());
     }
 
+    /** A key announcement with its signature (by the signing key) and countersignature (by the new key). */
+    public record Announcement(byte[] rollover, byte[] sig, byte[] sig2) {
+    }
+
+    /**
+     * Rules for accepting a key change.
+     *
+     * @deprecated since 0.7.2, use {@link #applyRollover(Signed, Announcement, long, Instant)}; removed in the version after.
+     */
+    @Deprecated(since = "0.7.2", forRemoval = true)
+    @SuppressWarnings({"java:S107", "gluonify-native:GN13"})
+    public Applied applyRollover(byte[] manifest, byte[] sig, byte[] sig2, byte[] rollover, byte[] rolloverSig, byte[] rolloverSig2, long highestSeen, Instant now) {
+        return applyRollover(new Signed(manifest, sig, sig2), new Announcement(rollover, rolloverSig, rolloverSig2), highestSeen, now);
+    }
+
     private static void checkBinding(final KeyRollover r, final Verified v, final byte[] manifest) {
         if (!r.version().equals(v.manifest().version()) || r.sequence() != v.manifest().sequence()) throw new ReleaseManifest.Invalid("key announcement: version or sequence differs from the manifest");
         if (!r.manifestSha256().equals(sha(manifest))) throw new ReleaseManifest.Invalid("key announcement: not bound to this manifest");
@@ -210,7 +261,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
     public Applied finish(final byte[] manifest, final byte[] sig, final byte[] sig2, final long highestSeen, final Instant now) {
         if (next == null) return new Applied(this, false, null); // nothing to finish: already the only key
         TrustedKeys onlyNext = new TrustedKeys(next, null, null, sequence);
-        Verified v = onlyNext.verify(manifest, sig, sig2, ReleaseManifest::parse, highestSeen, now);
+        Verified v = onlyNext.verify(new Signed(manifest, sig, sig2), ReleaseManifest::parse, highestSeen, now);
         return new Applied(new TrustedKeys(next, null, null, sequence), true, v.manifest());
     }
 }

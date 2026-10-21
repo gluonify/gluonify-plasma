@@ -68,15 +68,46 @@ public final class UsageMeter {
         synchronized void add(final BigDecimal q) { sum = sum.add(q); }
     }
 
-    public UsageMeter(String service, String replica, String node, String version, String env, int maxKeysPerWindow, LongSupplier clock, SeqSource seqs) {
-        this.service = service;
-        this.replica = replica;
-        this.node = node;
-        this.version = version;
-        this.env = env == null || env.isBlank() ? "PRD" : env;
+    /** Who emits: the service, its replica and node, its version and the environment (null or blank: {@code PRD}). */
+    public record Identity(String service, String replica, String node, String version, String env) {
+    }
+
+    /** What is measured: the unit, its dimensions and the quantity. */
+    public record Measure(String unit, Map<String, String> dims, BigDecimal quantity) {
+    }
+
+    /** How a measure is attributed: usage by a platform service ({@code internal}) and the organisation it acts for, or null. */
+    public record Attribution(boolean internal, String onBehalfOf) {
+    }
+
+    /**
+     * Creates a meter.
+     *
+     * @param identity        who emits
+     * @param maxKeysPerWindow most keys kept per window; beyond, they are merged into {@code _overflow}
+     * @param clock           the time source, in milliseconds
+     * @param seqs            the source of the record numbers
+     */
+    public UsageMeter(final Identity identity, final int maxKeysPerWindow, final LongSupplier clock, final SeqSource seqs) {
+        this.service = identity.service();
+        this.replica = identity.replica();
+        this.node = identity.node();
+        this.version = identity.version();
+        this.env = identity.env() == null || identity.env().isBlank() ? "PRD" : identity.env();
         this.maxKeysPerWindow = Math.max(1, maxKeysPerWindow);
         this.clock = clock;
         this.seqs = seqs;
+    }
+
+    /**
+     * Creates a meter.
+     *
+     * @deprecated since 0.7.2, use {@link #UsageMeter(Identity, int, LongSupplier, SeqSource)}; removed in the version after.
+     */
+    @Deprecated(since = "0.7.2", forRemoval = true)
+    @SuppressWarnings({"java:S107", "gluonify-native:GN13"})
+    public UsageMeter(String service, String replica, String node, String version, String env, int maxKeysPerWindow, LongSupplier clock, SeqSource seqs) {
+        this(new Identity(service, replica, node, version, env), maxKeysPerWindow, clock, seqs);
     }
 
     public String service() { return service; }
@@ -102,7 +133,7 @@ public final class UsageMeter {
 
     /** Adds {@code quantity} to the current window. */
     public boolean add(final UsageRecord.Subject subject, final String unit, final Map<String, String> dims, final BigDecimal quantity) {
-        return add(clock.getAsLong(), subject, unit, dims, quantity, false, null);
+        return add(clock.getAsLong(), subject, new Measure(unit, dims, quantity), new Attribution(false, null));
     }
 
     public boolean add(final UsageRecord.Subject subject, final String unit, final Map<String, String> dims, final long quantity) {
@@ -112,8 +143,19 @@ public final class UsageMeter {
     /**
      * Adds {@code quantity} to the window that contains {@code at} (ms). {@code internal}/{@code onBehalfOf}: usage by a platform service (§ 3.5).
      * False if the unit is refused.
+     *
+     * @param at          the time, in milliseconds
+     * @param subject     who the usage is for
+     * @param measure     the unit, dimensions and quantity
+     * @param attribution internal usage and on-behalf-of organisation
+     * @return false if the unit is refused
      */
-    public boolean add(long at, UsageRecord.Subject subject, String unit, Map<String, String> dims, BigDecimal quantity, boolean internal, String onBehalfOf) {
+    public boolean add(final long at, final UsageRecord.Subject subject, final Measure measure, final Attribution attribution) {
+        final String unit = measure.unit();
+        final Map<String, String> dims = measure.dims();
+        final BigDecimal quantity = measure.quantity();
+        final boolean internal = attribution.internal();
+        final String onBehalfOf = attribution.onBehalfOf();
         UsageUnit u = UsageCatalog.get(unit);
         if (u == null || !u.service().equals(service) || quantity == null || quantity.signum() < 0 || subject == null || !dimsAllowed(u, dims)) {
             invalid.incrementAndGet();
@@ -140,6 +182,17 @@ public final class UsageMeter {
         }
         c.add(quantity);
         return true;
+    }
+
+    /**
+     * Adds {@code quantity} to the window that contains {@code at} (ms).
+     *
+     * @deprecated since 0.7.2, use {@link #add(long, UsageRecord.Subject, Measure, Attribution)}; removed in the version after.
+     */
+    @Deprecated(since = "0.7.2", forRemoval = true)
+    @SuppressWarnings({"java:S107", "gluonify-native:GN13"})
+    public boolean add(long at, UsageRecord.Subject subject, String unit, Map<String, String> dims, BigDecimal quantity, boolean internal, String onBehalfOf) {
+        return add(at, subject, new Measure(unit, dims, quantity), new Attribution(internal, onBehalfOf));
     }
 
     private static boolean dimsAllowed(final UsageUnit u, final Map<String, String> dims) {

@@ -149,8 +149,12 @@ public final class UsageEmitter {
     /**
      * Transport taken from the platform environment: {@code GLUONIFY_SERVICE_CALORIMETER_URL} and {@code GLUONIFY_CALORIMETER_TOKEN_FILE}
      * ({@code uses: ["calorimeter"]}); null without an address. Re-read on each call by the emitter (the token file may arrive after startup).
+     *
+     * @param env     reads an environment variable
+     * @param timeout the timeout of the transport
+     * @return the transport supplier
      */
-    public static Supplier<Transport> fromEnvironment(java.util.function.Function<String, String> env, Duration timeout) {
+    public static Supplier<Transport> fromEnvironment(final java.util.function.UnaryOperator<String> env, final Duration timeout) {
         Transport[] cached = new Transport[1];
         String[] key = new String[1];
         return () -> {
@@ -164,6 +168,17 @@ public final class UsageEmitter {
             }
             return cached[0];
         };
+    }
+
+    /**
+     * Transport taken from the platform environment.
+     *
+     * @deprecated since 0.7.2, use {@link #fromEnvironment(java.util.function.UnaryOperator, Duration)}; removed in the version after.
+     */
+    @Deprecated(since = "0.7.2", forRemoval = true)
+    @SuppressWarnings("java:S4276")
+    public static Supplier<Transport> fromEnvironment(java.util.function.Function<String, String> env, Duration timeout) {
+        return fromEnvironment((java.util.function.UnaryOperator<String>) env::apply, timeout);
     }
 
     /** For tests: the body of a batch. */

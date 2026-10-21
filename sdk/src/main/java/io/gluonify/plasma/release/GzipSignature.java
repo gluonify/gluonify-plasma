@@ -207,8 +207,19 @@ public final class GzipSignature {
     /**
      * Signs an UNSIGNED gzip: writes to {@code out} the same gzip with the GL subfield. Refuses an already signed file. {@code name}, {@code arch}, {@code version}, {@code sequence} and
      * {@code expires} become the claims.
+     *
+     * @param unsigned the unsigned gzip
+     * @param out      where the signed gzip is written
+     * @param signing  the claims: component, architecture, version, sequence and expiry
+     * @param key      the private signing key
+     * @throws IOException if a file cannot be read or written
      */
-    public static void sign(Path unsigned, Path out, String name, String arch, String version, long sequence, Instant expires, PrivateKey key) throws IOException {
+    public static void sign(final Path unsigned, final Path out, final Signing signing, final PrivateKey key) throws IOException {
+        final String name = signing.name();
+        final String arch = signing.arch();
+        final String version = signing.version();
+        final long sequence = signing.sequence();
+        final Instant expires = signing.expires();
         Header h;
         try (InputStream in = new java.io.BufferedInputStream(Files.newInputStream(unsigned), 65536)) {
             h = header(in);
@@ -243,6 +254,21 @@ public final class GzipSignature {
             o.write(gl);
             in.transferTo(o);
         }
+    }
+
+    /** The claims a signature carries besides the digest. */
+    public record Signing(String name, String arch, String version, long sequence, Instant expires) {
+    }
+
+    /**
+     * Signs an UNSIGNED gzip.
+     *
+     * @deprecated since 0.7.2, use {@link #sign(Path, Path, Signing, PrivateKey)}; removed in the version after.
+     */
+    @Deprecated(since = "0.7.2", forRemoval = true)
+    @SuppressWarnings({"java:S107", "gluonify-native:GN13"})
+    public static void sign(Path unsigned, Path out, String name, String arch, String version, long sequence, Instant expires, PrivateKey key) throws IOException {
+        sign(unsigned, out, new Signing(name, arch, version, sequence, expires), key);
     }
 
     /**
