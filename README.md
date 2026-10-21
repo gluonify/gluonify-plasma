@@ -14,7 +14,7 @@ Maven parent POM of the Gluonify components (`io.gluonify.plasma:gluonify-plasma
 | `gluonify-plasma-build-rules` (`build-rules/`) | the PMD ruleset checked by every Gluonify build (`gluonify/pmd/ruleset.xml`) and `quality_ratchet.py` (coverage and baseline ratchets): see [Quality gates](#quality-gates) | — |
 | `gluonify-plasma-cli` (`cli/`) | the `gluonify` command (executable jar): `login <zone>` in the browser (PKCE), `logout`, `status`, `token <service>`; [README](cli/README.md) | 17 |
 
-`sdk`, `services`, `crystallon-client`, `testing`, `quarkus`, `mcp` and `cli` are the modules published for customer applications (Maven repository `https://images.gluonify.io/maven`): they compile for Java 17 (`maven.compiler.release` 17; `quarkus` and `mcp`: 21, the minimum of Quarkus 4), the parent and `fermion-client` for Java 25. The repository version `0.1.0-SNAPSHOT` is set at publication (it follows the platform version). The `gluonify.code-workspace` file opens all Gluonify repositories in VS Code (assumed to sit side by side).
+`sdk`, `services`, `crystallon-client`, `testing`, `quarkus`, `mcp` and `cli` are the modules published for customer applications (Maven repository `https://images.gluonify.io/maven`): they compile for Java 17 (`maven.compiler.release` 17; `quarkus` and `mcp`: 21, the minimum of Quarkus 4), the parent and `fermion-client` for Java 25. The repository version `0.1.0-SNAPSHOT` is set at publication (it follows the platform version).
 
 ```
 mvn install      # installs the parent, the SDK and the clients into ~/.m2: prerequisite of gluonify-higgs, -strange, -rup

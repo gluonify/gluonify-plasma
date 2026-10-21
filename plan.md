@@ -47,4 +47,4 @@
 - [ ] Cross-signature by two publishers (two publication keys valid at all times) at key rotation.
 
 ## Housekeeping (non-functional)
-- [ ] `gluonify.code-workspace` modified and `claude_conversation.txt` at the root: session files to sort or commit, not yet done by the user.
+- [x] `gluonify.code-workspace` and `CLAUDE.md` no longer tracked (2026-10-21, before the repository goes public): the workspace file stays local (`.git/info/exclude`), `CLAUDE.md` is a local link to `gluonify-horizon/context/repos/gluonify-plasma.md` placed by `horizon init`; history not rewritten (gitleaks 8.30.1 clean).
