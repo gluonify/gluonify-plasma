@@ -26,7 +26,7 @@ public record AnalysisReport(Integer v, String buildId, AnalysisSummary summary,
             .thenComparing(f -> f.id() == null ? "" : f.id());
 
     public AnalysisReport {
-        if (v == null || v == 0) v = Finding.VERSION;
+        if (v == null || v == 0) v = Finding.CURRENT_VERSION;
         List<Finding> sorted = new ArrayList<>(findings == null ? List.of() : findings);
         sorted.sort(ORDER);
         findings = List.copyOf(sorted);

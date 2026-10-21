@@ -155,7 +155,7 @@ public final class TermsValidator {
     /** Errors of a plan reference: identifier and version >= 1 (null: valid, no plan). */
     static void planRef(final ContractTerms.PlanRef r, final List<String> e) {
         if (r == null) return;
-        if (r.id() == null || !Plan.ID.matcher(r.id()).matches()) e.add("plan.id : invalid identifier (" + r.id() + ")");
+        if (r.id() == null || !Plan.ID_PATTERN.matcher(r.id()).matches()) e.add("plan.id : invalid identifier (" + r.id() + ")");
         if (r.version() == null || r.version() < 1) e.add("plan.version : integer >= 1 required");
     }
 
@@ -204,7 +204,7 @@ public final class TermsValidator {
     }
 
     private static void priceListRef(final ContractTerms.PriceListRef ref, final List<String> e) {
-        if (ref.id() == null || !PriceList.ID.matcher(ref.id()).matches()) e.add("pricing.priceList.id : invalid identifier");
+        if (ref.id() == null || !PriceList.ID_PATTERN.matcher(ref.id()).matches()) e.add("pricing.priceList.id : invalid identifier");
         boolean follow = Boolean.TRUE.equals(ref.follow());
         if (follow && ref.version() != null) e.add("pricing.priceList : version and follow are incompatible");
         if (!follow && ref.version() == null) e.add("pricing.priceList.version : required without follow (a pinned version)");

@@ -12,7 +12,7 @@ import java.util.Set;
  *
  * @param id          immutable identifier ({@link Organizations#PATTERN}), or {@value #DEFAULT} for the default contract
  * @param name        display name (1 to 120 characters)
- * @param status      {@value #ACTIVE}, {@value #SUSPENDED} or {@value #ARCHIVED}
+ * @param status      {@value #ACTIVE}, {@value #STATUS_SUSPENDED} or {@value #STATUS_ARCHIVED}
  * @param externalRef free external reference (CRM), at most 120 characters
  * @param createdAt   creation instant (ms)
  * @param createdBy   author
@@ -24,9 +24,15 @@ public record Organization(String id, String name, String status, String externa
     /** Pseudo-organization that carries the default contract: it applies to any organization without a version of its own. */
     public static final String DEFAULT = "_default";
     public static final String ACTIVE = "active";
-    public static final String SUSPENDED = "suspended";
-    public static final String ARCHIVED = "archived";
-    public static final Set<String> STATUSES = Set.of(ACTIVE, SUSPENDED, ARCHIVED);
+    public static final String STATUS_SUSPENDED = "suspended";
+    /** @deprecated renamed {@link #STATUS_SUSPENDED} (SonarQube S1845); removed in the version after 0.7.2. */
+    @Deprecated(forRemoval = true)
+    public static final String SUSPENDED = STATUS_SUSPENDED;
+    public static final String STATUS_ARCHIVED = "archived";
+    /** @deprecated renamed {@link #STATUS_ARCHIVED} (SonarQube S1845); removed in the version after 0.7.2. */
+    @Deprecated(forRemoval = true)
+    public static final String ARCHIVED = STATUS_ARCHIVED;
+    public static final Set<String> STATUSES = Set.of(ACTIVE, STATUS_SUSPENDED, STATUS_ARCHIVED);
     public static final int MAX_NAME = 120;
 
     public Organization {
@@ -77,7 +83,7 @@ public record Organization(String id, String name, String status, String externa
         return max + 1;
     }
 
-    public boolean suspended() { return SUSPENDED.equals(status); }
+    public boolean suspended() { return STATUS_SUSPENDED.equals(status); }
 
-    public boolean archived() { return ARCHIVED.equals(status); }
+    public boolean archived() { return STATUS_ARCHIVED.equals(status); }
 }

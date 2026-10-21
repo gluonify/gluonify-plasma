@@ -13,10 +13,10 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
- * An analysis finding (format {@value #VERSION} of {@code analysis.md} § 3.6). <strong>No sentence</strong>: {@code rule} is a stable code
+ * An analysis finding (format {@value #CURRENT_VERSION} of {@code analysis.md} § 3.6). <strong>No sentence</strong>: {@code rule} is a stable code
  * and {@code args} its arguments (strings, interpolated by the interface translation). {@code location} is relative to the repository.
  *
- * @param v        format version ({@value #VERSION}); absent when read: {@value #VERSION}
+ * @param v        format version ({@value #CURRENT_VERSION}); absent when read: {@value #CURRENT_VERSION}
  * @param id       {@code sha256(kind|target|rule|location)} in hexadecimal: stable from one run to the next (see {@link #idOf})
  * @param kind     track
  * @param rule     rule code: {@code N-ELF}, {@code R-SECRET}, {@code GN04}, {@code SEO-H1-IN-TEXT}…
@@ -31,9 +31,15 @@ import java.util.regex.Pattern;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Finding(Integer v, String id, FindingKind kind, String rule, Severity severity, Boolean blocking, Location location,
                       Map<String, String> args, String ref, FindingStatus status) {
-    public static final int VERSION = 1;
+    public static final int CURRENT_VERSION = 1;
+    /** @deprecated renamed {@link #CURRENT_VERSION} (SonarQube S1845); removed in the version after 0.7.2. */
+    @Deprecated(forRemoval = true)
+    public static final int VERSION = CURRENT_VERSION;
     /** Rule code: uppercase letters, digits and hyphens, with an optional {@code repository:} prefix (Sonar rules). */
-    public static final Pattern RULE = Pattern.compile("(?:[a-z][a-z0-9-]{0,39}:)?[A-Z][A-Z0-9]*+(?:-[A-Z0-9]++)*+");
+    public static final Pattern RULE_PATTERN = Pattern.compile("(?:[a-z][a-z0-9-]{0,39}:)?[A-Z][A-Z0-9]*+(?:-[A-Z0-9]++)*+");
+    /** @deprecated renamed {@link #RULE_PATTERN} (SonarQube S1845); removed in the version after 0.7.2. */
+    @Deprecated(forRemoval = true)
+    public static final Pattern RULE = RULE_PATTERN;
     /** Argument name: simple identifier, usable as is in a translated string ({@code {type}}). */
     public static final Pattern ARG = Pattern.compile("[a-zA-Z][a-zA-Z0-9_]{0,63}");
     /** Maximum length of an argument value. */
@@ -41,18 +47,18 @@ public record Finding(Integer v, String id, FindingKind kind, String rule, Sever
     public static final int MAX_ARGS = 32;
 
     public Finding {
-        if (v == null || v == 0) v = VERSION;
+        if (v == null || v == 0) v = CURRENT_VERSION;
         if (blocking == null) blocking = Boolean.FALSE;
         Objects.requireNonNull(kind, "kind");
         Objects.requireNonNull(severity, "severity");
-        if (rule == null || !RULE.matcher(rule).matches()) throw new IllegalArgumentException("invalid rule code: " + rule);
+        if (rule == null || !RULE_PATTERN.matcher(rule).matches()) throw new IllegalArgumentException("invalid rule code: " + rule);
         args = copyArgs(args);
         if (status == null) status = FindingStatus.OPEN;
     }
 
     /** Open finding, identifier computed from the target ({@code target}: build, application, site…; never written in the finding). */
     public static Finding open(final FindingKind kind, final String target, final String rule, final Severity severity, final boolean blocking, final Location location, final Map<String, String> args) {
-        return new Finding(VERSION, idOf(kind, target, rule, location), kind, rule, severity, blocking, location, args, null, FindingStatus.OPEN);
+        return new Finding(CURRENT_VERSION, idOf(kind, target, rule, location), kind, rule, severity, blocking, location, args, null, FindingStatus.OPEN);
     }
 
     public Finding withRef(final String newRef) {

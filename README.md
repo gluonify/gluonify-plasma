@@ -242,6 +242,10 @@ Grouped signatures replace the long parameter lists of the published SDK; the ol
 | `UsageEmitter.fromEnvironment(Function<String, String>, timeout)` | `fromEnvironment(UnaryOperator<String>, timeout)` |
 | `DeveloperConfig.home(Function<String, String>, Function<String, String>)` | `home(UnaryOperator<String>, UnaryOperator<String>)` |
 | `GluonifyServices.Builder.environment(Function<String, String>)` / `properties(Function<String, String>)` | the same methods taking a `UnaryOperator<String>` |
+| `Finding.VERSION` / `Finding.RULE` | `Finding.CURRENT_VERSION` / `Finding.RULE_PATTERN` |
+| `PriceList.ID` / `Plan.ID` | `PriceList.ID_PATTERN` / `Plan.ID_PATTERN` |
+| `Organization.SUSPENDED` / `Organization.ARCHIVED` | `Organization.STATUS_SUSPENDED` / `Organization.STATUS_ARCHIVED` |
+| `ReleaseManifest.SCHEMA` / `ReleaseManifest.VERSION` / `KeyRollover.SCHEMA` | `ReleaseManifest.SCHEMA_VERSION` / `ReleaseManifest.VERSION_PATTERN` / `KeyRollover.SCHEMA_VERSION` (constants renamed, SonarQube S1845: a constant may not differ from a record component only by case) |
 
 ## License
 

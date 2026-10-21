@@ -39,7 +39,7 @@ public final class TaskCatalogue {
     public static final int MAX_VALUE = 512;
     public static final int MAX_TOTAL = 2048;
 
-    static final Pattern VERSION = ReleaseManifest.VERSION;
+    static final Pattern VERSION = ReleaseManifest.VERSION_PATTERN;
     static final Pattern BOOL = Pattern.compile("true|false");
     static final Pattern NAME = Pattern.compile("[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?");
     static final Pattern HOST = Pattern.compile("[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?");

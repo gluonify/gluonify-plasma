@@ -36,7 +36,7 @@ public final class ReleaseSigner {
                 }
             }
         }
-        return new ReleaseManifest(ReleaseManifest.SCHEMA, version, sequence, createdAt.toString(), expires.toString(), out).validate();
+        return new ReleaseManifest(ReleaseManifest.SCHEMA_VERSION, version, sequence, createdAt.toString(), expires.toString(), out).validate();
     }
 
     /** Raw Ed25519 signature (64 bytes) of the manifest bytes. */
@@ -58,6 +58,6 @@ public final class ReleaseSigner {
     /** Key change announcement bound to {@code manifest} (signed bytes); to be signed with the current key then countersigned with the new one. */
     public static KeyRollover rollover(final byte[] manifestBytes, final ReleaseManifest manifest, final java.security.PublicKey nextKey, final Instant createdAt, final Instant retireOldAfter) {
         TrustedKeys.Key k = TrustedKeys.Key.ofDer(Base64.getEncoder().encodeToString(nextKey.getEncoded()));
-        return new KeyRollover(KeyRollover.SCHEMA, manifest.version(), manifest.sequence(), ReleaseVerifier.sha256(manifestBytes), createdAt.toString(), k.der(), k.sha256(), retireOldAfter.toString()).validate();
+        return new KeyRollover(KeyRollover.SCHEMA_VERSION, manifest.version(), manifest.sequence(), ReleaseVerifier.sha256(manifestBytes), createdAt.toString(), k.der(), k.sha256(), retireOldAfter.toString()).validate();
     }
 }

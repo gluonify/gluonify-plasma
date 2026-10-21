@@ -59,7 +59,7 @@ public final class GzipSignature {
             String seq = value(l[4], "sequence");
             String expires = value(l[5], "expires");
             String digest = value(l[6], "digest");
-            if (!TOKEN.matcher(name).matches() || !ReleaseManifest.ARCHS.contains(arch) || !ReleaseManifest.VERSION.matcher(version).matches() || !digest.matches("[0-9a-f]{64}"))
+            if (!TOKEN.matcher(name).matches() || !ReleaseManifest.ARCHS.contains(arch) || !ReleaseManifest.VERSION_PATTERN.matcher(version).matches() || !digest.matches("[0-9a-f]{64}"))
                 throw new ReleaseManifest.Invalid("file signature: invalid claims");
             try {
                 Instant.parse(expires);

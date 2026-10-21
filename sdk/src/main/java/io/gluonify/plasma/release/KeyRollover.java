@@ -18,7 +18,10 @@ import java.util.regex.Pattern;
  * @param retireOldAfter from this date, a manifest signed ONLY by the old key is refused (end of the overlap)
  */
 public record KeyRollover(int schema, String version, long sequence, String manifestSha256, String createdAt, String nextKey, String nextKeySha256, String retireOldAfter) {
-    public static final int SCHEMA = 1;
+    public static final int SCHEMA_VERSION = 1;
+    /** @deprecated renamed {@link #SCHEMA_VERSION} (SonarQube S1845); removed in the version after 0.7.2. */
+    @Deprecated(forRemoval = true)
+    public static final int SCHEMA = SCHEMA_VERSION;
     /** Maximum overlap accepted between the announcement and the end of the old key. */
     public static final java.time.Duration MAX_OVERLAP = java.time.Duration.ofDays(400);
     public static final int MAX_BYTES = 4096;
@@ -30,8 +33,8 @@ public record KeyRollover(int schema, String version, long sequence, String mani
 
     /** Structural check; the key must be a readable Ed25519 whose digest is the announced one. */
     public KeyRollover validate() {
-        if (schema != SCHEMA) throw new ReleaseManifest.Invalid("unsupported key announcement schema: " + schema);
-        if (version == null || !ReleaseManifest.VERSION.matcher(version).matches()) throw new ReleaseManifest.Invalid("announcement: invalid version");
+        if (schema != SCHEMA_VERSION) throw new ReleaseManifest.Invalid("unsupported key announcement schema: " + schema);
+        if (version == null || !ReleaseManifest.VERSION_PATTERN.matcher(version).matches()) throw new ReleaseManifest.Invalid("announcement: invalid version");
         if (sequence < 1) throw new ReleaseManifest.Invalid("announcement: invalid sequence");
         if (manifestSha256 == null || !SHA.matcher(manifestSha256).matches()) throw new ReleaseManifest.Invalid("announcement: invalid manifest digest");
         java.time.Instant created;

@@ -52,7 +52,7 @@ class AnalysisFormatTest {
     @Test
     void nullFieldsAreOmittedAndDefaultsApplied() throws Exception {
         Finding f = json.readValue("{\"kind\":\"native\",\"rule\":\"N-ELF\",\"severity\":\"blocker\"}", Finding.class);
-        assertEquals(Finding.VERSION, f.v());
+        assertEquals(Finding.CURRENT_VERSION, f.v());
         assertEquals(Map.of(), f.args());
         assertEquals(FindingStatus.OPEN, f.status());
         String s = json.writeValueAsString(Finding.open(FindingKind.NATIVE, "b1", "N-ELF", Severity.BLOCKER, true, null, null));

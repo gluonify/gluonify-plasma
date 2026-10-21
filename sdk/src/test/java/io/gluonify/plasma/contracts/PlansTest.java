@@ -75,6 +75,6 @@ class PlansTest {
         assertTrue(p.effective(200).free());
         assertTrue(Plan.validName(Map.of("en", "Developer", "fr", "Developer")));
         assertTrue(!Plan.validName(Map.of("fr", "Developer")), "an English name is required");
-        assertTrue(Plan.ID.matcher("developer").matches() && !Plan.ID.matcher("Developer").matches());
+        assertTrue(Plan.ID_PATTERN.matcher("developer").matches() && !Plan.ID_PATTERN.matcher("Developer").matches());
     }
 }

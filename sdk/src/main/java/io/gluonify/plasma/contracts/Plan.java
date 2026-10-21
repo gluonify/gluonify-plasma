@@ -11,15 +11,18 @@ import java.util.regex.Pattern;
 /**
  * Subscription plan ({@code gluonify-codex/subscriptions.md} § 2.1): a named, versioned preset of contract terms that an organization's contract follows.
  *
- * @param id       identifier ({@link #ID}), e.g. {@code developer}
+ * @param id       identifier ({@link #ID_PATTERN}), e.g. {@code developer}
  * @param name     display name per language ({@code en} at least)
  * @param versions versions, in increasing order; never null
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Plan(String id, Map<String, String> name, Long createdAt, String createdBy, List<PlanVersion> versions) {
-    /** Plan identifier: a-z, 0-9 and hyphen, 1 to 40 characters (the rule of {@link PriceList#ID}). */
-    public static final Pattern ID = PriceList.ID;
+    /** Plan identifier: a-z, 0-9 and hyphen, 1 to 40 characters (the rule of {@link PriceList#ID_PATTERN}). */
+    public static final Pattern ID_PATTERN = PriceList.ID_PATTERN;
+    /** @deprecated renamed {@link #ID_PATTERN} (SonarQube S1845); removed in the version after 0.7.2. */
+    @Deprecated(forRemoval = true)
+    public static final Pattern ID = ID_PATTERN;
 
     public Plan {
         name = name == null ? Map.of() : java.util.Collections.unmodifiableMap(new TreeMap<>(name));

@@ -29,7 +29,10 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
         }
     }
 
-    public static final int SCHEMA = 1;
+    public static final int SCHEMA_VERSION = 1;
+    /** @deprecated renamed {@link #SCHEMA_VERSION} (SonarQube S1845); removed in the version after 0.7.2. */
+    @Deprecated(forRemoval = true)
+    public static final int SCHEMA = SCHEMA_VERSION;
     /** Maximum number of artifacts in a manifest (defensive bound of the structural check; the file size is bounded separately). */
     public static final int MAX_ARTIFACTS = 1024;
     /** Maximum size of a manifest read (1024 artifacts of under 1 KiB per line, plus the header). */
@@ -39,7 +42,10 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
     /** Safe component name: lowercase letters, digits and hyphens (never a path nor a special character). */
     public static final Pattern SAFE_NAME = Pattern.compile("[a-z][a-z0-9-]{1,63}");
     public static final java.util.Set<String> ARCHS = java.util.Set.of("amd64", "arm64", "all");
-    public static final Pattern VERSION = Pattern.compile("\\d{1,4}\\.\\d{1,4}\\.\\d{1,4}(-[\\dA-Za-z.]{1,16})?");
+    public static final Pattern VERSION_PATTERN = Pattern.compile("\\d{1,4}\\.\\d{1,4}\\.\\d{1,4}(-[\\dA-Za-z.]{1,16})?");
+    /** @deprecated renamed {@link #VERSION_PATTERN} (SonarQube S1845); removed in the version after 0.7.2. */
+    @Deprecated(forRemoval = true)
+    public static final Pattern VERSION = VERSION_PATTERN;
     /** Simple file name: no separator, no "..", no leading dot. */
     public static final Pattern FILE = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,127}");
     static final Pattern SHA = Pattern.compile("[0-9a-f]{64}");
@@ -60,8 +66,8 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
      * it knows); the store (sea) accepts any safe name ({@link #SAFE_NAME}), because it only stores and serves files already covered by the signature.
      */
     public ReleaseManifest validate(final java.util.function.Predicate<String> nameOk) {
-        if (schema != SCHEMA) throw new Invalid("unsupported manifest schema: " + schema);
-        if (version == null || !VERSION.matcher(version).matches()) throw new Invalid("invalid version");
+        if (schema != SCHEMA_VERSION) throw new Invalid("unsupported manifest schema: " + schema);
+        if (version == null || !VERSION_PATTERN.matcher(version).matches()) throw new Invalid("invalid version");
         if (sequence < 1) throw new Invalid("invalid sequence");
         if (createdAt == null || expires == null) throw new Invalid("dates absentes");
         try {
