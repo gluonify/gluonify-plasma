@@ -84,11 +84,13 @@ class AnalysisFormatTest {
             Finding.open(new Finding.Subject(FindingKind.SONAR, null, ok), Severity.INFO, false, null, null);
         }
         for (String bad : List.of("", "n-elf", "N ELF", "N-", "-N", "Le binaire n'est pas un ELF", "N-ELF\n")) {
-            assertThrows(IllegalArgumentException.class, () -> Finding.open(new Finding.Subject(FindingKind.NATIVE, null, bad), Severity.INFO, false, null, null), bad);
+            final var badSubject = new Finding.Subject(FindingKind.NATIVE, null, bad);
+            assertThrows(IllegalArgumentException.class, () -> Finding.open(badSubject, Severity.INFO, false, null, null), bad);
         }
         final var input = Map.of("a b", "x");
-        assertThrows(IllegalArgumentException.class, () -> Finding.open(new Finding.Subject(FindingKind.NATIVE, null, "N-ELF"), Severity.INFO, false, null, input));
-        assertThrows(NullPointerException.class, () -> Finding.open(new Finding.Subject(FindingKind.NATIVE, null, "N-ELF"), null, false, null, null));
+        final var elf = new Finding.Subject(FindingKind.NATIVE, null, "N-ELF");
+        assertThrows(IllegalArgumentException.class, () -> Finding.open(elf, Severity.INFO, false, null, input));
+        assertThrows(NullPointerException.class, () -> Finding.open(elf, null, false, null, null));
         Map<String, String> big = new LinkedHashMap<>();
         big.put("file", "x".repeat(5000));
         assertEquals(Finding.MAX_ARG_LENGTH, Finding.open(new Finding.Subject(FindingKind.NATIVE, null, "N-ELF"), Severity.INFO, false, null, big).args().get("file").length());
