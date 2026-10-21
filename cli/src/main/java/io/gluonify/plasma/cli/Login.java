@@ -56,6 +56,10 @@ final class Login {
     private record Provider(Discovery discovery, String issuer, URI authorize, URI token, URI revocation) {
     }
 
+    /** What the login talks through: the HTTP client, the options and the address of the discovery document. */
+    private record Connection(HttpClient http, Options options, URI discoveryUrl) {
+    }
+
     DeveloperTokens.Session run(final Options o) {
         final URI discoveryUrl = o.discovery() != null ? o.discovery() : Discovery.defaultUrl(o.zone());
         if (!Http.secure(discoveryUrl)) {
@@ -84,7 +88,7 @@ final class Login {
         server.start();
         try {
             final Challenge challenge = new Challenge(state, verifier, "http://127.0.0.1:" + server.getAddress().getPort() + CALLBACK);
-            return exchange(http, o, provider, discoveryUrl, challenge, authorize(o, provider, challenge, code));
+            return exchange(new Connection(http, o, discoveryUrl), provider, challenge, authorize(o, provider, challenge, code));
         }
         finally {
             server.stop(0);
@@ -161,8 +165,10 @@ final class Login {
     }
 
     /** Exchanges the code for the tokens at Charm, then stores the session and the zone. */
-    private DeveloperTokens.Session exchange(final HttpClient http, final Options o, final Provider p, final URI discoveryUrl, final Challenge c,
-                                             final String authorizationCode) {
+    private DeveloperTokens.Session exchange(final Connection connection, final Provider p, final Challenge c, final String authorizationCode) {
+        final HttpClient http = connection.http();
+        final Options o = connection.options();
+        final URI discoveryUrl = connection.discoveryUrl();
         final Discovery d = p.discovery();
         final Map<String, String> form = new LinkedHashMap<>();
         form.put("grant_type", "authorization_code");

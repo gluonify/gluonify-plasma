@@ -174,6 +174,7 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
     public static final int DEFAULT_SCRATCH_MB = 64;
     public static final int MAX_SCRATCH_MB = 2048;
 
+    private static final Pattern SERVICE_NAME = Pattern.compile("\\??[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?");
     private static final Pattern ENV_NAME = Pattern.compile("[A-Z_][A-Z0-9_]{0,127}");
 
     /** Linux: {@code amd64}, {@code arm64}; development nodes of the {@code host} runtime: {@code darwin-*} (macOS) and {@code windows-*}. */
@@ -277,7 +278,7 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
     private static void requireUses(final java.util.List<String> uses) {
         if (uses.size() > 16) throw new IllegalArgumentException("too many services used (16 at most)");
         for (String u : uses) {
-            if (!u.matches("\\??[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?")) throw new IllegalArgumentException("invalid service: " + u); // "?name": optional (already ready or not)
+            if (!SERVICE_NAME.matcher(u).matches()) throw new IllegalArgumentException("invalid service: " + u); // "?name": optional (already ready or not)
         }
     }
 

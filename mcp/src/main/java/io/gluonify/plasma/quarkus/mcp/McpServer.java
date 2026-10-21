@@ -20,6 +20,7 @@ public final class McpServer {
     private static final String KEY_JSONRPC = "jsonrpc";
     private static final String KEY_PROTOCOL_VERSION = "protocolVersion";
     private static final Logger LOG = Logger.getLogger("gluonify.mcp");
+    private static final String TOOL = "MCP tool ";
     private static final String JSON = "application/json";
 
     /** An HTTP answer: status, JSON body ({@code null}: none). */
@@ -132,10 +133,10 @@ public final class McpServer {
         try {
             value = tool.method().invoke(tool.target(), values);
         } catch (InvocationTargetException e) {
-            LOG.log(Level.WARNING, e.getCause(), () -> "MCP tool " + tool.name() + " failed");
+            LOG.log(Level.WARNING, e.getCause(), () -> TOOL + tool.name() + " failed");
             return toolError(id, "the tool failed");
         } catch (ReflectiveOperationException | RuntimeException e) {
-            LOG.log(Level.WARNING, e, () -> "MCP tool " + tool.name() + " could not be called");
+            LOG.log(Level.WARNING, e, () -> TOOL + tool.name() + " could not be called");
             return toolError(id, "the tool failed");
         }
         return render(id, tool, value);
@@ -180,7 +181,7 @@ public final class McpServer {
             }
             r.put("isError", false);
         } catch (JacksonException | IllegalArgumentException e) {
-            LOG.log(Level.WARNING, e, () -> "MCP tool " + tool.name() + " returned a value that is not serialisable");
+            LOG.log(Level.WARNING, e, () -> TOOL + tool.name() + " returned a value that is not serialisable");
             return toolError(id, "the tool returned a value that cannot be serialised");
         }
         if (McpContract.utf8Size(mapper.writeValueAsString(r)) > McpContract.MAX_RESPONSE_BYTES) {

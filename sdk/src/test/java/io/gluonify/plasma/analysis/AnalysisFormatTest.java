@@ -81,18 +81,18 @@ class AnalysisFormatTest {
     @Test
     void ruleCodesAndArgsAreValidated() {
         for (String ok : List.of("N-ELF", "N-METADONNEES-FICHIER", "R-FICHIER-SENSIBLE", "GN04", "SEO-H1-IN-TEXT", "gluonify:GN01", "java:S2095", "API-ASSERTION")) {
-            Finding.open(FindingKind.SONAR, null, ok, Severity.INFO, false, null, null);
+            Finding.open(new Finding.Subject(FindingKind.SONAR, null, ok), Severity.INFO, false, null, null);
         }
         for (String bad : List.of("", "n-elf", "N ELF", "N-", "-N", "Le binaire n'est pas un ELF", "N-ELF\n")) {
-            assertThrows(IllegalArgumentException.class, () -> Finding.open(FindingKind.NATIVE, null, bad, Severity.INFO, false, null, null), bad);
+            assertThrows(IllegalArgumentException.class, () -> Finding.open(new Finding.Subject(FindingKind.NATIVE, null, bad), Severity.INFO, false, null, null), bad);
         }
         final var input = Map.of("a b", "x");
-        assertThrows(IllegalArgumentException.class, () -> Finding.open(FindingKind.NATIVE, null, "N-ELF", Severity.INFO, false, null, input));
-        assertThrows(NullPointerException.class, () -> Finding.open(FindingKind.NATIVE, null, "N-ELF", null, false, null, null));
+        assertThrows(IllegalArgumentException.class, () -> Finding.open(new Finding.Subject(FindingKind.NATIVE, null, "N-ELF"), Severity.INFO, false, null, input));
+        assertThrows(NullPointerException.class, () -> Finding.open(new Finding.Subject(FindingKind.NATIVE, null, "N-ELF"), null, false, null, null));
         Map<String, String> big = new LinkedHashMap<>();
         big.put("file", "x".repeat(5000));
-        assertEquals(Finding.MAX_ARG_LENGTH, Finding.open(FindingKind.NATIVE, null, "N-ELF", Severity.INFO, false, null, big).args().get("file").length());
-        final var subject = Finding.open(FindingKind.NATIVE, null, "N-ELF", Severity.INFO, false, null, Map.of("a", "b")).args();
+        assertEquals(Finding.MAX_ARG_LENGTH, Finding.open(new Finding.Subject(FindingKind.NATIVE, null, "N-ELF"), Severity.INFO, false, null, big).args().get("file").length());
+        final var subject = Finding.open(new Finding.Subject(FindingKind.NATIVE, null, "N-ELF"), Severity.INFO, false, null, Map.of("a", "b")).args();
         assertThrows(UnsupportedOperationException.class, () -> subject.put("c", "d"));
     }
 
