@@ -216,12 +216,14 @@ public class FermionClient {
             if (isConnected()) {
                 return;
             }
-            final String token;
-            try {
-                token = token();
+            if (!tokens.isResolvable()) {
+                Log.errorv("fermion-client=token node={0} error=no FermionTokenProvider bean", identity.id());
+                return;
             }
-            catch (final RuntimeException e) {
-                Log.errorv("fermion-client=token node={0} error={1}", identity.id(), e.getMessage());
+            final String token = tokens.get().token();
+            if (token == null || token.isBlank()) {
+                // The platform deposits the token file shortly after the start: not an error, the next attempt reads it again.
+                Log.warnv("fermion-client=token-pending node={0}: no token yet, retried", identity.id());
                 return;
             }
             final String url = url().orElseThrow();
@@ -243,17 +245,6 @@ public class FermionClient {
                 connectorFactory.destroy(connector);
             }
         }
-    }
-
-    private String token() {
-        if (!tokens.isResolvable()) {
-            throw new IllegalStateException("no FermionTokenProvider bean");
-        }
-        final String token = tokens.get().token();
-        if (token == null || token.isBlank()) {
-            throw new IllegalStateException("FermionTokenProvider returned no token");
-        }
-        return token;
     }
 
     private void replay(final WebSocketClientConnection target) throws Exception {

@@ -14,9 +14,12 @@ public final class TestBeans {
 
     @ApplicationScoped
     public static class Token implements FermionTokenProvider {
+        /** The token served; null: none yet (the platform has not deposited the file). */
+        static volatile String value = "test-token";
+
         @Override
         public String token() {
-            return "test-token";
+            return value;
         }
     }
 

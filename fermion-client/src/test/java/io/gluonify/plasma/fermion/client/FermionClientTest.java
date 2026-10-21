@@ -55,6 +55,22 @@ class FermionClientTest {
     }
 
     @Test
+    void withoutATokenYetItWaitsThenConnects() throws Exception {
+        TestBeans.Token.value = null;
+        try {
+            final int before = FakeFermionServer.sessions;
+            FakeFermionServer.dropAll();
+            await("connection lost", () -> !client.isConnected());
+            Thread.sleep(1500);
+            assertEquals(before, FakeFermionServer.sessions, "no connection without a token");
+        }
+        finally {
+            TestBeans.Token.value = "test-token";
+        }
+        await("connected once the token is there", () -> client.isConnected());
+    }
+
+    @Test
     void authenticatesThenAnnouncesItself() throws Exception {
         dropAndWaitNewSession();
         final List<FermionMsg> first = FakeFermionServer.FRAMES.stream().map(FakeFermionServer.Frame::msg).toList();
