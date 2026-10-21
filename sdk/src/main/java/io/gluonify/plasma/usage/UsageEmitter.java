@@ -177,7 +177,7 @@ public final class UsageEmitter {
      */
     @Deprecated(since = "0.7.2", forRemoval = true)
     @SuppressWarnings("java:S4276")
-    public static Supplier<Transport> fromEnvironment(java.util.function.Function<String, String> env, Duration timeout) {
+    public static Supplier<Transport> fromEnvironment(final java.util.function.Function<String, String> env, final Duration timeout) {
         return fromEnvironment((java.util.function.UnaryOperator<String>) env::apply, timeout);
     }
 

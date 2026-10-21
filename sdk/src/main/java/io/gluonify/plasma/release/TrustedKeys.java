@@ -157,6 +157,20 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
 
     /** A manifest with its signature and its optional countersignature ({@code sig2}, by the new key). */
     public record Signed(byte[] manifest, byte[] sig, byte[] sig2) {
+        @Override
+        public boolean equals(final Object other) {
+            return other instanceof Signed o && java.util.Arrays.equals(manifest, o.manifest) && java.util.Arrays.equals(sig, o.sig) && java.util.Arrays.equals(sig2, o.sig2);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * (31 * java.util.Arrays.hashCode(manifest) + java.util.Arrays.hashCode(sig)) + java.util.Arrays.hashCode(sig2);
+        }
+
+        @Override
+        public String toString() {
+            return "Signed[manifest=" + java.util.Arrays.toString(manifest) + ", sig=" + java.util.Arrays.toString(sig) + ", sig2=" + java.util.Arrays.toString(sig2) + "]";
+        }
     }
 
     /**
@@ -166,7 +180,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
      */
     @Deprecated(since = "0.7.2", forRemoval = true)
     @SuppressWarnings({"java:S107", "gluonify-native:GN13"})
-    public Verified verify(byte[] manifest, byte[] sig, byte[] sig2, java.util.function.Function<byte[], ReleaseManifest> parser, long minSequence, Instant now) {
+    public Verified verify(final byte[] manifest, final byte[] sig, final byte[] sig2, final java.util.function.Function<byte[], ReleaseManifest> parser, final long minSequence, final Instant now) {
         return verify(new Signed(manifest, sig, sig2), parser, minSequence, now);
     }
 
@@ -236,6 +250,20 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
 
     /** A key announcement with its signature (by the signing key) and countersignature (by the new key). */
     public record Announcement(byte[] rollover, byte[] sig, byte[] sig2) {
+        @Override
+        public boolean equals(final Object other) {
+            return other instanceof Announcement o && java.util.Arrays.equals(rollover, o.rollover) && java.util.Arrays.equals(sig, o.sig) && java.util.Arrays.equals(sig2, o.sig2);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * (31 * java.util.Arrays.hashCode(rollover) + java.util.Arrays.hashCode(sig)) + java.util.Arrays.hashCode(sig2);
+        }
+
+        @Override
+        public String toString() {
+            return "Announcement[rollover=" + java.util.Arrays.toString(rollover) + ", sig=" + java.util.Arrays.toString(sig) + ", sig2=" + java.util.Arrays.toString(sig2) + "]";
+        }
     }
 
     /**
@@ -245,7 +273,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
      */
     @Deprecated(since = "0.7.2", forRemoval = true)
     @SuppressWarnings({"java:S107", "gluonify-native:GN13"})
-    public Applied applyRollover(byte[] manifest, byte[] sig, byte[] sig2, byte[] rollover, byte[] rolloverSig, byte[] rolloverSig2, long highestSeen, Instant now) {
+    public Applied applyRollover(final byte[] manifest, final byte[] sig, final byte[] sig2, final byte[] rollover, final byte[] rolloverSig, final byte[] rolloverSig2, final long highestSeen, final Instant now) {
         return applyRollover(new Signed(manifest, sig, sig2), new Announcement(rollover, rolloverSig, rolloverSig2), highestSeen, now);
     }
 

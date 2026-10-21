@@ -267,7 +267,7 @@ public final class GzipSignature {
      */
     @Deprecated(since = "0.7.2", forRemoval = true)
     @SuppressWarnings({"java:S107", "gluonify-native:GN13"})
-    public static void sign(Path unsigned, Path out, String name, String arch, String version, long sequence, Instant expires, PrivateKey key) throws IOException {
+    public static void sign(final Path unsigned, final Path out, final String name, final String arch, final String version, final long sequence, final Instant expires, final PrivateKey key) throws IOException {
         sign(unsigned, out, new Signing(name, arch, version, sequence, expires), key);
     }
 

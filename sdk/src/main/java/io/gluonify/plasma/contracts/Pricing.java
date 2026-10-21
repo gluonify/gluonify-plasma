@@ -148,9 +148,9 @@ public final class Pricing {
         UsageUnit unit = UsageCatalog.get(u.unit());
         ContractTerms.PriceOverride o = pr == null || pr.overrides() == null ? null : bestOverride(pr.overrides(), u);
         PriceLine l = bestLine(list, u);
-        String per = o != null && o.per() != null ? o.per() : l != null ? l.per() : unit.quantity().base();
+        String per = perOf(o, l, unit);
         BigDecimal q = Decimals.quantity(unit.quantity().convert(Decimals.of(u.quantity()), per));
-        BigDecimal included = o == null || o.included() == null ? BigDecimal.ZERO : Decimals.quantity(BigDecimal.valueOf(o.included()).multiply(share));
+        BigDecimal included = includedOf(o, share);
         BigDecimal billed = q.subtract(included).max(BigDecimal.ZERO);
         BigDecimal keep = Decimals.keep(o == null ? null : o.discountPct());
         List<TierAmount> tiers = new ArrayList<>();
@@ -160,12 +160,27 @@ public final class Pricing {
             priced = true;
             amount = tieredAmount(o.tiers(), billed, share, keep, tiers);
         } else {
-            String base = o != null && o.price() != null ? o.price() : l != null ? l.price() : null;
+            String base = baseOf(o, l);
             priced = base != null;
             if (priced) amount = flatAmount(base, billed, keep, tiers);
         }
         return new Line(u.unit(), u.dims().isEmpty() ? null : u.dims(), u.env(), Decimals.plain(q), per, included.signum() == 0 ? null : Decimals.plain(included),
                 tiers.isEmpty() ? null : tiers, money(amount, currency), priced);
+    }
+
+    private static String perOf(final ContractTerms.PriceOverride o, final PriceLine l, final UsageUnit unit) {
+        if (o != null && o.per() != null) return o.per();
+        return l != null ? l.per() : unit.quantity().base();
+    }
+
+    private static BigDecimal includedOf(final ContractTerms.PriceOverride o, final BigDecimal share) {
+        if (o == null || o.included() == null) return BigDecimal.ZERO;
+        return Decimals.quantity(BigDecimal.valueOf(o.included()).multiply(share));
+    }
+
+    private static String baseOf(final ContractTerms.PriceOverride o, final PriceLine l) {
+        if (o != null && o.price() != null) return o.price();
+        return l != null ? l.price() : null;
     }
 
     /** The amount of a tiered price: each tier prices the part of the billed quantity that falls in it; the tiers are appended to {@code out}. */

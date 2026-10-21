@@ -106,7 +106,7 @@ public final class UsageMeter {
      */
     @Deprecated(since = "0.7.2", forRemoval = true)
     @SuppressWarnings({"java:S107", "gluonify-native:GN13"})
-    public UsageMeter(String service, String replica, String node, String version, String env, int maxKeysPerWindow, LongSupplier clock, SeqSource seqs) {
+    public UsageMeter(final String service, final String replica, final String node, final String version, final String env, final int maxKeysPerWindow, final LongSupplier clock, final SeqSource seqs) {
         this(new Identity(service, replica, node, version, env), maxKeysPerWindow, clock, seqs);
     }
 
@@ -191,7 +191,7 @@ public final class UsageMeter {
      */
     @Deprecated(since = "0.7.2", forRemoval = true)
     @SuppressWarnings({"java:S107", "gluonify-native:GN13"})
-    public boolean add(long at, UsageRecord.Subject subject, String unit, Map<String, String> dims, BigDecimal quantity, boolean internal, String onBehalfOf) {
+    public boolean add(final long at, final UsageRecord.Subject subject, final String unit, final Map<String, String> dims, final BigDecimal quantity, final boolean internal, final String onBehalfOf) {
         return add(at, subject, new Measure(unit, dims, quantity), new Attribution(internal, onBehalfOf));
     }
 

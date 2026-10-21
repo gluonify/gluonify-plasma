@@ -130,13 +130,21 @@ public final class TermsValidator {
     }
 
     private static void services(final ContractTerms.Services s, final List<String> e) {
-        if (s.uses() != null) for (String u : s.uses()) {
-            if (u == null || !NAME.matcher(u).matches()) e.add("services.uses : invalid name (" + u + ")");
-            else if (u.equals(HIGGS)) e.add("services.uses : higgs is never allowed to a customer");
-        }
-        if (s.distributed() != null) for (String d : s.distributed()) if (!DISTRIBUTED.contains(d)) e.add("services.distributed : std, tmp or gdown (" + d + ")");
-        if (s.routeKinds() != null) for (String k : s.routeKinds()) if (!ROUTE_KINDS.contains(k)) e.add("services.routeKinds : app, gdown or upstream (" + k + ")");
+        if (s.uses() != null) for (String u : s.uses()) useError(u, e);
+        unknownMembers(s.distributed(), DISTRIBUTED, "services.distributed : std, tmp or gdown", e);
+        unknownMembers(s.routeKinds(), ROUTE_KINDS, "services.routeKinds : app, gdown or upstream", e);
         if (s.consoles() != null) for (String c : s.consoles()) consoleError(c, s.uses(), e);
+    }
+
+    private static void useError(final String u, final List<String> e) {
+        if (u == null || !NAME.matcher(u).matches()) e.add("services.uses : invalid name (" + u + ")");
+        else if (u.equals(HIGGS)) e.add("services.uses : higgs is never allowed to a customer");
+    }
+
+    /** One error per value that is not one of the {@code allowed}. */
+    private static void unknownMembers(final List<String> values, final Set<String> allowed, final String message, final List<String> e) {
+        if (values == null) return;
+        for (String v : values) if (!allowed.contains(v)) e.add(message + " (" + v + ")");
     }
 
     private static void consoleError(final String c, final List<String> uses, final List<String> e) {
@@ -213,12 +221,16 @@ public final class TermsValidator {
             if (o.per() != null && !u.quantity().accepts(o.per())) e.add(p + ".per : " + u.quantity().perUnits().keySet() + " for " + u.name());
         }
         if (o.env() != null && !ENV.matcher(o.env()).matches()) e.add(p + ".env : invalid environment");
+        overrideAmounts(o, p, e);
+        if (o.tiers() != null) tiers(o.tiers(), p, e);
+    }
+
+    private static void overrideAmounts(final ContractTerms.PriceOverride o, final String p, final List<String> e) {
         decimal(o.price(), p + ".price", e);
         if (o.discountPct() != null && !Decimals.validPct(o.discountPct())) e.add(p + ".discountPct : percentage from 0 to 100");
         if (o.included() != null && o.included() < 0) e.add(p + ".included : positive or zero");
         if (o.price() != null && o.tiers() != null) e.add(p + " : price and tiers are incompatible");
         if (o.price() == null && o.tiers() == null && o.included() == null && o.discountPct() == null) e.add(p + " : price, tiers, included or discountPct expected");
-        if (o.tiers() != null) tiers(o.tiers(), p, e);
     }
 
     private static void tiers(final List<ContractTerms.Tier> tiers, final String p, final List<String> e) {

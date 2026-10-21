@@ -55,18 +55,56 @@ public final class Gzip {
     public static long gunzip(final InputStream in, final long compressedSize, final long maxBytes, final OutputStream out) throws IOException {
         long limit = limit(compressedSize, maxBytes);
         skipHeader(in);
-        Inflater inf = new Inflater(true);
-        try {
-            Inflated r = inflateAll(in, inf, out, limit);
-            verifyFooter(footer(in, inf, r), r);
+        try (Ending ending = new Ending(new Inflater(true))) {
+            Inflated r = inflateAll(in, ending.inflater, out, limit);
+            verifyFooter(footer(in, ending.inflater, r), r);
             return r.total();
-        } finally {
-            inf.end();
+        }
+    }
+
+    /** Ends the inflater when closed (Inflater is not AutoCloseable before Java 25). */
+    private static final class Ending implements java.io.Closeable {
+        final Inflater inflater;
+
+        Ending(final Inflater inflater) {
+            this.inflater = inflater;
+        }
+
+        @Override
+        public void close() {
+            inflater.end();
         }
     }
 
     /** What inflating the data left: the bytes written, their CRC-32, the last input buffer and how much of it was filled. */
-    private record Inflated(long total, long crc, byte[] input, int fed) {
+    private static final class Inflated {
+        private final long total;
+        private final long crc;
+        private final byte[] input;
+        private final int fed;
+
+        Inflated(final long total, final long crc, final byte[] input, final int fed) {
+            this.total = total;
+            this.crc = crc;
+            this.input = input;
+            this.fed = fed;
+        }
+
+        long total() {
+            return total;
+        }
+
+        long crc() {
+            return crc;
+        }
+
+        byte[] input() {
+            return input;
+        }
+
+        int fed() {
+            return fed;
+        }
     }
 
     /** Checks and skips the 10-byte header and its optional fields (FEXTRA, FNAME, FCOMMENT, FHCRC). */
