@@ -210,7 +210,7 @@ Defined in `FermionClientConfig` (`fermion-client/`); every property can also be
 | Property | Default | Role |
 |---|---|---|
 | `gluonify.fermion.client.enabled` | `true` | the client is inactive if `false` or if the URL is empty |
-| `gluonify.fermion.client.url` | `${GLUONIFY_SERVICE_FERMION_URL:}` | base URL of fermion (http(s):// or ws(s)://), without the `/ws/fermion` path; provided by the platform; empty: the address comes from `GluonifyServices` resolution if `discover` is true (developer workstation: public address of the `gluonify login` zone) |
+| `gluonify.fermion.client.url` | `${GLUONIFY_SERVICE_FERMION_URL:}` | base URL of fermion (http(s):// or ws(s)://), without the `/ws/fermion` path; provided by the platform; empty: the address comes from `GluonifyServices` resolution if `discover` is true (developer workstation: public address of the `gluonify login` zone); plaintext `http`/`ws` is accepted only toward a loopback, private or link-local address (the internal network, `FermionTransport`), any other plaintext URL leaves the client inactive (`fermion-client=insecure-url`) |
 | `gluonify.fermion.client.discover` | `true` | without `url`, look fermion up through `GluonifyServices` (override, platform, developer workstation); `false`: inactive client without an explicit URL |
 | `gluonify.fermion.client.app-id` | `quarkus.application.name` | application identifier |
 | `gluonify.fermion.client.node-id` | `${GLUONIFY_REPLICA:0}` | node identifier (`GLUONIFY_REPLICA`, otherwise `0`); the path is `/ws/fermion/<app-id>-<node-id>` |

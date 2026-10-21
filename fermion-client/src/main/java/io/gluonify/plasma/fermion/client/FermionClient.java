@@ -78,7 +78,8 @@ public class FermionClient {
 
     /**
      * The fermion URL: {@code gluonify.fermion.client.url} if set, otherwise (if {@code discover}) the resolution by
-     * {@link GluonifyServices#optional(String)}, done once. A resolution failure is logged and leaves the client inactive.
+     * {@link GluonifyServices#optional(String)}, done once. A resolution failure, or a plaintext URL toward another host than the internal network
+     * ({@link FermionTransport}), is logged and leaves the client inactive.
      */
     Optional<String> url() {
         Optional<String> u = resolvedUrl.get();
@@ -96,6 +97,10 @@ public class FermionClient {
                             Log.warnv("fermion-client=discovery error={0}", e.getMessage());
                             u = Optional.empty();
                         }
+                    }
+                    if (u.isPresent() && !FermionTransport.acceptable(u.get())) {
+                        Log.warnv("fermion-client=insecure-url url={0}: plaintext only toward the internal network, use https", u.get());
+                        u = Optional.empty();
                     }
                     resolvedUrl.set(u);
                 }

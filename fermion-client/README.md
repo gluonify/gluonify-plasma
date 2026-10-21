@@ -13,7 +13,7 @@ WebSocket client for **gluonify-fermion** (BPMN workflow and DMN rule engine) fo
 
 | Property | Default | Role |
 |---|---|---|
-| `gluonify.fermion.client.url` | `${GLUONIFY_SERVICE_FERMION_URL:}` | fermion URL; empty = resolved by `GluonifyServices` (if `discover`), otherwise the client is inactive |
+| `gluonify.fermion.client.url` | `${GLUONIFY_SERVICE_FERMION_URL:}` | fermion URL; empty = resolved by `GluonifyServices` (if `discover`), otherwise the client is inactive; plaintext `http`/`ws` is accepted only toward a loopback, private or link-local address (the internal network, `FermionTransport`), any other plaintext URL leaves the client inactive (`fermion-client=insecure-url`) |
 | `gluonify.fermion.client.discover` | `true` | without `url`, look for fermion through `GluonifyServices.optional("fermion")` (override, platform, developer workstation after `gluonify login`), once; `false`: inactive without `url` |
 | `gluonify.fermion.client.enabled` | `true` | `false` disables the client |
 | `gluonify.fermion.client.app-id` | `quarkus.application.name` | application identifier |
