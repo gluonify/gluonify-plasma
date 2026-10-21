@@ -61,8 +61,11 @@ class FermionClientTest {
             final int before = FakeFermionServer.sessions;
             FakeFermionServer.dropAll();
             await("connection lost", () -> !client.isConnected());
-            Thread.sleep(1500);
-            assertEquals(before, FakeFermionServer.sessions, "no connection without a token");
+            final long until = System.nanoTime() + Duration.ofMillis(1500).toNanos();
+            while (System.nanoTime() < until) {
+                assertEquals(before, FakeFermionServer.sessions, "no connection without a token");
+                java.util.concurrent.locks.LockSupport.parkNanos(Duration.ofMillis(50).toNanos());
+            }
         }
         finally {
             TestBeans.Token.value = "test-token";

@@ -93,16 +93,20 @@ public final class TaskCatalogue {
         int total = 0;
         Map<String, String> out = new LinkedHashMap<>();
         for (var e : p.entrySet()) {
-            Param spec = t.param(e.getKey());
-            if (spec == null) throw new Invalid("unknown parameter: " + e.getKey());
-            String v = e.getValue();
-            if (v == null || v.length() > MAX_VALUE || !spec.pattern().matcher(v).matches()) throw new Invalid("invalid value for \"" + e.getKey() + "\"");
-            total += v.length();
-            out.put(e.getKey(), v);
+            total += checkedLength(t, e.getKey(), e.getValue());
+            out.put(e.getKey(), e.getValue());
         }
         if (total > MAX_TOTAL) throw new Invalid("parameters too large");
         for (Param spec : t.params()) if (spec.required() && !out.containsKey(spec.name())) throw new Invalid("missing mandatory parameter: " + spec.name());
         return out;
+    }
+
+    /** The length of a parameter value, once the parameter is known and the value inside its limits and pattern. */
+    private static int checkedLength(final Type t, final String key, final String v) {
+        Param spec = t.param(key);
+        if (spec == null) throw new Invalid("unknown parameter: " + key);
+        if (v == null || v.length() > MAX_VALUE || !spec.pattern().matcher(v).matches()) throw new Invalid("invalid value for \"" + key + "\"");
+        return v.length();
     }
 
     /** Parameters without the secret values (log, events, results). */

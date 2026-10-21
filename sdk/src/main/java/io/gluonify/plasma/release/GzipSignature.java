@@ -125,30 +125,34 @@ public final class GzipSignature {
         if (h.length < 10 || (h[0] & 0xff) != 0x1f || (h[1] & 0xff) != 0x8b) throw new ReleaseManifest.Invalid("not a gzip file (magic bytes missing)");
         int flags = h[3] & 0xff;
         if ((flags & 2) != 0) throw new ReleaseManifest.Invalid("gzip: FHCRC not supported with a file signature");
+        if ((flags & 4) == 0) return new Header(h, new ArrayList<>(), null);
+        byte[] l = in.readNBytes(2);
+        if (l.length < 2) throw new ReleaseManifest.Invalid("gzip truncated");
+        int n = (l[0] & 0xff) | ((l[1] & 0xff) << 8);
+        byte[] extra = in.readNBytes(n);
+        if (extra.length < n) throw new ReleaseManifest.Invalid("gzip truncated");
+        return subfields(h, extra);
+    }
+
+    /** Splits the FEXTRA field into its subfields, the GL one (signature) apart. */
+    private static Header subfields(final byte[] fixed, final byte[] extra) {
         List<byte[]> subs = new ArrayList<>();
         byte[] gl = null;
-        if ((flags & 4) != 0) {
-            byte[] l = in.readNBytes(2);
-            if (l.length < 2) throw new ReleaseManifest.Invalid("gzip truncated");
-            int n = (l[0] & 0xff) | ((l[1] & 0xff) << 8);
-            byte[] extra = in.readNBytes(n);
-            if (extra.length < n) throw new ReleaseManifest.Invalid("gzip truncated");
-            int p = 0;
-            while (p < extra.length) {
-                if (p + 4 > extra.length) throw new ReleaseManifest.Invalid("gzip: malformed FEXTRA");
-                int len = (extra[p + 2] & 0xff) | ((extra[p + 3] & 0xff) << 8);
-                if (p + 4 + len > extra.length) throw new ReleaseManifest.Invalid("gzip: FEXTRA subfield out of range");
-                byte[] sf = java.util.Arrays.copyOfRange(extra, p, p + 4 + len);
-                if ((sf[0] & 0xff) == SI1 && (sf[1] & 0xff) == SI2) {
-                    if (gl != null) throw new ReleaseManifest.Invalid("gzip: several file signatures");
-                    gl = sf;
-                } else {
-                    subs.add(sf);
-                }
-                p += 4 + len;
+        int p = 0;
+        while (p < extra.length) {
+            if (p + 4 > extra.length) throw new ReleaseManifest.Invalid("gzip: malformed FEXTRA");
+            int len = (extra[p + 2] & 0xff) | ((extra[p + 3] & 0xff) << 8);
+            if (p + 4 + len > extra.length) throw new ReleaseManifest.Invalid("gzip: FEXTRA subfield out of range");
+            byte[] sf = java.util.Arrays.copyOfRange(extra, p, p + 4 + len);
+            if ((sf[0] & 0xff) == SI1 && (sf[1] & 0xff) == SI2) {
+                if (gl != null) throw new ReleaseManifest.Invalid("gzip: several file signatures");
+                gl = sf;
+            } else {
+                subs.add(sf);
             }
+            p += 4 + len;
         }
-        return new Header(h, subs, gl);
+        return new Header(fixed, subs, gl);
     }
 
     /** Header of the unsigned form (GL subfield removed, FEXTRA removed if empty). */
@@ -204,7 +208,7 @@ public final class GzipSignature {
      * Signs an UNSIGNED gzip: writes to {@code out} the same gzip with the GL subfield. Refuses an already signed file. {@code name}, {@code arch}, {@code version}, {@code sequence} and
      * {@code expires} become the claims.
      */
-    public static void sign(final Path unsigned, final Path out, final String name, final String arch, final String version, final long sequence, final Instant expires, final PrivateKey key) throws IOException {
+    public static void sign(Path unsigned, Path out, String name, String arch, String version, long sequence, Instant expires, PrivateKey key) throws IOException {
         Header h;
         try (InputStream in = new java.io.BufferedInputStream(Files.newInputStream(unsigned), 65536)) {
             h = header(in);
@@ -248,26 +252,31 @@ public final class GzipSignature {
     public static Claims verify(final Path gz, final Collection<PublicKey> keys, final Instant now, final Expected expected) throws IOException {
         Signed s = read(gz);
         if (s == null) throw new ReleaseManifest.Invalid("the file carries no signature");
-        boolean valid = false;
+        if (!trusted(s, keys)) throw new ReleaseManifest.Invalid("invalid file signature (no trusted key validates it)");
+        Claims c = s.claims();
+        if (now.isAfter(Instant.parse(c.expires()))) throw new ReleaseManifest.Invalid("file signature expired (" + c.expires() + ")");
+        if (!MessageDigest.isEqual(c.digest().getBytes(StandardCharsets.US_ASCII), digest(gz).getBytes(StandardCharsets.US_ASCII)))
+            throw new ReleaseManifest.Invalid("file signature: the signed digest does not match the content (file modified)");
+        if (expected != null) checkExpected(c, expected);
+        return c;
+    }
+
+    private static boolean trusted(final Signed s, final Collection<PublicKey> keys) {
         for (PublicKey k : keys) {
             try {
                 Signature v = Signature.getInstance("Ed25519");
                 v.initVerify(k);
                 v.update(s.claimsBytes());
-                if (v.verify(s.signature())) { valid = true; break; }
+                if (v.verify(s.signature())) return true;
             } catch (GeneralSecurityException ignored) { }
         }
-        if (!valid) throw new ReleaseManifest.Invalid("invalid file signature (no trusted key validates it)");
-        Claims c = s.claims();
-        if (now.isAfter(Instant.parse(c.expires()))) throw new ReleaseManifest.Invalid("file signature expired (" + c.expires() + ")");
-        if (!MessageDigest.isEqual(c.digest().getBytes(StandardCharsets.US_ASCII), digest(gz).getBytes(StandardCharsets.US_ASCII)))
-            throw new ReleaseManifest.Invalid("file signature: the signed digest does not match the content (file modified)");
-        if (expected != null) {
-            if (expected.name() != null && !expected.name().equals(c.name())) throw new ReleaseManifest.Invalid("file signature: component " + c.name() + " instead of " + expected.name());
-            if (expected.arch() != null && !expected.arch().equals(c.arch())) throw new ReleaseManifest.Invalid("file signature: architecture " + c.arch() + " instead of " + expected.arch());
-            if (expected.version() != null && !expected.version().equals(c.version())) throw new ReleaseManifest.Invalid("file signature: version " + c.version() + " instead of " + expected.version());
-            if (expected.sequence() != null && expected.sequence() != c.sequence()) throw new ReleaseManifest.Invalid("file signature: sequence " + c.sequence() + " instead of " + expected.sequence());
-        }
-        return c;
+        return false;
+    }
+
+    private static void checkExpected(final Claims c, final Expected expected) {
+        if (expected.name() != null && !expected.name().equals(c.name())) throw new ReleaseManifest.Invalid("file signature: component " + c.name() + " instead of " + expected.name());
+        if (expected.arch() != null && !expected.arch().equals(c.arch())) throw new ReleaseManifest.Invalid("file signature: architecture " + c.arch() + " instead of " + expected.arch());
+        if (expected.version() != null && !expected.version().equals(c.version())) throw new ReleaseManifest.Invalid("file signature: version " + c.version() + " instead of " + expected.version());
+        if (expected.sequence() != null && expected.sequence() != c.sequence()) throw new ReleaseManifest.Invalid("file signature: sequence " + c.sequence() + " instead of " + expected.sequence());
     }
 }

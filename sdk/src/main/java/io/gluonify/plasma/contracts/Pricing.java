@@ -158,28 +158,39 @@ public final class Pricing {
         boolean priced;
         if (o != null && o.tiers() != null) {
             priced = true;
-            BigDecimal low = BigDecimal.ZERO;
-            for (ContractTerms.Tier t : o.tiers()) {
-                BigDecimal high = t.upTo() == null ? null : Decimals.quantity(BigDecimal.valueOf(t.upTo()).multiply(share));
-                BigDecimal inTier = (high == null ? billed : billed.min(high)).subtract(low).max(BigDecimal.ZERO);
-                BigDecimal price = new BigDecimal(t.price()).multiply(keep);
-                BigDecimal a = inTier.multiply(price);
-                tiers.add(new TierAmount(Decimals.plain(inTier), Decimals.plain(price), Decimals.plain(a)));
-                amount = amount.add(a);
-                if (high == null) break;
-                low = high;
-            }
+            amount = tieredAmount(o.tiers(), billed, share, keep, tiers);
         } else {
             String base = o != null && o.price() != null ? o.price() : l != null ? l.price() : null;
             priced = base != null;
-            if (priced) {
-                BigDecimal price = new BigDecimal(base).multiply(keep);
-                amount = billed.multiply(price);
-                tiers.add(new TierAmount(Decimals.plain(billed), Decimals.plain(price), Decimals.plain(amount)));
-            }
+            if (priced) amount = flatAmount(base, billed, keep, tiers);
         }
         return new Line(u.unit(), u.dims().isEmpty() ? null : u.dims(), u.env(), Decimals.plain(q), per, included.signum() == 0 ? null : Decimals.plain(included),
                 tiers.isEmpty() ? null : tiers, money(amount, currency), priced);
+    }
+
+    /** The amount of a tiered price: each tier prices the part of the billed quantity that falls in it; the tiers are appended to {@code out}. */
+    private static BigDecimal tieredAmount(final List<ContractTerms.Tier> tierDefs, final BigDecimal billed, final BigDecimal share, final BigDecimal keep, final List<TierAmount> out) {
+        BigDecimal amount = BigDecimal.ZERO;
+        BigDecimal low = BigDecimal.ZERO;
+        for (ContractTerms.Tier t : tierDefs) {
+            BigDecimal high = t.upTo() == null ? null : Decimals.quantity(BigDecimal.valueOf(t.upTo()).multiply(share));
+            BigDecimal inTier = (high == null ? billed : billed.min(high)).subtract(low).max(BigDecimal.ZERO);
+            BigDecimal price = new BigDecimal(t.price()).multiply(keep);
+            BigDecimal a = inTier.multiply(price);
+            out.add(new TierAmount(Decimals.plain(inTier), Decimals.plain(price), Decimals.plain(a)));
+            amount = amount.add(a);
+            if (high == null) break;
+            low = high;
+        }
+        return amount;
+    }
+
+    /** The amount of a flat price; the single tier is appended to {@code out}. */
+    private static BigDecimal flatAmount(final String base, final BigDecimal billed, final BigDecimal keep, final List<TierAmount> out) {
+        BigDecimal price = new BigDecimal(base).multiply(keep);
+        BigDecimal amount = billed.multiply(price);
+        out.add(new TierAmount(Decimals.plain(billed), Decimals.plain(price), Decimals.plain(amount)));
+        return amount;
     }
 
     /** Most specific override: dimensions contained in those of the usage, environment equal or absent; on a tie, the first. */

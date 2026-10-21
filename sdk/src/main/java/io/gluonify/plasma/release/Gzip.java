@@ -54,6 +54,23 @@ public final class Gzip {
      */
     public static long gunzip(final InputStream in, final long compressedSize, final long maxBytes, final OutputStream out) throws IOException {
         long limit = limit(compressedSize, maxBytes);
+        skipHeader(in);
+        Inflater inf = new Inflater(true);
+        try {
+            Inflated r = inflateAll(in, inf, out, limit);
+            verifyFooter(footer(in, inf, r), r);
+            return r.total();
+        } finally {
+            inf.end();
+        }
+    }
+
+    /** What inflating the data left: the bytes written, their CRC-32, the last input buffer and how much of it was filled. */
+    private record Inflated(long total, long crc, byte[] input, int fed) {
+    }
+
+    /** Checks and skips the 10-byte header and its optional fields (FEXTRA, FNAME, FCOMMENT, FHCRC). */
+    private static void skipHeader(final InputStream in) throws IOException {
         byte[] h = in.readNBytes(10);
         if (h.length < 10 || (h[0] & 0xff) != 0x1f || (h[1] & 0xff) != 0x8b) throw new ReleaseManifest.Invalid("not a gzip file (magic bytes missing)");
         if (h[2] != 8) throw new ReleaseManifest.Invalid("gzip: unsupported compression method");
@@ -66,61 +83,71 @@ public final class Gzip {
             if (in.readNBytes(n).length < n) throw new ReleaseManifest.Invalid("gzip truncated");
         }
         for (int bit : new int[] {8, 16}) { // FNAME, FCOMMENT: 0-terminated string, bounded
-            if ((flags & bit) == 0) continue;
-            int c;
-            int n = 0;
-            while ((c = in.read()) > 0) if (++n > 4096) throw new ReleaseManifest.Invalid("gzip: header too long");
-            if (c < 0) throw new ReleaseManifest.Invalid("gzip truncated");
+            if ((flags & bit) != 0) skipString(in);
         }
         if ((flags & 2) != 0 && in.readNBytes(2).length < 2) throw new ReleaseManifest.Invalid("gzip truncated"); // FHCRC
-        Inflater inf = new Inflater(true);
+    }
+
+    private static void skipString(final InputStream in) throws IOException {
+        int c;
+        int n = 0;
+        while ((c = in.read()) > 0) if (++n > 4096) throw new ReleaseManifest.Invalid("gzip: header too long");
+        if (c < 0) throw new ReleaseManifest.Invalid("gzip truncated");
+    }
+
+    private static Inflated inflateAll(final InputStream in, final Inflater inf, final OutputStream out, final long limit) throws IOException {
         CRC32 crc = new CRC32();
         byte[] ib = new byte[65536];
         byte[] ob = new byte[65536];
         long total = 0;
         int fed = 0;
-        try {
-            while (!inf.finished()) {
-                if (inf.needsInput()) {
-                    int n = in.read(ib);
-                    if (n < 0) throw new ReleaseManifest.Invalid("gzip truncated (end of stream before the end of the data)");
-                    inf.setInput(ib, 0, n);
-                    fed = n;
-                }
-                int w;
-                try {
-                    w = inf.inflate(ob);
-                } catch (DataFormatException e) {
-                    throw new ReleaseManifest.Invalid("gzip corrompu : " + e.getMessage());
-                }
-                if (w > 0) {
-                    total += w;
-                    if (total > limit) throw new ReleaseManifest.Invalid("decompression refused: more than " + limit + " bytes (cap or decompression ratio exceeded)");
-                    crc.update(ob, 0, w);
-                    out.write(ob, 0, w);
-                } else if (!inf.finished() && !inf.needsInput()) {
-                    throw new ReleaseManifest.Invalid("gzip corrupted (invalid dictionary or stream)");
-                }
+        while (!inf.finished()) {
+            if (inf.needsInput()) {
+                int n = in.read(ib);
+                if (n < 0) throw new ReleaseManifest.Invalid("gzip truncated (end of stream before the end of the data)");
+                inf.setInput(ib, 0, n);
+                fed = n;
             }
-            // footer: 8 bytes, part of which may already be in the buffer; nothing must follow
-            int rem = inf.getRemaining();
-            byte[] t = new byte[8];
-            if (rem > 8) throw new ReleaseManifest.Invalid("gzip: bytes after the footer");
-            if (rem > 0) System.arraycopy(ib, fed - rem, t, 0, rem);
-            int got = rem;
-            if (got < 8) {
-                byte[] more = in.readNBytes(8 - got);
-                System.arraycopy(more, 0, t, got, more.length);
-                if (got + more.length < 8) throw new ReleaseManifest.Invalid("gzip truncated (footer missing)");
+            int w = inflate(inf, ob);
+            if (w > 0) {
+                total += w;
+                if (total > limit) throw new ReleaseManifest.Invalid("decompression refused: more than " + limit + " bytes (cap or decompression ratio exceeded)");
+                crc.update(ob, 0, w);
+                out.write(ob, 0, w);
+            } else if (!inf.finished() && !inf.needsInput()) {
+                throw new ReleaseManifest.Invalid("gzip corrupted (invalid dictionary or stream)");
             }
-            if (in.read() >= 0) throw new ReleaseManifest.Invalid("gzip: bytes after the footer");
-            long wantCrc = (t[0] & 0xffL) | (t[1] & 0xffL) << 8 | (t[2] & 0xffL) << 16 | (t[3] & 0xffL) << 24;
-            long wantLen = (t[4] & 0xffL) | (t[5] & 0xffL) << 8 | (t[6] & 0xffL) << 16 | (t[7] & 0xffL) << 24;
-            if (wantCrc != crc.getValue()) throw new ReleaseManifest.Invalid("gzip corrupted: CRC-32 differs");
-            if (wantLen != (total & 0xffffffffL)) throw new ReleaseManifest.Invalid("gzip corrupted: decompressed size differs from the footer's");
-            return total;
-        } finally {
-            inf.end();
         }
+        return new Inflated(total, crc.getValue(), ib, fed);
+    }
+
+    private static int inflate(final Inflater inf, final byte[] ob) {
+        try {
+            return inf.inflate(ob);
+        } catch (DataFormatException e) {
+            throw new ReleaseManifest.Invalid("gzip corrompu : " + e.getMessage());
+        }
+    }
+
+    /** The 8-byte footer, part of which may already be in the buffer; nothing must follow. */
+    private static byte[] footer(final InputStream in, final Inflater inf, final Inflated r) throws IOException {
+        int rem = inf.getRemaining();
+        byte[] t = new byte[8];
+        if (rem > 8) throw new ReleaseManifest.Invalid("gzip: bytes after the footer");
+        if (rem > 0) System.arraycopy(r.input(), r.fed() - rem, t, 0, rem);
+        if (rem < 8) {
+            byte[] more = in.readNBytes(8 - rem);
+            System.arraycopy(more, 0, t, rem, more.length);
+            if (rem + more.length < 8) throw new ReleaseManifest.Invalid("gzip truncated (footer missing)");
+        }
+        if (in.read() >= 0) throw new ReleaseManifest.Invalid("gzip: bytes after the footer");
+        return t;
+    }
+
+    private static void verifyFooter(final byte[] t, final Inflated r) {
+        long wantCrc = (t[0] & 0xffL) | (t[1] & 0xffL) << 8 | (t[2] & 0xffL) << 16 | (t[3] & 0xffL) << 24;
+        long wantLen = (t[4] & 0xffL) | (t[5] & 0xffL) << 8 | (t[6] & 0xffL) << 16 | (t[7] & 0xffL) << 24;
+        if (wantCrc != r.crc()) throw new ReleaseManifest.Invalid("gzip corrupted: CRC-32 differs");
+        if (wantLen != (r.total() & 0xffffffffL)) throw new ReleaseManifest.Invalid("gzip corrupted: decompressed size differs from the footer's");
     }
 }

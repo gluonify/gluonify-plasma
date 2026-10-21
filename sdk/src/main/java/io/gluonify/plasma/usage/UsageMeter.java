@@ -2,7 +2,6 @@ package io.gluonify.plasma.usage;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -69,7 +68,7 @@ public final class UsageMeter {
         synchronized void add(final BigDecimal q) { sum = sum.add(q); }
     }
 
-    public UsageMeter(final String service, final String replica, final String node, final String version, final String env, final int maxKeysPerWindow, final LongSupplier clock, final SeqSource seqs) {
+    public UsageMeter(String service, String replica, String node, String version, String env, int maxKeysPerWindow, LongSupplier clock, SeqSource seqs) {
         this.service = service;
         this.replica = replica;
         this.node = node;
@@ -114,7 +113,7 @@ public final class UsageMeter {
      * Adds {@code quantity} to the window that contains {@code at} (ms). {@code internal}/{@code onBehalfOf}: usage by a platform service (§ 3.5).
      * False if the unit is refused.
      */
-    public boolean add(final long at, final UsageRecord.Subject subject, final String unit, final Map<String, String> dims, final BigDecimal quantity, final boolean internal, final String onBehalfOf) {
+    public boolean add(long at, UsageRecord.Subject subject, String unit, Map<String, String> dims, BigDecimal quantity, boolean internal, String onBehalfOf) {
         UsageUnit u = UsageCatalog.get(unit);
         if (u == null || !u.service().equals(service) || quantity == null || quantity.signum() < 0 || subject == null || !dimsAllowed(u, dims)) {
             invalid.incrementAndGet();
@@ -153,6 +152,24 @@ public final class UsageMeter {
         return true;
     }
 
+    /** The records of one closed window, in key order; cells with a zero sum are skipped. */
+    private void records(final long w, final ConcurrentHashMap<String, Cell> cells, final UsageRecord.Emitter em, final List<UsageRecord> out) {
+        List<String> keys = new ArrayList<>(cells.keySet());
+        keys.sort(String::compareTo);
+        for (String k : keys) {
+            Cell c = cells.get(k);
+            BigDecimal sum;
+            synchronized (c) {
+                sum = c.sum;
+            }
+            if (sum.signum() == 0) continue;
+            UsageUnit u = UsageCatalog.get(c.unit);
+            String key = UsageRecord.key(env, c.subject, c.unit, c.dims) + (c.internal ? "|internal" : "") + (c.onBehalfOf == null ? "" : "|for=" + c.onBehalfOf);
+            out.add(new UsageRecord(UsageRecord.id(service, replica, w, key), seqs.next(), em, env, w, c.subject, c.unit, c.dims, sum, c.internal, c.onBehalfOf,
+                    u.billable() ? "billable" : "indicative"));
+        }
+    }
+
     /** Records of the closed windows (end <= now), removed from the counters. */
     public List<UsageRecord> drain() {
         return drain(clock.getAsLong());
@@ -167,22 +184,7 @@ public final class UsageMeter {
         UsageRecord.Emitter em = new UsageRecord.Emitter(service, replica, node, version, seqs.epoch());
         for (Long w : closed) {
             ConcurrentHashMap<String, Cell> cells = windows.remove(w);
-            if (cells == null) continue;
-            List<String> keys = new ArrayList<>(cells.keySet());
-            keys.sort(String::compareTo);
-            for (Iterator<String> it = keys.iterator(); it.hasNext(); ) {
-                String k = it.next();
-                Cell c = cells.get(k);
-                BigDecimal sum;
-                synchronized (c) {
-                    sum = c.sum;
-                }
-                if (sum.signum() == 0) continue;
-                UsageUnit u = UsageCatalog.get(c.unit);
-                String key = UsageRecord.key(env, c.subject, c.unit, c.dims) + (c.internal ? "|internal" : "") + (c.onBehalfOf == null ? "" : "|for=" + c.onBehalfOf);
-                out.add(new UsageRecord(UsageRecord.id(service, replica, w, key), seqs.next(), em, env, w, c.subject, c.unit, c.dims, sum, c.internal, c.onBehalfOf,
-                        u.billable() ? "billable" : "indicative"));
-            }
+            if (cells != null) records(w, cells, em, out);
         }
         return out;
     }

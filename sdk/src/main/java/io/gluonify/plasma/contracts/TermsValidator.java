@@ -54,34 +54,37 @@ public final class TermsValidator {
             if (q != null) quotas(q, "quotasByEnv." + env, e);
         });
         if (t.ha() != null) ha(t.ha(), "ha", e);
-        if (t.apps() != null) {
-            if (t.apps().size() > MAX_APPS) e.add("apps : at most " + MAX_APPS + " overrides");
-            ContractTerms.Quotas base = t.quotas() == null ? ContractTerms.Quotas.NONE : t.quotas();
-            t.apps().forEach((name, o) -> {
-                String p = "apps." + name;
-                if (!NAME.matcher(name).matches()) e.add(p + " : invalid application name");
-                if (o == null) return;
-                positive(o.memoryMbPerReplica(), p + ".memoryMbPerReplica", e);
-                positive(o.replicasPerApp(), p + ".replicasPerApp", e);
-                nonNegative(o.scratchMbPerReplica(), p + ".scratchMbPerReplica", e);
-                positive(o.distributedQuotaMbPerApp(), p + ".distributedQuotaMbPerApp", e);
-                // only memoryMbPerReplica, replicasPerApp and ha may widen the contract
-                if (o.scratchMbPerReplica() != null && base.scratchMbPerReplica() != null && o.scratchMbPerReplica() > base.scratchMbPerReplica())
-                    e.add(p + ".scratchMbPerReplica : an override can only tighten the contract (" + base.scratchMbPerReplica() + ")");
-                if (o.distributedQuotaMbPerApp() != null && base.distributedQuotaMbPerApp() != null && o.distributedQuotaMbPerApp() > base.distributedQuotaMbPerApp())
-                    e.add(p + ".distributedQuotaMbPerApp : an override can only tighten the contract (" + base.distributedQuotaMbPerApp() + ")");
-                if (o.ha() != null) ha(o.ha(), p + ".ha", e);
-            });
-        }
+        if (t.apps() != null) appOverrides(t, e);
         if (t.pricing() != null) pricing(t.pricing(), e);
-        if (t.budget() != null) {
-            if (t.budget().monthly() != null && !Decimals.valid(t.budget().monthly())) e.add("budget.monthly : positive decimal expected (at most 9 decimal places)");
-            if (t.budget().thresholdsPct() != null) {
-                if (t.budget().thresholdsPct().size() > MAX_THRESHOLDS) e.add("budget.thresholdsPct : " + MAX_THRESHOLDS + " thresholds at most");
-                for (Integer th : t.budget().thresholdsPct()) if (th == null || th < 1 || th > 500) e.add("budget.thresholdsPct : 1 to 500 %");
-            }
-        }
+        if (t.budget() != null) budget(t.budget(), e);
         return e;
+    }
+
+    private static void appOverrides(final ContractTerms t, final List<String> e) {
+        if (t.apps().size() > MAX_APPS) e.add("apps : at most " + MAX_APPS + " overrides");
+        ContractTerms.Quotas base = t.quotas() == null ? ContractTerms.Quotas.NONE : t.quotas();
+        t.apps().forEach((name, o) -> {
+            String p = "apps." + name;
+            if (!NAME.matcher(name).matches()) e.add(p + " : invalid application name");
+            if (o == null) return;
+            positive(o.memoryMbPerReplica(), p + ".memoryMbPerReplica", e);
+            positive(o.replicasPerApp(), p + ".replicasPerApp", e);
+            nonNegative(o.scratchMbPerReplica(), p + ".scratchMbPerReplica", e);
+            positive(o.distributedQuotaMbPerApp(), p + ".distributedQuotaMbPerApp", e);
+            // only memoryMbPerReplica, replicasPerApp and ha may widen the contract
+            if (o.scratchMbPerReplica() != null && base.scratchMbPerReplica() != null && o.scratchMbPerReplica() > base.scratchMbPerReplica())
+                e.add(p + ".scratchMbPerReplica : an override can only tighten the contract (" + base.scratchMbPerReplica() + ")");
+            if (o.distributedQuotaMbPerApp() != null && base.distributedQuotaMbPerApp() != null && o.distributedQuotaMbPerApp() > base.distributedQuotaMbPerApp())
+                e.add(p + ".distributedQuotaMbPerApp : an override can only tighten the contract (" + base.distributedQuotaMbPerApp() + ")");
+            if (o.ha() != null) ha(o.ha(), p + ".ha", e);
+        });
+    }
+
+    private static void budget(final ContractTerms.Budget b, final List<String> e) {
+        if (b.monthly() != null && !Decimals.valid(b.monthly())) e.add("budget.monthly : positive decimal expected (at most 9 decimal places)");
+        if (b.thresholdsPct() == null) return;
+        if (b.thresholdsPct().size() > MAX_THRESHOLDS) e.add("budget.thresholdsPct : " + MAX_THRESHOLDS + " thresholds at most");
+        for (Integer th : b.thresholdsPct()) if (th == null || th < 1 || th > 500) e.add("budget.thresholdsPct : 1 to 500 %");
     }
 
     /** Errors of the lines of a price list. */
@@ -93,22 +96,22 @@ public final class TermsValidator {
         }
         if (lines.size() > MAX_PRICE_LINES) e.add("lines : at most " + MAX_PRICE_LINES + " lines");
         Set<String> seen = new HashSet<>();
-        for (int i = 0; i < lines.size(); i++) {
-            PriceLine l = lines.get(i);
-            String p = "lines[" + i + "]";
-            if (l == null) {
-                e.add(p + " : empty line");
-                continue;
-            }
-            UsageUnit u = unit(l.unit(), p, e);
-            if (u != null) {
-                dims(u, l.dims(), p, e);
-                if (l.per() == null || !u.quantity().accepts(l.per())) e.add(p + ".per : " + u.quantity().perUnits().keySet() + " for " + u.name());
-            }
-            if (!Decimals.valid(l.price())) e.add(p + ".price : positive decimal expected (at most 9 decimal places)");
-            if (!seen.add(l.unit() + "|" + (l.dims() == null ? "" : l.dims().toString()))) e.add(p + " : duplicate line (same unit and same dimensions)");
-        }
+        for (int i = 0; i < lines.size(); i++) lineErrors(lines.get(i), "lines[" + i + "]", seen, e);
         return e;
+    }
+
+    private static void lineErrors(final PriceLine l, final String p, final Set<String> seen, final List<String> e) {
+        if (l == null) {
+            e.add(p + " : empty line");
+            return;
+        }
+        UsageUnit u = unit(l.unit(), p, e);
+        if (u != null) {
+            dims(u, l.dims(), p, e);
+            if (l.per() == null || !u.quantity().accepts(l.per())) e.add(p + ".per : " + u.quantity().perUnits().keySet() + " for " + u.name());
+        }
+        if (!Decimals.valid(l.price())) e.add(p + ".price : positive decimal expected (at most 9 decimal places)");
+        if (!seen.add(l.unit() + "|" + (l.dims() == null ? "" : l.dims().toString()))) e.add(p + " : duplicate line (same unit and same dimensions)");
     }
 
     /** Contract to list link: the list exists, so does the pinned version, and the currency is the same. Errors for a 422 refusal. */
@@ -133,10 +136,12 @@ public final class TermsValidator {
         }
         if (s.distributed() != null) for (String d : s.distributed()) if (!DISTRIBUTED.contains(d)) e.add("services.distributed : std, tmp or gdown (" + d + ")");
         if (s.routeKinds() != null) for (String k : s.routeKinds()) if (!ROUTE_KINDS.contains(k)) e.add("services.routeKinds : app, gdown or upstream (" + k + ")");
-        if (s.consoles() != null) for (String c : s.consoles()) {
-            if (c == null || !NAME.matcher(c).matches()) e.add("services.consoles : invalid name (" + c + ")");
-            else if (s.uses() != null && !s.uses().contains(c)) e.add("services.consoles : " + c + " is not in services.uses (a console is never broader than uses)");
-        }
+        if (s.consoles() != null) for (String c : s.consoles()) consoleError(c, s.uses(), e);
+    }
+
+    private static void consoleError(final String c, final List<String> uses, final List<String> e) {
+        if (c == null || !NAME.matcher(c).matches()) e.add("services.consoles : invalid name (" + c + ")");
+        else if (uses != null && !uses.contains(c)) e.add("services.consoles : " + c + " is not in services.uses (a console is never broader than uses)");
     }
 
     /** Errors of a plan reference: identifier and version >= 1 (null: valid, no plan). */
@@ -177,12 +182,7 @@ public final class TermsValidator {
 
     private static void pricing(final ContractTerms.PricingTerms pr, final List<String> e) {
         if (pr.currency() != null && !Decimals.CURRENCY.matcher(pr.currency()).matches()) e.add("pricing.currency : ISO 4217 code (three uppercase letters)");
-        if (pr.priceList() != null) {
-            if (pr.priceList().id() == null || !PriceList.ID.matcher(pr.priceList().id()).matches()) e.add("pricing.priceList.id : invalid identifier");
-            boolean follow = Boolean.TRUE.equals(pr.priceList().follow());
-            if (follow && pr.priceList().version() != null) e.add("pricing.priceList : version and follow are incompatible");
-            if (!follow && pr.priceList().version() == null) e.add("pricing.priceList.version : required without follow (a pinned version)");
-        }
+        if (pr.priceList() != null) priceListRef(pr.priceList(), e);
         if (pr.subscription() != null) {
             decimal(pr.subscription().monthly(), "pricing.subscription.monthly", e);
             decimal(pr.subscription().perApp(), "pricing.subscription.perApp", e);
@@ -192,41 +192,50 @@ public final class TermsValidator {
         decimal(pr.minimumMonthly(), "pricing.minimumMonthly", e);
         if (pr.overrides() == null) return;
         if (pr.overrides().size() > MAX_PRICE_LINES) e.add("pricing.overrides : at most " + MAX_PRICE_LINES + " lines");
-        for (int i = 0; i < pr.overrides().size(); i++) {
-            ContractTerms.PriceOverride o = pr.overrides().get(i);
-            String p = "pricing.overrides[" + i + "]";
-            if (o == null) {
-                e.add(p + " : empty line");
+        for (int i = 0; i < pr.overrides().size(); i++) override(pr.overrides().get(i), "pricing.overrides[" + i + "]", e);
+    }
+
+    private static void priceListRef(final ContractTerms.PriceListRef ref, final List<String> e) {
+        if (ref.id() == null || !PriceList.ID.matcher(ref.id()).matches()) e.add("pricing.priceList.id : invalid identifier");
+        boolean follow = Boolean.TRUE.equals(ref.follow());
+        if (follow && ref.version() != null) e.add("pricing.priceList : version and follow are incompatible");
+        if (!follow && ref.version() == null) e.add("pricing.priceList.version : required without follow (a pinned version)");
+    }
+
+    private static void override(final ContractTerms.PriceOverride o, final String p, final List<String> e) {
+        if (o == null) {
+            e.add(p + " : empty line");
+            return;
+        }
+        UsageUnit u = unit(o.unit(), p, e);
+        if (u != null) {
+            dims(u, o.dims(), p, e);
+            if (o.per() != null && !u.quantity().accepts(o.per())) e.add(p + ".per : " + u.quantity().perUnits().keySet() + " for " + u.name());
+        }
+        if (o.env() != null && !ENV.matcher(o.env()).matches()) e.add(p + ".env : invalid environment");
+        decimal(o.price(), p + ".price", e);
+        if (o.discountPct() != null && !Decimals.validPct(o.discountPct())) e.add(p + ".discountPct : percentage from 0 to 100");
+        if (o.included() != null && o.included() < 0) e.add(p + ".included : positive or zero");
+        if (o.price() != null && o.tiers() != null) e.add(p + " : price and tiers are incompatible");
+        if (o.price() == null && o.tiers() == null && o.included() == null && o.discountPct() == null) e.add(p + " : price, tiers, included or discountPct expected");
+        if (o.tiers() != null) tiers(o.tiers(), p, e);
+    }
+
+    private static void tiers(final List<ContractTerms.Tier> tiers, final String p, final List<String> e) {
+        if (tiers.isEmpty()) e.add(p + ".tiers : at least one tier");
+        long prev = -1;
+        for (int j = 0; j < tiers.size(); j++) {
+            ContractTerms.Tier t = tiers.get(j);
+            String q = p + ".tiers[" + j + "]";
+            if (t == null) {
+                e.add(q + " : empty tier");
                 continue;
             }
-            UsageUnit u = unit(o.unit(), p, e);
-            if (u != null) {
-                dims(u, o.dims(), p, e);
-                if (o.per() != null && !u.quantity().accepts(o.per())) e.add(p + ".per : " + u.quantity().perUnits().keySet() + " for " + u.name());
-            }
-            if (o.env() != null && !ENV.matcher(o.env()).matches()) e.add(p + ".env : invalid environment");
-            decimal(o.price(), p + ".price", e);
-            if (o.discountPct() != null && !Decimals.validPct(o.discountPct())) e.add(p + ".discountPct : percentage from 0 to 100");
-            if (o.included() != null && o.included() < 0) e.add(p + ".included : positive or zero");
-            if (o.price() != null && o.tiers() != null) e.add(p + " : price and tiers are incompatible");
-            if (o.price() == null && o.tiers() == null && o.included() == null && o.discountPct() == null) e.add(p + " : price, tiers, included or discountPct expected");
-            if (o.tiers() != null) {
-                if (o.tiers().isEmpty()) e.add(p + ".tiers : at least one tier");
-                long prev = -1;
-                for (int j = 0; j < o.tiers().size(); j++) {
-                    ContractTerms.Tier t = o.tiers().get(j);
-                    String q = p + ".tiers[" + j + "]";
-                    if (t == null) {
-                        e.add(q + " : empty tier");
-                        continue;
-                    }
-                    if (!Decimals.valid(t.price())) e.add(q + ".price : positive decimal expected (at most 9 decimal places)");
-                    boolean last = j == o.tiers().size() - 1;
-                    if (last && t.upTo() != null) e.add(q + ".upTo : the last tier has no bound");
-                    if (!last && (t.upTo() == null || t.upTo() <= prev)) e.add(q + ".upTo : strictly increasing bounds");
-                    if (t.upTo() != null) prev = t.upTo();
-                }
-            }
+            if (!Decimals.valid(t.price())) e.add(q + ".price : positive decimal expected (at most 9 decimal places)");
+            boolean last = j == tiers.size() - 1;
+            if (last && t.upTo() != null) e.add(q + ".upTo : the last tier has no bound");
+            if (!last && (t.upTo() == null || t.upTo() <= prev)) e.add(q + ".upTo : strictly increasing bounds");
+            if (t.upTo() != null) prev = t.upTo();
         }
     }
 

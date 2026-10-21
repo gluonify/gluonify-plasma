@@ -150,7 +150,7 @@ public final class UsageEmitter {
      * Transport taken from the platform environment: {@code GLUONIFY_SERVICE_CALORIMETER_URL} and {@code GLUONIFY_CALORIMETER_TOKEN_FILE}
      * ({@code uses: ["calorimeter"]}); null without an address. Re-read on each call by the emitter (the token file may arrive after startup).
      */
-    public static Supplier<Transport> fromEnvironment(final java.util.function.Function<String, String> env, final Duration timeout) {
+    public static Supplier<Transport> fromEnvironment(java.util.function.Function<String, String> env, Duration timeout) {
         Transport[] cached = new Transport[1];
         String[] key = new String[1];
         return () -> {
