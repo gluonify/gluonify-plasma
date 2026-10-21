@@ -1,0 +1,7 @@
+# Reviewed gitleaks false positives (2026-10-21), all in unit tests:
+# - ProvenanceTest: Ed25519 key of test 1 of RFC 8032, a published test vector
+# - TaskCatalogueTest: placeholder seedToken 0123456789abcdef
+# - KeyRotationTest: a test method name taken for an API key
+37fb378ad9a9bd478aa8225e6f91b37bc78e38f4:sdk/src/test/java/io/gluonify/plasma/provenance/ProvenanceTest.java:private-key:26
+f861cc6a365c76aaf3155b65c69b1764d4a67dd8:sdk/src/test/java/io/gluonify/plasma/release/TaskCatalogueTest.java:generic-api-key:15
+73092dd8419772111303c47ab608aa87bcc0b342:sdk/src/test/java/io/gluonify/plasma/release/KeyRotationTest.java:generic-api-key:209
