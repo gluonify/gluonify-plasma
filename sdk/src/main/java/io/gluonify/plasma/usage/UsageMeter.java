@@ -198,12 +198,7 @@ public final class UsageMeter {
 
     private static boolean dimsAllowed(final UsageUnit u, final Map<String, String> dims) {
         if (dims == null || dims.isEmpty()) return true;
-        if (dims.size() > 3) return false;
-        for (var e : dims.entrySet()) {
-            List<String> allowed = u.dims().get(e.getKey());
-            if (allowed == null || !allowed.contains(e.getValue())) return false;
-        }
-        return true;
+        return u.acceptsDims(dims);
     }
 
     /** The records of one closed window, in key order; cells with a zero sum are skipped. */

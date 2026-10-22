@@ -29,12 +29,17 @@ class SuperpositionUnitsTest {
     }
 
     @Test
-    void theirDimensionsAreEnumerated() {
+    void theirDimensionsAreEnumeratedOrFree() {
 
-        assertEquals(Map.of("model", MODELS, "kind", List.of("input", "output", "cache_read", "cache_write")),
-                UsageCatalog.get("superposition.tokens").dims());
-        assertEquals(Map.of("level", List.of("L0", "L1", "L2", "L3"), "engine", List.of("edge", "claude"),
-                "outcome", List.of("success", "failure", "interrupted", "timeout")), UsageCatalog.get("superposition.runs").dims());
-        assertEquals(Map.of("model", MODELS), UsageCatalog.get("superposition.cost.usd").dims());
+        final List<String> engines = List.of("edge", "claude");
+
+        assertEquals(Map.of("model", MODELS, "kind", List.of("input", "output", "cache_read", "cache_write"), "engine", engines), UsageCatalog.get("superposition.tokens").dims());
+        assertEquals(Map.of("level", List.of("L0", "L1", "L2", "L3"), "engine", engines, "model", MODELS, "outcome", List.of("success", "failure", "interrupted", "timeout")),
+                UsageCatalog.get("superposition.runs").dims());
+        assertEquals(Map.of("model", MODELS, "engine", engines), UsageCatalog.get("superposition.cost.usd").dims());
+        for (final String name : List.of("superposition.tokens", "superposition.runs", "superposition.cost.usd")) {
+            assertEquals(java.util.Set.of("agent", "ticket"), UsageCatalog.get(name).free(), name);
+            assertEquals(java.util.Set.of("ticket"), UsageCatalog.get(name).highCardinality(), name);
+        }
     }
 }

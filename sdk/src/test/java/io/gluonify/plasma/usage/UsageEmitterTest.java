@@ -68,6 +68,18 @@ class UsageEmitterTest {
     }
 
     @Test
+    void aSuperpositionRunCarriesItsAgentEngineModelAndTicket() {
+        AtomicLong clock = new AtomicLong(T0 + 1_000);
+        UsageMeter m = new UsageMeter("superposition", "r1", "n1", "0.1.0", "PRD", 20_000, clock::get, UsageMeter.memorySeq(1));
+        Map<String, String> dims = Map.of("model", "opus", "kind", "input", "engine", "claude", "agent", "claude-1", "ticket", "SUP-12");
+        assertTrue(m.add(SHOP, "superposition.tokens", dims, 120));
+        assertFalse(m.add(SHOP, "superposition.tokens", Map.of("ticket", "has space"), 1), "a free value is a short token");
+        assertFalse(m.add(SHOP, "superposition.tokens", Map.of("colour", "red"), 1), "an unknown dimension");
+        clock.set(T0 + 60_000);
+        assertEquals(1, m.drain().size());
+    }
+
+    @Test
     void idsAreStableAndSeqIncreases() {
         AtomicLong clock = new AtomicLong(T0);
         UsageMeter a = meter(clock, UsageMeter.memorySeq(1));

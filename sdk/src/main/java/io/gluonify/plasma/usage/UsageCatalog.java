@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Closed catalog of usage units ({@code metering.md} § 3.1 and {@code analysis.md} § 10), shipped by the SDK so that Higgs validates price grids without
@@ -20,10 +21,17 @@ public final class UsageCatalog {
     /** Models of gluonify-superposition's engines (dimension {@code model} of its units). */
     private static final List<String> SUPERPOSITION_MODELS = List.of("qwen3-coder", "haiku", "sonnet", "opus", "fable");
 
+    /** Engines of gluonify-superposition (dimension {@code engine} of its units). */
+    private static final List<String> SUPERPOSITION_ENGINES = List.of("edge", "claude");
+
     private static final Map<String, UsageUnit> UNITS = new LinkedHashMap<>();
 
     private static void unit(final String name, final Quantity q, final boolean billable, final boolean internal, final Map<String, List<String>> dims) {
         UNITS.put(name, new UsageUnit(name, name.substring(0, name.indexOf('.')), q, billable, internal, dims));
+    }
+
+    private static void unit(final String name, final Quantity q, final Map<String, List<String>> dims, final Set<String> free, final Set<String> highCardinality) {
+        UNITS.put(name, new UsageUnit(name, name.substring(0, name.indexOf('.')), q, false, false, dims, free, highCardinality));
     }
 
     private static void unit(final String name, final Quantity q) { unit(name, q, true, false, Map.of()); }
@@ -83,10 +91,12 @@ public final class UsageCatalog {
         unit("bup.builds", Quantity.COUNT, "result", List.of("success", "failure"));
         unit("gauge.mcp.calls", Quantity.COUNT, "result", List.of("ok", "proposed"));
         // gluonify-superposition (architecture § 11): indicative, never a billing basis; cost in USD (decimal), as reported by the engine
-        unit("superposition.tokens", Quantity.COUNT, false, false, Map.of("model", SUPERPOSITION_MODELS, KIND, List.of("input", "output", "cache_read", "cache_write")));
-        unit("superposition.runs", Quantity.COUNT, false, false, Map.of("level", List.of("L0", "L1", "L2", "L3"), "engine", List.of("edge", "claude"),
-                "outcome", List.of("success", "failure", "interrupted", "timeout")));
-        unit("superposition.cost.usd", Quantity.COUNT, false, false, Map.of("model", SUPERPOSITION_MODELS));
+        // free: the agent id and the tracker key of the ticket (unbounded: highCardinality, rolled up after usage.high-cardinality-retention)
+        unit("superposition.tokens", Quantity.COUNT, Map.of("model", SUPERPOSITION_MODELS, KIND, List.of("input", "output", "cache_read", "cache_write"), "engine", SUPERPOSITION_ENGINES),
+                Set.of("agent", "ticket"), Set.of("ticket"));
+        unit("superposition.runs", Quantity.COUNT, Map.of("level", List.of("L0", "L1", "L2", "L3"), "engine", SUPERPOSITION_ENGINES, "model", SUPERPOSITION_MODELS,
+                "outcome", List.of("success", "failure", "interrupted", "timeout")), Set.of("agent", "ticket"), Set.of("ticket"));
+        unit("superposition.cost.usd", Quantity.COUNT, Map.of("model", SUPERPOSITION_MODELS, "engine", SUPERPOSITION_ENGINES), Set.of("agent", "ticket"), Set.of("ticket"));
         // analyses (analysis.md § 10)
         unit(AnalysisUnits.BUP_ANALYSIS_RUNS, Quantity.COUNT, AnalysisUnits.DIM_KIND, AnalysisUnits.ANALYSIS_KINDS);
         unit(AnalysisUnits.BUP_ANALYSIS_SECONDS, Quantity.SECONDS);
