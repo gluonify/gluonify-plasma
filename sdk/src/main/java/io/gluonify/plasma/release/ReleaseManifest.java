@@ -41,7 +41,14 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
     public static final java.util.Set<String> NAMES = java.util.Set.of("gluonify-strange", "gluonify-higgs", "gluonify-bottom", "gluonify-gdown", "gluonify-node-image");
     /** Safe component name: lowercase letters, digits and hyphens (never a path nor a special character). */
     public static final Pattern SAFE_NAME = Pattern.compile("[a-z][a-z0-9-]{1,63}");
-    public static final java.util.Set<String> ARCHS = java.util.Set.of("amd64", "arm64", "all");
+    /**
+     * The x86-64-v2 variant of amd64 (no AVX2: hypervisors that mask it, older Xeons). It is listed only in the variant manifest {@link #AMD64_V2_MANIFEST}, never in
+     * {@code manifest.json}: agents that predate it would refuse the whole manifest, and the cloud reads {@code manifest.json} only (x86-64-v3).
+     */
+    public static final String AMD64_V2 = "amd64-v2";
+    /** File name of the signed manifest of the x86-64-v2 variant, published next to {@code manifest.json} in the same version. */
+    public static final String AMD64_V2_MANIFEST = "manifest-amd64-v2.json";
+    public static final java.util.Set<String> ARCHS = java.util.Set.of("amd64", "arm64", "all", AMD64_V2);
     public static final Pattern VERSION_PATTERN = Pattern.compile("\\d{1,4}\\.\\d{1,4}\\.\\d{1,4}(-[\\dA-Za-z.]{1,16})?");
     /** @deprecated renamed {@link #VERSION_PATTERN} (SonarQube S1845); removed in the version after 0.7.2. */
     @Deprecated(forRemoval = true)

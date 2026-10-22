@@ -104,6 +104,18 @@ class ReleaseTest {
         assertThrows(ReleaseManifest.Invalid.class, () -> with("ok", "gluonify-graphdb", sha).validate());
     }
 
+    @Test void amd64V2IsAnArchitectureOfItsOwn() {
+        String sha = "a".repeat(64);
+        var v2 = new ReleaseManifest(1, "1.0.0", 1, NOW.toString(), NOW.plusSeconds(10).toString(),
+                List.of(new ReleaseManifest.Artifact("gluonify-gdown", ReleaseManifest.AMD64_V2, "gluonify-gdown-linux-amd64-v2.gz", sha, 10)));
+        v2.validate();
+        assertTrue(v2.find("gluonify-gdown", "amd64").isEmpty(), "an amd64 (x86-64-v3) agent never takes the v2 variant");
+        assertEquals("gluonify-gdown-linux-amd64-v2.gz", v2.find("gluonify-gdown", ReleaseManifest.AMD64_V2).orElseThrow().file());
+        var odd = new ReleaseManifest(1, "1.0.0", 1, NOW.toString(), NOW.plusSeconds(10).toString(),
+                List.of(new ReleaseManifest.Artifact("gluonify-gdown", "amd64-v4", "gluonify-gdown-linux-amd64-v4.gz", sha, 10)));
+        assertThrows(ReleaseManifest.Invalid.class, odd::validate);
+    }
+
     @Test void nonCanonicalManifestRefused() throws Exception {
         String json = manifest().toJson();
         assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseManifest.parse((json + " ").getBytes(StandardCharsets.UTF_8)));
