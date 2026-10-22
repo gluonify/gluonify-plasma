@@ -70,7 +70,7 @@ class UsageEmitterTest {
     @Test
     void aSuperpositionRunCarriesItsAgentEngineModelAndTicket() {
         AtomicLong clock = new AtomicLong(T0 + 1_000);
-        UsageMeter m = new UsageMeter("superposition", "r1", "n1", "0.1.0", "PRD", 20_000, clock::get, UsageMeter.memorySeq(1));
+        UsageMeter m = new UsageMeter(new UsageMeter.Identity("superposition", "r1", "n1", "0.1.0", "PRD"), 20_000, clock::get, UsageMeter.memorySeq(1));
         Map<String, String> dims = Map.of("model", "opus", "kind", "input", "engine", "claude", "agent", "claude-1", "ticket", "SUP-12");
         assertTrue(m.add(SHOP, "superposition.tokens", dims, 120));
         assertFalse(m.add(SHOP, "superposition.tokens", Map.of("ticket", "has space"), 1), "a free value is a short token");

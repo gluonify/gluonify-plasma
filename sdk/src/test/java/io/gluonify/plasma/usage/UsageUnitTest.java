@@ -49,7 +49,8 @@ class UsageUnitTest {
     @Test
     void aHighCardinalityDimensionMustBeFreeAndAllDimsListBoth() {
 
-        assertThrows(IllegalArgumentException.class, () -> new UsageUnit("x.bad", "x", Quantity.COUNT, false, false, Map.of(), Set.of(), Set.of("ticket")));
+        final Set<String> ticket = Set.of("ticket");
+        assertThrows(IllegalArgumentException.class, () -> new UsageUnit("x.bad", "x", Quantity.COUNT, false, false, Map.of(), Set.of(), ticket));
         assertEquals(Set.of("engine", "agent", "ticket"), UNIT.allDims());
         assertEquals(Set.of("ticket"), UNIT.highCardinality());
         assertFalse(UNIT.priceable());

@@ -17,6 +17,10 @@ public final class UsageCatalog {
     private UsageCatalog() {}
 
     private static final String KIND = "kind";
+    private static final String MODEL = "model";
+    private static final String ENGINE = "engine";
+    private static final String AGENT = "agent";
+    private static final String TICKET = "ticket";
 
     /** Models of gluonify-superposition's engines (dimension {@code model} of its units). */
     private static final List<String> SUPERPOSITION_MODELS = List.of("qwen3-coder", "haiku", "sonnet", "opus", "fable");
@@ -92,11 +96,11 @@ public final class UsageCatalog {
         unit("gauge.mcp.calls", Quantity.COUNT, "result", List.of("ok", "proposed"));
         // gluonify-superposition (architecture § 11): indicative, never a billing basis; cost in USD (decimal), as reported by the engine
         // free: the agent id and the tracker key of the ticket (unbounded: highCardinality, rolled up after usage.high-cardinality-retention)
-        unit("superposition.tokens", Quantity.COUNT, Map.of("model", SUPERPOSITION_MODELS, KIND, List.of("input", "output", "cache_read", "cache_write"), "engine", SUPERPOSITION_ENGINES),
-                Set.of("agent", "ticket"), Set.of("ticket"));
-        unit("superposition.runs", Quantity.COUNT, Map.of("level", List.of("L0", "L1", "L2", "L3"), "engine", SUPERPOSITION_ENGINES, "model", SUPERPOSITION_MODELS,
-                "outcome", List.of("success", "failure", "interrupted", "timeout")), Set.of("agent", "ticket"), Set.of("ticket"));
-        unit("superposition.cost.usd", Quantity.COUNT, Map.of("model", SUPERPOSITION_MODELS, "engine", SUPERPOSITION_ENGINES), Set.of("agent", "ticket"), Set.of("ticket"));
+        unit("superposition.tokens", Quantity.COUNT, Map.of(MODEL, SUPERPOSITION_MODELS, KIND, List.of("input", "output", "cache_read", "cache_write"), ENGINE, SUPERPOSITION_ENGINES),
+                Set.of(AGENT, TICKET), Set.of(TICKET));
+        unit("superposition.runs", Quantity.COUNT, Map.of("level", List.of("L0", "L1", "L2", "L3"), ENGINE, SUPERPOSITION_ENGINES, MODEL, SUPERPOSITION_MODELS,
+                "outcome", List.of("success", "failure", "interrupted", "timeout")), Set.of(AGENT, TICKET), Set.of(TICKET));
+        unit("superposition.cost.usd", Quantity.COUNT, Map.of(MODEL, SUPERPOSITION_MODELS, ENGINE, SUPERPOSITION_ENGINES), Set.of(AGENT, TICKET), Set.of(TICKET));
         // analyses (analysis.md § 10)
         unit(AnalysisUnits.BUP_ANALYSIS_RUNS, Quantity.COUNT, AnalysisUnits.DIM_KIND, AnalysisUnits.ANALYSIS_KINDS);
         unit(AnalysisUnits.BUP_ANALYSIS_SECONDS, Quantity.SECONDS);
