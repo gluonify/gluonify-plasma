@@ -52,6 +52,16 @@
     <gluonify.pmd.baseline>${project.basedir}/pmd-baseline.properties</gluonify.pmd.baseline>
   </properties>
 
+  <!-- gluonify-sea's Maven repository, where this parent, the SDK and gluonify-plasma-build-rules are published: a customer project on this parent
+       resolves the PMD ruleset of the quality profile (a PLUGIN dependency, read only from <pluginRepositories>) from it, as it resolved the parent.
+       Releases only: the internal snapshot builds never query it. -->
+  <repositories>
+    <repository><id>gluonify-sea</id><url>https://images.gluonify.io/maven</url><snapshots><enabled>false</enabled></snapshots></repository>
+  </repositories>
+  <pluginRepositories>
+    <pluginRepository><id>gluonify-sea</id><url>https://images.gluonify.io/maven</url><snapshots><enabled>false</enabled></snapshots></pluginRepository>
+  </pluginRepositories>
+
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -181,7 +191,7 @@
 
   <profiles>
     <!-- Quality gates (README, "Quality gates"): active in every module that has Java sources, so that the parent POMs and the build-rules module
-         (no code) neither need the ruleset nor measure anything. `mvn verify` fails like a red test when the coverage falls below the ratchet or
+         (no code) neither need the ruleset nor measure anything; PMD is in the next profile. `mvn verify` fails like a red test when the coverage falls below the ratchet or
          when PMD finds a violation that is not in the module's pmd-baseline.properties. -Djacoco.skip / -Dpmd.skip for a scoped run. -->
     <profile>
       <id>gluonify-quality</id>
@@ -244,6 +254,25 @@
               </execution>
             </executions>
           </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <!-- PMD with the ruleset of gluonify-plasma-build-rules (README, "Quality gates"): on by default in every module with Java sources, customer
+         projects included (decision of the user, 2026-10-23). -Dgluonify.plasma.pmd.skip=true (command line or the project's .mvn/maven.config)
+         turns it off: the profile is then inactive and neither the plugin nor the ruleset is resolved (an inactive profile fetches nothing from sea). -->
+    <profile>
+      <id>gluonify-pmd</id>
+      <activation>
+        <file>
+          <exists>${basedir}/src/main/java</exists>
+        </file>
+        <property>
+          <name>gluonify.plasma.pmd.skip</name>
+          <value>!true</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-pmd-plugin</artifactId>
