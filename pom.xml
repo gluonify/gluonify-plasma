@@ -39,8 +39,12 @@
     <jacoco.version>0.8.14</jacoco.version>
     <pmd.plugin.version>3.28.0</pmd.plugin.version>
     <pmd.version>7.28.0</pmd.version>
-    <!-- Version of gluonify-plasma-build-rules (the PMD ruleset): kept equal to this POM's version. -->
-    <gluonify.build-rules.version>0.1.0-SNAPSHOT</gluonify.build-rules.version>
+    <!-- Version of the plasma artifacts this parent manages, kept equal to this POM's version (bin/publish-sdk.sh of gluonify-chamber sets both).
+         A literal and not ${project.version}: Maven interpolates an inherited dependencyManagement in the CHILD's context, so a customer
+         project with the parent 0.7.3 asked for gluonify-plasma-sdk at its own version (gluonify-probe, quark, 2026-10-23). -->
+    <gluonify.plasma.version>0.1.0-SNAPSHOT</gluonify.plasma.version>
+    <!-- Version of gluonify-plasma-build-rules (the PMD ruleset). -->
+    <gluonify.build-rules.version>${gluonify.plasma.version}</gluonify.build-rules.version>
     <!-- Coverage ratchet (JaCoCo, whole module): each repository sets its current level rounded down, raises it with its tests, never lowers it. -->
     <gluonify.coverage.minimum>0.95</gluonify.coverage.minimum>
     <gluonify.coverage.branch.minimum>${gluonify.coverage.minimum}</gluonify.coverage.branch.minimum>
@@ -60,49 +64,49 @@
       <dependency>
         <groupId>io.gluonify.plasma</groupId>
         <artifactId>gluonify-plasma-sdk</artifactId>
-        <version>${project.version}</version>
+        <version>${gluonify.plasma.version}</version>
       </dependency>
       <dependency>
         <groupId>io.gluonify.plasma</groupId>
         <artifactId>gluonify-plasma-sdk</artifactId>
-        <version>${project.version}</version>
+        <version>${gluonify.plasma.version}</version>
         <type>test-jar</type>
       </dependency>
       <dependency>
         <groupId>io.gluonify.plasma</groupId>
         <artifactId>gluonify-plasma-fermion-client</artifactId>
-        <version>${project.version}</version>
+        <version>${gluonify.plasma.version}</version>
       </dependency>
       <dependency>
         <groupId>io.gluonify.plasma</groupId>
         <artifactId>gluonify-plasma-crystallon-client</artifactId>
-        <version>${project.version}</version>
+        <version>${gluonify.plasma.version}</version>
       </dependency>
       <dependency>
         <groupId>io.gluonify.plasma</groupId>
         <artifactId>gluonify-plasma-services</artifactId>
-        <version>${project.version}</version>
+        <version>${gluonify.plasma.version}</version>
       </dependency>
       <dependency>
         <groupId>io.gluonify.plasma</groupId>
         <artifactId>gluonify-plasma-services</artifactId>
-        <version>${project.version}</version>
+        <version>${gluonify.plasma.version}</version>
         <type>test-jar</type>
       </dependency>
       <dependency>
         <groupId>io.gluonify.plasma</groupId>
         <artifactId>gluonify-plasma-testing</artifactId>
-        <version>${project.version}</version>
+        <version>${gluonify.plasma.version}</version>
       </dependency>
       <dependency>
         <groupId>io.gluonify.plasma</groupId>
         <artifactId>gluonify-plasma-quarkus</artifactId>
-        <version>${project.version}</version>
+        <version>${gluonify.plasma.version}</version>
       </dependency>
       <dependency>
         <groupId>io.gluonify.plasma</groupId>
         <artifactId>gluonify-plasma-mcp</artifactId>
-        <version>${project.version}</version>
+        <version>${gluonify.plasma.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
