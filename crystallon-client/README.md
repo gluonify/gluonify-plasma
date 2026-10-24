@@ -10,7 +10,7 @@ HTTP client for **gluonify-crystallon** (PDF documents from a template) for cust
 
 ## Dependency
 
-The version is the platform's (`0.6.0` at the time of writing; the repository carries `0.1.0-SNAPSHOT`, set at publication). The Maven repository is served by gluonify-sea, with public read access.
+The version is the platform's (`0.6.0` at the time of writing; the repository carries its own version, the published one is set at publication). The Maven repository is served by gluonify-sea, with public read access.
 
 ```xml
 <repositories>
