@@ -34,6 +34,8 @@
     <maven.compiler.release>25</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <quarkus.platform.version>4.0.0.Beta1</quarkus.platform.version>
+    <!-- Jackson 3 above the Quarkus BOM (security fixes; dependencyManagement) -->
+    <jackson.version>3.1.8</jackson.version>
     <surefire.version>3.5.2</surefire.version>
     <!-- Quality gates of every build (README, "Quality gates"): versions, and the ratchets each repository sets to its current level. -->
     <jacoco.version>0.8.14</jacoco.version>
@@ -64,6 +66,16 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <!-- Before the Quarkus BOM, so that it wins: Quarkus 4.0.0.Beta1 brings Jackson 3.1.4, with high advisories fixed in 3.1.6 and 3.1.7
+             (GHSA-7hhh-6rmp-j9qf, -p6pp-m3f8-5c89, -cxp5-3px4-pw24, -q4xh-88c3-wmh7, -wv8q-qhhj-9h54; gluonify-chamber/bin/sbom.py audit, 2026-10-24).
+             Every component and customer project inheriting this parent gets it. Remove once the Quarkus BOM is at 3.1.7 or later. -->
+        <groupId>tools.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>io.quarkus.platform</groupId>
         <artifactId>quarkus-bom</artifactId>
