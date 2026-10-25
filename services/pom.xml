@@ -21,7 +21,11 @@
   </properties>
 
   <dependencies>
-    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -31,7 +35,9 @@
         <artifactId>maven-jar-plugin</artifactId>
         <executions>
           <execution>
-            <goals><goal>test-jar</goal></goals>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>

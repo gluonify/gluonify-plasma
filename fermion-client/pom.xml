@@ -18,24 +18,54 @@
     <gluonify.coverage.branch.minimum>0.70</gluonify.coverage.branch.minimum>
   </properties>
   <dependencies>
-    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-sdk</artifactId></dependency>
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-sdk</artifactId>
+    </dependency>
     <!-- Resolution without configuration (address and token): dependency-free jar, Java 17. -->
-    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-services</artifactId></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-websockets-next</artifactId></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-jackson</artifactId></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-scheduler</artifactId></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-junit</artifactId><scope>test</scope></dependency>
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-services</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-websockets-next</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-scheduler</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit</artifactId>
+      <scope>test</scope>
+    </dependency>
     <!-- The module has no src/main/resources/application.properties, so the parent's gluonify-quarkus-coverage profile does not apply:
          same setup here, otherwise every class reached only through a @QuarkusTest reads 0 %. -->
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-jacoco</artifactId><scope>test</scope></dependency>
-    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-services</artifactId><type>test-jar</type><scope>test</scope></dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-jacoco</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-services</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <configuration><parameters>true</parameters></configuration>
+        <configuration>
+          <parameters>true</parameters>
+        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>

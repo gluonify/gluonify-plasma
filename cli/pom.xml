@@ -20,9 +20,21 @@
   </properties>
 
   <dependencies>
-    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-services</artifactId></dependency>
-    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-services</artifactId><type>test-jar</type><scope>test</scope></dependency>
-    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-services</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-services</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -34,7 +46,9 @@
         <executions>
           <execution>
             <phase>package</phase>
-            <goals><goal>shade</goal></goals>
+            <goals>
+              <goal>shade</goal>
+            </goals>
             <configuration>
               <createDependencyReducedPom>false</createDependencyReducedPom>
               <transformers>

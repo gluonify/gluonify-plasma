@@ -21,16 +21,46 @@
   </properties>
 
   <dependencies>
-    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-sdk</artifactId></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-arc</artifactId></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-rest</artifactId></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-jackson</artifactId></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-security</artifactId></dependency>
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-sdk</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-arc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-security</artifactId>
+    </dependency>
     <!-- The verified Charm token as a principal (quarkus-oidc or quarkus-smallrye-jwt of the application provides the implementation). -->
-    <dependency><groupId>org.eclipse.microprofile.jwt</groupId><artifactId>microprofile-jwt-auth-api</artifactId></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-junit</artifactId><scope>test</scope></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-test-security-jwt</artifactId><scope>test</scope></dependency>
-    <dependency><groupId>io.rest-assured</groupId><artifactId>rest-assured</artifactId><scope>test</scope></dependency>
+    <dependency>
+      <groupId>org.eclipse.microprofile.jwt</groupId>
+      <artifactId>microprofile-jwt-auth-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-test-security-jwt</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

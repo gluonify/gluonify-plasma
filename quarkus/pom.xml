@@ -21,12 +21,32 @@
   </properties>
 
   <dependencies>
-    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-services</artifactId></dependency>
-    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-crystallon-client</artifactId></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-arc</artifactId></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-jackson</artifactId></dependency>
-    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-testing</artifactId><scope>test</scope></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-junit</artifactId><scope>test</scope></dependency>
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-services</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-crystallon-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-arc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-testing</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

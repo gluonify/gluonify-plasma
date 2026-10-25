@@ -20,9 +20,24 @@
   </properties>
 
   <dependencies>
-    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-services</artifactId></dependency>
-    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-crystallon-client</artifactId><scope>test</scope></dependency>
-    <dependency><groupId>tools.jackson.core</groupId><artifactId>jackson-databind</artifactId><scope>test</scope></dependency>
-    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-services</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-crystallon-client</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>tools.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>

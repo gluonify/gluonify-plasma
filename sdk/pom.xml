@@ -16,18 +16,58 @@
     <maven.compiler.release>17</maven.compiler.release>
   </properties>
   <dependencies>
-    <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-annotations</artifactId><scope>provided</scope></dependency>
-    <dependency><groupId>org.eclipse.microprofile.openapi</groupId><artifactId>microprofile-openapi-api</artifactId><scope>provided</scope></dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.microprofile.openapi</groupId>
+      <artifactId>microprofile-openapi-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
     <!-- Fournis par l'application : le contrat d'usage (UsageContract, UsageResource) les utilise sans les imposer aux autres clients du SDK. -->
-    <dependency><groupId>tools.jackson.core</groupId><artifactId>jackson-databind</artifactId><scope>provided</scope></dependency>
-    <dependency><groupId>jakarta.ws.rs</groupId><artifactId>jakarta.ws.rs-api</artifactId><scope>provided</scope></dependency>
-    <dependency><groupId>jakarta.enterprise</groupId><artifactId>jakarta.enterprise.cdi-api</artifactId><scope>provided</scope></dependency>
-    <dependency><groupId>jakarta.inject</groupId><artifactId>jakarta.inject-api</artifactId><scope>provided</scope></dependency>
-    <dependency><groupId>jakarta.annotation</groupId><artifactId>jakarta.annotation-api</artifactId><scope>provided</scope></dependency>
-    <dependency><groupId>org.eclipse.microprofile.config</groupId><artifactId>microprofile-config-api</artifactId><scope>provided</scope></dependency>
+    <dependency>
+      <groupId>tools.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.ws.rs</groupId>
+      <artifactId>jakarta.ws.rs-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.enterprise</groupId>
+      <artifactId>jakarta.enterprise.cdi-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.inject</groupId>
+      <artifactId>jakarta.inject-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.microprofile.config</groupId>
+      <artifactId>microprofile-config-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
     <!-- Fournit RuntimeDelegate (Response.ok…) aux tests de UsageResource, sans conteneur. -->
-    <dependency><groupId>io.quarkus.resteasy.reactive</groupId><artifactId>resteasy-reactive</artifactId><scope>test</scope></dependency>
-    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+    <dependency>
+      <groupId>io.quarkus.resteasy.reactive</groupId>
+      <artifactId>resteasy-reactive</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -36,7 +76,9 @@
         <artifactId>maven-jar-plugin</artifactId>
         <executions>
           <execution>
-            <goals><goal>test-jar</goal></goals>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>

@@ -58,10 +58,22 @@
        resolves the PMD ruleset of the quality profile (a PLUGIN dependency, read only from <pluginRepositories>) from it, as it resolved the parent.
        Releases only: the internal snapshot builds never query it. -->
   <repositories>
-    <repository><id>gluonify-sea</id><url>https://images.gluonify.io/maven</url><snapshots><enabled>false</enabled></snapshots></repository>
+    <repository>
+      <id>gluonify-sea</id>
+      <url>https://images.gluonify.io/maven</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
   </repositories>
   <pluginRepositories>
-    <pluginRepository><id>gluonify-sea</id><url>https://images.gluonify.io/maven</url><snapshots><enabled>false</enabled></snapshots></pluginRepository>
+    <pluginRepository>
+      <id>gluonify-sea</id>
+      <url>https://images.gluonify.io/maven</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </pluginRepository>
   </pluginRepositories>
 
   <dependencyManagement>

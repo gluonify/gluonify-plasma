@@ -21,16 +21,38 @@
   </properties>
 
   <dependencies>
-    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-sdk</artifactId></dependency>
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-sdk</artifactId>
+    </dependency>
     <!-- Resolution without configuration (address and token): dependency-free jar, Java 17. -->
-    <dependency><groupId>io.gluonify.plasma</groupId><artifactId>gluonify-plasma-services</artifactId></dependency>
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-services</artifactId>
+    </dependency>
 
     <!-- Jackson 2 and Jackson 3: never transitive, the application brings the one it uses (run-time detection). -->
-    <dependency><groupId>tools.jackson.core</groupId><artifactId>jackson-databind</artifactId><scope>provided</scope></dependency>
-    <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId><scope>provided</scope></dependency>
-    <dependency><groupId>com.fasterxml.jackson.datatype</groupId><artifactId>jackson-datatype-jsr310</artifactId><scope>provided</scope></dependency>
+    <dependency>
+      <groupId>tools.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+      <scope>provided</scope>
+    </dependency>
 
-    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -47,7 +69,10 @@
           <execution>
             <id>default-test</id>
             <configuration>
-              <excludes><exclude>**/NoJackson*</exclude><exclude>**/Jackson2NoJavaTime*</exclude></excludes>
+              <excludes>
+                <exclude>**/NoJackson*</exclude>
+                <exclude>**/Jackson2NoJavaTime*</exclude>
+              </excludes>
               <reportNameSuffix>both</reportNameSuffix>
               <systemPropertyVariables>
                 <crystallon.test.jackson>both</crystallon.test.jackson>
@@ -57,9 +82,14 @@
           <execution>
             <id>jackson3-only</id>
             <phase>test</phase>
-            <goals><goal>test</goal></goals>
+            <goals>
+              <goal>test</goal>
+            </goals>
             <configuration>
-              <excludes><exclude>**/NoJackson*</exclude><exclude>**/Jackson2NoJavaTime*</exclude></excludes>
+              <excludes>
+                <exclude>**/NoJackson*</exclude>
+                <exclude>**/Jackson2NoJavaTime*</exclude>
+              </excludes>
               <reportNameSuffix>jackson3-only</reportNameSuffix>
               <classpathDependencyExcludes>
                 <classpathDependencyExclude>com.fasterxml.jackson.core:jackson-databind</classpathDependencyExclude>
@@ -74,9 +104,14 @@
           <execution>
             <id>jackson2-only</id>
             <phase>test</phase>
-            <goals><goal>test</goal></goals>
+            <goals>
+              <goal>test</goal>
+            </goals>
             <configuration>
-              <excludes><exclude>**/NoJackson*</exclude><exclude>**/Jackson2NoJavaTime*</exclude></excludes>
+              <excludes>
+                <exclude>**/NoJackson*</exclude>
+                <exclude>**/Jackson2NoJavaTime*</exclude>
+              </excludes>
               <reportNameSuffix>jackson2-only</reportNameSuffix>
               <classpathDependencyExcludes>
                 <classpathDependencyExclude>tools.jackson.core:jackson-databind</classpathDependencyExclude>
@@ -90,9 +125,13 @@
           <execution>
             <id>jackson2-without-jsr310</id>
             <phase>test</phase>
-            <goals><goal>test</goal></goals>
+            <goals>
+              <goal>test</goal>
+            </goals>
             <configuration>
-              <includes><include>**/Jackson2NoJavaTime*Test.java</include></includes>
+              <includes>
+                <include>**/Jackson2NoJavaTime*Test.java</include>
+              </includes>
               <reportNameSuffix>jackson2-without-jsr310</reportNameSuffix>
               <classpathDependencyExcludes>
                 <classpathDependencyExclude>tools.jackson.core:jackson-databind</classpathDependencyExclude>
@@ -107,9 +146,13 @@
           <execution>
             <id>no-jackson</id>
             <phase>test</phase>
-            <goals><goal>test</goal></goals>
+            <goals>
+              <goal>test</goal>
+            </goals>
             <configuration>
-              <includes><include>**/NoJackson*Test.java</include></includes>
+              <includes>
+                <include>**/NoJackson*Test.java</include>
+              </includes>
               <reportNameSuffix>no-jackson</reportNameSuffix>
               <classpathDependencyExcludes>
                 <classpathDependencyExclude>tools.jackson.core:jackson-databind</classpathDependencyExclude>
