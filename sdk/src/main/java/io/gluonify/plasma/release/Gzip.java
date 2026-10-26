@@ -8,7 +8,7 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
 /**
- * Gzip files of the releases (see gluonify-codex/docs/BOOTSTRAP.md, "Format des fichiers").
+ * Gzip files of the releases (see gluonify-codex/docs/BOOTSTRAP.md, "File format: gzip").
  *
  * <p><b>Rule</b>: a {@code .gz} file that is not a {@code .tar.gz} is a SINGLE file compressed with gzip; its decompressed name is the name without {@code .gz}. A {@code .tar.gz}
  * archive (the installer image) is already compressed: it is never recompressed nor decompressed here.
