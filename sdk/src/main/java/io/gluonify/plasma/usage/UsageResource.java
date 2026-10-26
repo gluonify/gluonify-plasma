@@ -151,10 +151,8 @@ public class UsageResource {
     }
 
     /** The weakest confidence wins: {@code measured} > {@code prorata} > {@code estimated}; {@code none} yields to any attribution. */
-    private static String weakest(final String current, final String next) {
-        if (next == null) {
-            return current.equals(UsageReport.NONE) ? UsageReport.ESTIMATED : current;
-        }
+    private static String weakest(final String current, final String contributed) {
+        final String next = contributed == null ? UsageReport.ESTIMATED : contributed; // a contributor that says nothing is an estimate, whatever the order
         if (current.equals(UsageReport.NONE)) {
             return next;
         }

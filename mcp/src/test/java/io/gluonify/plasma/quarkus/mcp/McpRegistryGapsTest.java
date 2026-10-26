@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -160,13 +159,24 @@ class McpRegistryGapsTest {
         assertEquals(List.of("bridged"), r.tools().stream().map(McpRegistry.Tool::name).toList());
     }
 
-    @Disabled("DEFECT: McpRegistry.methods() documents that an overriding method hides the parent's, but both declarations are read: an overridden @McpTool method"
-            + " makes the application fail at startup with 'MCP tool declared twice: echo'")
     @Test
     void anOverridingMethodHidesTheParentsAndTheInheritedToolsStay() {
         final McpRegistry r = registry(new ArrayList<>(), new Inherited());
         assertEquals(4, r.size());
         assertEquals("again x", assertDoesNotThrow(() -> r.get("echo").orElseThrow().method().invoke(r.get("echo").orElseThrow().target(), new Args("x"))));
+    }
+
+    @Test
+    void anOverrideWithoutTheAnnotationHidesTheParentsTool() {
+        class Quiet extends Plain {
+            @Override
+            public String echo(final Args args) {
+                return "not a tool any more";
+            }
+        }
+        final McpRegistry r = registry(new ArrayList<>(), new Quiet());
+        assertTrue(r.get("echo").isEmpty());
+        assertEquals(3, r.size());
     }
 
     @Test

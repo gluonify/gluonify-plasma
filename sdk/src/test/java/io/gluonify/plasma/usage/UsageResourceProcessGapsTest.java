@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.eclipse.microprofile.config.Config;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -134,8 +133,6 @@ class UsageResourceProcessGapsTest {
         assertEquals("estimated", resource(List.of(contributor(one, null, null), contributor(two, "measured", null))).report().attribution());
     }
 
-    @Disabled("DEFECT: UsageResource.weakest() gives a contributor whose attribution() is null (out of contract: the default is estimated) no weight when something stronger"
-            + " is already known, so [measured, null] answers measured while [null, measured] answers estimated: the weakest-wins rule depends on the order")
     @Test
     void aContributorThatSaysNothingIsAnEstimateWhateverTheOrder() {
         final List<AppShare> one = List.of(new AppShare("a", "u1", 0.001, 10, "measured"));

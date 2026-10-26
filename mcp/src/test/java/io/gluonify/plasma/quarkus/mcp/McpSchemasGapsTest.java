@@ -11,7 +11,6 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalLong;
 import java.util.Set;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -71,8 +70,6 @@ class McpSchemasGapsTest {
         assertEquals(json("{\"type\":\"object\",\"additionalProperties\":{}}"), McpSchemas.of(type("wildcardValues")));
     }
 
-    @Disabled("DEFECT: a wildcard bounded by Number (List<? extends Number>) derives {\"type\":\"object\"} for its items, because Number is neither a scalar class of"
-            + " McpSchemas.scalarType nor a record: the JSON type of a Number is \"number\"")
     @Test
     void aNumberBoundIsANumber() throws Exception {
         assertEquals(json("{\"type\":\"array\",\"items\":{\"type\":\"number\"}}"), McpSchemas.of(type("numbers")));

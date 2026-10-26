@@ -117,7 +117,7 @@ public final class McpSchemas {
                 || c == Byte.class || c == BigInteger.class || c == OptionalInt.class || c == OptionalLong.class) {
             return "integer";
         }
-        if (c == double.class || c == float.class || c == Double.class || c == Float.class || c == BigDecimal.class || c == OptionalDouble.class) {
+        if (c == double.class || c == float.class || c == Double.class || c == Float.class || c == BigDecimal.class || c == Number.class || c == OptionalDouble.class) {
             return "number";
         }
         return null;

@@ -5,11 +5,14 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 import tools.jackson.core.JacksonException;
@@ -101,12 +104,13 @@ public final class McpRegistry {
         return k;
     }
 
-    /** Declared methods of the class and its superclasses (an overriding method hides the parent's), sorted for a stable order. */
+    /** Declared methods of the class and its superclasses (an overriding method, annotated or not, hides the parent's), sorted for a stable order. */
     private static List<Method> methods(final Class<?> type) {
         final List<Method> out = new ArrayList<>();
+        final Set<String> seen = new HashSet<>();
         for (Class<?> k = type; k != null && k != Object.class; k = k.getSuperclass()) {
             for (final Method m : k.getDeclaredMethods()) {
-                if (!m.isSynthetic() && !m.isBridge() && !Modifier.isStatic(m.getModifiers())) {
+                if (!m.isSynthetic() && !m.isBridge() && !Modifier.isStatic(m.getModifiers()) && seen.add(m.getName() + Arrays.toString(m.getParameterTypes()))) {
                     out.add(m);
                 }
             }
