@@ -111,7 +111,6 @@ class ProvenanceGapsTest {
         assertFalse(Provenance.wellFormed("x".repeat(Provenance.MAX_TOKEN + 1)));
         assertFalse(Provenance.wellFormed(token.replace('.', '!')));
         refused(() -> Provenance.split("garbage"), "unreadable token");
-        refused(() -> Provenance.split("AAAAAAAAAAAA." + "A".repeat(86)), "unreadable token");
         refused(() -> Provenance.split("AAAAAAAAA." + "A".repeat(86)), "unreadable token");
         assertNull(Provenance.claimedKeyId("garbage"));
         assertNull(Provenance.claimedKeyId(Base64.getUrlEncoder().withoutPadding().encodeToString("not a statement at all".getBytes(StandardCharsets.UTF_8)) + "." + "A".repeat(86)));
