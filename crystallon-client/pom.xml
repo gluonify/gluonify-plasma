@@ -14,8 +14,8 @@
 
   <properties>
     <!-- Quality ratchets (gluonify-plasma README, "Quality gates"): current coverage rounded down, raised with the tests, never lowered. -->
-    <gluonify.coverage.minimum>0.94</gluonify.coverage.minimum>
-    <gluonify.coverage.branch.minimum>0.80</gluonify.coverage.branch.minimum>
+    <gluonify.coverage.minimum>0.99</gluonify.coverage.minimum>
+    <gluonify.coverage.branch.minimum>0.98</gluonify.coverage.branch.minimum>
     <!-- Module published for customer applications: plain Java 17 (the parent compiles at 25). -->
     <maven.compiler.release>17</maven.compiler.release>
   </properties>

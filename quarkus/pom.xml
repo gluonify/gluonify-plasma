@@ -15,7 +15,7 @@
   <properties>
     <!-- Quality ratchets (gluonify-plasma README, "Quality gates"): current coverage rounded down, raised with the tests, never lowered. -->
     <gluonify.coverage.minimum>1.00</gluonify.coverage.minimum>
-    <gluonify.coverage.branch.minimum>0.50</gluonify.coverage.branch.minimum>
+    <gluonify.coverage.branch.minimum>1.00</gluonify.coverage.branch.minimum>
     <!-- Published for the clients' Quarkus 4 applications: Java 21, the minimum of Quarkus 4. -->
     <maven.compiler.release>21</maven.compiler.release>
   </properties>
