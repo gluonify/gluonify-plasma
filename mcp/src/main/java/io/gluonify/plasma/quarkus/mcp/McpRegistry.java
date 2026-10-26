@@ -61,7 +61,7 @@ public final class McpRegistry {
             final Class<?> type = unproxied(target.getClass());
             int found = 0;
             for (final Method m : methods(type)) {
-                final McpTool a = m.getAnnotation(McpTool.class);
+                final McpTool a = declaration(m);
                 if (a == null) {
                     continue;
                 }
@@ -104,7 +104,28 @@ public final class McpRegistry {
         return k;
     }
 
-    /** Declared methods of the class and its superclasses (an overriding method, annotated or not, hides the parent's), sorted for a stable order. */
+    /**
+     * The {@link McpTool} that describes a method: its own, otherwise that of the method it overrides in a superclass (an override without the annotation is the same
+     * tool: the parent's name, description and parameters describe it, and the call reaches the override by virtual dispatch).
+     *
+     * @param method a method of the toolbox class, the most derived declaration of its signature
+     * @return the annotation, or {@code null} when no declaration of this signature carries it
+     */
+    private static McpTool declaration(final Method method) {
+        for (Class<?> k = method.getDeclaringClass(); k != null && k != Object.class; k = k.getSuperclass()) {
+            try {
+                final McpTool a = k.getDeclaredMethod(method.getName(), method.getParameterTypes()).getAnnotation(McpTool.class);
+                if (a != null) {
+                    return a;
+                }
+            } catch (final NoSuchMethodException e) {
+                // not declared at this level: look further up
+            }
+        }
+        return null;
+    }
+
+    /** Declared methods of the class and its superclasses (an overriding method hides the parent's declaration of the same signature; see {@link #declaration}), sorted for a stable order. */
     private static List<Method> methods(final Class<?> type) {
         final List<Method> out = new ArrayList<>();
         final Set<String> seen = new HashSet<>();

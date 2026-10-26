@@ -163,20 +163,25 @@ class McpRegistryGapsTest {
     void anOverridingMethodHidesTheParentsAndTheInheritedToolsStay() {
         final McpRegistry r = registry(new ArrayList<>(), new Inherited());
         assertEquals(4, r.size());
+        assertEquals("echo, overridden", r.get("echo").orElseThrow().description(), "an annotated override replaces the parent's declaration");
         assertEquals("again x", assertDoesNotThrow(() -> r.get("echo").orElseThrow().method().invoke(r.get("echo").orElseThrow().target(), new Args("x"))));
     }
 
     @Test
-    void anOverrideWithoutTheAnnotationHidesTheParentsTool() {
+    void anOverrideWithoutTheAnnotationKeepsTheParentsToolAndCallsTheOverride() throws Exception {
         class Quiet extends Plain {
             @Override
             public String echo(final Args args) {
-                return "not a tool any more";
+                return "override of " + args.text();
             }
         }
         final McpRegistry r = registry(new ArrayList<>(), new Quiet());
-        assertTrue(r.get("echo").isEmpty());
-        assertEquals(3, r.size());
+        assertEquals(4, r.size(), "the tool is listed once");
+        final McpRegistry.Tool echo = r.get("echo").orElseThrow();
+        assertEquals("echo", echo.description(), "the parent's annotation describes it");
+        assertEquals(Quiet.class, echo.method().getDeclaringClass(), "the call goes through the overriding method");
+        assertEquals("override of x", echo.method().invoke(echo.target(), new Args("x")));
+        assertEquals(1, r.tools().stream().filter(t -> t.name().equals("echo")).count());
     }
 
     @Test
