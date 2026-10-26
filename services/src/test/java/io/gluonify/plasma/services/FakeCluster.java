@@ -32,6 +32,14 @@ public final class FakeCluster implements AutoCloseable {
     public final AtomicInteger refreshes = new AtomicInteger();
     public final AtomicInteger codeExchanges = new AtomicInteger();
     public volatile int discoveryStatus = 200;
+    /** Edits the discovery document before it is served (drop the issuer, the environment...). */
+    public volatile java.util.function.UnaryOperator<Map<String, Object>> discoveryTweak = m -> m;
+    /** Edits the OpenID configuration before it is served (another issuer, a missing or insecure endpoint...). */
+    public volatile java.util.function.UnaryOperator<Map<String, Object>> openidTweak = m -> m;
+    /** When not 0, /token answers this status with {@link #tokenFailureBody}. */
+    public volatile int tokenFailureStatus;
+    public volatile String tokenFailureBody = "{}";
+    public final AtomicInteger revocations = new AtomicInteger();
     /** Lifetime of the issued access tokens (seconds). */
     public volatile long accessTtl = 3600;
     /** Audiences carried by the issued tokens. */
@@ -54,7 +62,10 @@ public final class FakeCluster implements AutoCloseable {
         server.createContext("/realms/gluonify/.well-known/openid-configuration", this::openid);
         server.createContext("/realms/gluonify/authorize", this::authorize);
         server.createContext("/realms/gluonify/token", this::token);
-        server.createContext("/realms/gluonify/revoke", ex -> reply(ex, 200, "{}"));
+        server.createContext("/realms/gluonify/revoke", ex -> {
+            revocations.incrementAndGet();
+            reply(ex, 200, "{}");
+        });
         server.start();
     }
 
@@ -103,7 +114,7 @@ public final class FakeCluster implements AutoCloseable {
         m.put("issuer", issuer());
         m.put("cli", Map.of("clientId", CLIENT_ID));
         m.put("services", svc);
-        reply(ex, 200, Json.write(m));
+        reply(ex, 200, Json.write(discoveryTweak.apply(m)));
     }
 
     private void openid(final HttpExchange ex) throws IOException {
@@ -113,7 +124,7 @@ public final class FakeCluster implements AutoCloseable {
         m.put("token_endpoint", issuer() + "/token");
         m.put("revocation_endpoint", issuer() + "/revoke");
         m.put("code_challenge_methods_supported", List.of("S256"));
-        reply(ex, 200, Json.write(m));
+        reply(ex, 200, Json.write(openidTweak.apply(m)));
     }
 
     private void authorize(final HttpExchange ex) throws IOException {
@@ -135,6 +146,10 @@ public final class FakeCluster implements AutoCloseable {
     private void token(final HttpExchange ex) throws IOException {
         final Map<String, String> f = form(new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
         lastToken = f;
+        if (tokenFailureStatus != 0) {
+            reply(ex, tokenFailureStatus, tokenFailureBody);
+            return;
+        }
         if (!CLIENT_ID.equals(f.get("client_id"))) {
             reply(ex, 401, "{\"error\":\"invalid_client\"}");
             return;
