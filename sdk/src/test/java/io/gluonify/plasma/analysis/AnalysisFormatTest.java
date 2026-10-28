@@ -162,7 +162,7 @@ class AnalysisFormatTest {
         final Pattern naming = Pattern.compile("(bup|geiger)\\.[a-z]+\\.[a-z]+");
         for (String u : AnalysisUnits.ALL) assertTrue(naming.matcher(u).matches(), u);
         assertEquals(AnalysisUnits.ALL.size(), new HashSet<>(AnalysisUnits.ALL).size());
-        assertEquals(List.of("native", "deps", "sonar"), AnalysisUnits.ANALYSIS_KINDS);
+        assertEquals(AnalysisUnits.ANALYSIS_KINDS, List.of("native", "deps", "sonar"));
     }
 
     @Test

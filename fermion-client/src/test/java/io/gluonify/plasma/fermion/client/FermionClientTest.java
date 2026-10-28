@@ -29,7 +29,7 @@ class FermionClientTest {
     }
 
     @BeforeEach
-    void connected() throws InterruptedException {
+    void connected() {
         FakeFermionServer.accepting = true;
         await("client connected", () -> client.isConnected() && !FakeFermionServer.OPEN.isEmpty());
         Waits.stable(FakeFermionServer.FRAMES::size, Duration.ofMillis(300), Duration.ofSeconds(10)); // let the Auth and Hello of a fresh session land before the slate is cleared
@@ -41,7 +41,7 @@ class FermionClientTest {
         return FakeFermionServer.FRAMES.stream().map(FakeFermionServer.Frame::msg).filter(type::isInstance).map(type::cast).toList();
     }
 
-    private void dropAndWaitNewSession() throws InterruptedException {
+    private void dropAndWaitNewSession() {
         final int before = FakeFermionServer.sessions;
         FakeFermionServer.dropAll();
         await("new session", () -> FakeFermionServer.sessions > before && client.isConnected());
@@ -49,7 +49,7 @@ class FermionClientTest {
     }
 
     @Test
-    void withoutATokenYetItWaitsThenConnects() throws Exception {
+    void withoutATokenYetItWaitsThenConnects() {
         TestBeans.Token.value = null;
         try {
             final int before = FakeFermionServer.sessions;
@@ -95,7 +95,7 @@ class FermionClientTest {
     }
 
     @Test
-    void relaysTheSuccessfulEndOfASubmittedWorkflow() throws Exception {
+    void relaysTheSuccessfulEndOfASubmittedWorkflow() {
         final List<String> done = new CopyOnWriteArrayList<>();
         client.onWorkflowDone((id, payload) -> done.add(id + ":" + payload.get("answer")));
         FakeFermionServer.send(mapper, new FermionMsg.Done("q1", "g1", "ask-question", Map.of("answer", "8080")));
@@ -146,7 +146,7 @@ class FermionClientTest {
     }
 
     @Test
-    void aCancelOfATaskThatDoesNotRunHereIsAcknowledgedAtOnce() throws Exception {
+    void aCancelOfATaskThatDoesNotRunHereIsAcknowledgedAtOnce() {
         FakeFermionServer.send(mapper, new FermionMsg.Cancel("gone", "Task_X", "ECHO", "deleted", false));
         await("ack", () -> !received(FermionMsg.Result.class).isEmpty());
         final FermionMsg.Result ack = received(FermionMsg.Result.class).get(0);
@@ -157,7 +157,7 @@ class FermionClientTest {
     }
 
     @Test
-    void executesCommandsAndAnswersWithResults() throws Exception {
+    void executesCommandsAndAnswersWithResults() {
         FakeFermionServer.send(mapper, new FermionMsg.Command("c1", "g1", "ECHO", Map.of("text", "abc"), "Task_Echo"));
         await("result", () -> !received(FermionMsg.Result.class).isEmpty());
         final FermionMsg.Result r = received(FermionMsg.Result.class).get(0);
@@ -171,7 +171,7 @@ class FermionClientTest {
     }
 
     @Test
-    void failuresCarryTheirErrorKind() throws Exception {
+    void failuresCarryTheirErrorKind() {
         FakeFermionServer.send(mapper, new FermionMsg.Command("c2", null, "FAIL", Map.of(), "Task_Fail"));
         FakeFermionServer.send(mapper, new FermionMsg.Command("c3", null, "BOOM", Map.of()));
         FakeFermionServer.send(mapper, new FermionMsg.Command("c4", null, "NOPE", Map.of()));
@@ -191,7 +191,7 @@ class FermionClientTest {
     }
 
     @Test
-    void aLongTaskDoesNotBlockTheOthers() throws Exception {
+    void aLongTaskDoesNotBlockTheOthers() {
         FakeFermionServer.send(mapper, new FermionMsg.Command("s1", null, "SLOW", Map.of()));
         FakeFermionServer.send(mapper, new FermionMsg.Command("s2", null, "RELEASE", Map.of()));
         await("2 results", () -> received(FermionMsg.Result.class).size() == 2);
@@ -201,7 +201,7 @@ class FermionClientTest {
     }
 
     @Test
-    void aRunningTaskSendsHeartbeatsThatStopWithItsResult() throws Exception {
+    void aRunningTaskSendsHeartbeatsThatStopWithItsResult() {
         final var gate = new java.util.concurrent.CountDownLatch(1);
         TestBeans.Wait.GATE = gate;
         FakeFermionServer.send(mapper, new FermionMsg.Command("h1", "g1", "WAIT", Map.of(), "Task_Wait"));
@@ -223,7 +223,7 @@ class FermionClientTest {
     }
 
     @Test
-    void relaysWorkflowErrors() throws Exception {
+    void relaysWorkflowErrors() {
         final List<String> errors = new CopyOnWriteArrayList<>();
         client.onWorkflowError((id, message) -> errors.add(id + ":" + message));
         FakeFermionServer.send(mapper, new FermionMsg.Error("c9", "workflow inactive"));
@@ -232,7 +232,7 @@ class FermionClientTest {
     }
 
     @Test
-    void startsAreSentWhenConnectedAndUsageCanBeReannounced() throws Exception {
+    void startsAreSentWhenConnectedAndUsageCanBeReannounced() {
         client.startWorkflow("order-flow", "o1", "g0", Map.of("n", 1));
         client.startWorkflow("order-flow", "o2", Map.of());
         client.announceUsage();
@@ -251,7 +251,7 @@ class FermionClientTest {
     }
 
     @Test
-    void queuesDuringAnOutageReplaysAfterAndOverflowsExplicitly() throws Exception {
+    void queuesDuringAnOutageReplaysAfterAndOverflowsExplicitly() {
         FakeFermionServer.accepting = false;
         FakeFermionServer.dropAll();
         await("client notices the cut", () -> !client.isConnected());
