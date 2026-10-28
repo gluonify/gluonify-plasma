@@ -25,10 +25,14 @@
     </properties>
   </rule>
 
-  <!-- S107: at most 7 parameters -->
+  <!-- S107: at most 7 parameters; as GN13 of gluonify-sonar-rules, not reported on a record's constructors (the record is the grouping type) nor on
+       a signature marked @Deprecated(forRemoval = true) (kept for its callers until removal) -->
   <rule ref="category/java/design.xml/ExcessiveParameterList">
     <properties>
       <property name="minimum" value="8"/>
+      <property name="violationSuppressXPath"
+                value="self::FormalParameters[parent::ConstructorDeclaration/parent::RecordBody
+                       or ../ModifierList/Annotation[@SimpleName = 'Deprecated']//MemberValuePair[@Name = 'forRemoval']/BooleanLiteral[@True = true()]]"/>
     </properties>
   </rule>
 
@@ -88,7 +92,7 @@
     </properties>
   </rule>
 
-  <!-- S1845: no two members whose names differ only by case -->
+  <!-- S1845: no two members whose names differ only by case (an old name kept @Deprecated(forRemoval = true) until removal is not reported) -->
   <rule name="MembersDifferOnlyByCase"
         language="java"
         message="Rename this member: another member of the type has the same name except for case (Sonar S1845)"
@@ -98,7 +102,8 @@
     <properties>
       <property name="xpath">
         <value><![CDATA[
-//*[self::ClassBody or self::EnumBody or self::RecordBody]/FieldDeclaration/VariableDeclarator/VariableId
+//*[self::ClassBody or self::EnumBody or self::RecordBody]/FieldDeclaration
+  [not(ModifierList/Annotation[@SimpleName = 'Deprecated']//MemberValuePair[@Name = 'forRemoval']/BooleanLiteral[@True = true()])]/VariableDeclarator/VariableId
   [let $n := @Name, $b := ../../.. return
      ($b/FieldDeclaration/VariableDeclarator/VariableId | $b/MethodDeclaration)[@Name != $n and lower-case(@Name) = lower-case($n)]]
 |

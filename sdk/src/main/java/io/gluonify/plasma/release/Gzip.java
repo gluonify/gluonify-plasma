@@ -21,6 +21,7 @@ import java.util.zip.Inflater;
  * no byte after the footer, CRC-32 and size verified; any deviation raises {@link ReleaseManifest.Invalid}.
  */
 public final class Gzip {
+    private static final String TRUNCATED = "gzip truncated";
     private Gzip() {}
 
     /** Default decompressed size cap: 1 GiB. */
@@ -116,21 +117,21 @@ public final class Gzip {
         if ((flags & 0xe0) != 0) throw new ReleaseManifest.Invalid("gzip: reserved flags");
         if ((flags & 4) != 0) { // FEXTRA
             byte[] l = in.readNBytes(2);
-            if (l.length < 2) throw new ReleaseManifest.Invalid("gzip truncated");
+            if (l.length < 2) throw new ReleaseManifest.Invalid(TRUNCATED);
             int n = (l[0] & 0xff) | ((l[1] & 0xff) << 8);
-            if (in.readNBytes(n).length < n) throw new ReleaseManifest.Invalid("gzip truncated");
+            if (in.readNBytes(n).length < n) throw new ReleaseManifest.Invalid(TRUNCATED);
         }
         for (int bit : new int[] {8, 16}) { // FNAME, FCOMMENT: 0-terminated string, bounded
             if ((flags & bit) != 0) skipString(in);
         }
-        if ((flags & 2) != 0 && in.readNBytes(2).length < 2) throw new ReleaseManifest.Invalid("gzip truncated"); // FHCRC
+        if ((flags & 2) != 0 && in.readNBytes(2).length < 2) throw new ReleaseManifest.Invalid(TRUNCATED); // FHCRC
     }
 
     private static void skipString(final InputStream in) throws IOException {
         int c;
         int n = 0;
         while ((c = in.read()) > 0) if (++n > 4096) throw new ReleaseManifest.Invalid("gzip: header too long");
-        if (c < 0) throw new ReleaseManifest.Invalid("gzip truncated");
+        if (c < 0) throw new ReleaseManifest.Invalid(TRUNCATED);
     }
 
     private static Inflated inflateAll(final InputStream in, final Inflater inf, final OutputStream out, final long limit) throws IOException {

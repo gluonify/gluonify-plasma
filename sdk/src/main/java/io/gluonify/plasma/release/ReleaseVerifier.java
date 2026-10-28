@@ -137,7 +137,11 @@ public final class ReleaseVerifier {
         try (InputStream in = Files.newInputStream(file)) {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] buf = new byte[65536];
-            for (int n; (n = in.read(buf)) > 0; ) md.update(buf, 0, n);
+            int n = in.read(buf);
+            while (n > 0) {
+                md.update(buf, 0, n);
+                n = in.read(buf);
+            }
             return HexFormat.of().formatHex(md.digest());
         } catch (java.security.NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);

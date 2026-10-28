@@ -29,7 +29,7 @@ import tools.jackson.databind.ObjectMapper;
 public class GluonifyProducers {
 
     /** Name of the Crystallon service in {@code uses}. */
-    public static final String CRYSTALLON = "crystallon";
+    public static final String CRYSTALLON_SERVICE = "crystallon";
 
     /**
      * @throws io.gluonify.plasma.services.GluonifyServicesException on first injection, if Crystallon cannot be reached (the message says
@@ -46,7 +46,7 @@ public class GluonifyProducers {
 
     /** The Crystallon client resolved by {@code services}, with the JSON of {@code mapper} (or the detected one if {@code null}). */
     static CrystallonClient crystallon(final GluonifyServices services, final ObjectMapper mapper) {
-        final CrystallonClient.Builder b = CrystallonClient.builder().endpoint(services.resolve(CRYSTALLON));
+        final CrystallonClient.Builder b = CrystallonClient.builder().endpoint(services.resolve(CRYSTALLON_SERVICE));
         if (mapper != null) {
             b.json(Jackson3Codec.of(mapper));
         }

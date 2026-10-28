@@ -14,7 +14,7 @@ public final class Decimals {
     /** ISO 4217 currency: three uppercase letters. */
     public static final Pattern CURRENCY = Pattern.compile("[A-Z]{3}");
     /** Decimal places of currencies that do not have two (ISO 4217); all the others have two. */
-    private static final Map<String, Integer> MINOR = Map.ofEntries(Map.entry("JPY", 0), Map.entry("KRW", 0), Map.entry("CLP", 0), Map.entry("ISK", 0), Map.entry("VND", 0),
+    private static final Map<String, Integer> MINOR_UNITS = Map.ofEntries(Map.entry("JPY", 0), Map.entry("KRW", 0), Map.entry("CLP", 0), Map.entry("ISK", 0), Map.entry("VND", 0),
             Map.entry("BHD", 3), Map.entry("KWD", 3), Map.entry("OMR", 3), Map.entry("JOD", 3), Map.entry("TND", 3), Map.entry("IQD", 3), Map.entry("LYD", 3));
     /** Intermediate precision of converted quantities (decimal places, half up). */
     public static final int QUANTITY_SCALE = 9;
@@ -27,7 +27,7 @@ public final class Decimals {
     public static BigDecimal of(final String s) { return s == null ? BigDecimal.ZERO : new BigDecimal(s); }
 
     /** Decimal places of the currency. */
-    public static int minor(final String currency) { return MINOR.getOrDefault(currency, 2); }
+    public static int minor(final String currency) { return MINOR_UNITS.getOrDefault(currency, 2); }
 
     /** Monetary rounding: to the minor unit of the currency, half up. */
     public static BigDecimal money(final BigDecimal v, final String currency) { return v.setScale(minor(currency), RoundingMode.HALF_UP); }

@@ -12,9 +12,9 @@ import java.util.Map;
  */
 public enum Quantity {
     /** MB x s (reserved or used memory integrated over time). */
-    MB_SECONDS("MB-second", Map.of("MB-second", "1", "MB-hour", "3600", Units.GB_HOUR, "3686400")),
+    MB_SECONDS("MB-second", Map.of("MB-second", "1", "MB-hour", Units.SECONDS_PER_HOUR, Units.GB_HOUR, "3686400")),
     /** Seconds (CPU, build or request duration). */
-    SECONDS("second", Map.of("second", "1", "minute", "60", "hour", "3600")),
+    SECONDS("second", Map.of("second", "1", "minute", "60", "hour", Units.SECONDS_PER_HOUR)),
     /** Counter (requests, documents, messages...). */
     COUNT("unit", Map.of("unit", "1", "thousand", "1000", "million", "1000000")),
     /** Bytes (traffic, bytes written); GB = 2^30 bytes. */
@@ -22,7 +22,7 @@ public enum Quantity {
     /** GB x h (stored volume integrated over time). */
     GB_HOURS(Units.GB_HOUR, Map.of(Units.GB_HOUR, "1", "GB-month", "720")),
     /** Object x s (domain x s, connection x s, entry x s). */
-    OBJECT_SECONDS("unit-second", Map.of("unit-second", "1", "unit-hour", "3600", "unit-month", "2592000"));
+    OBJECT_SECONDS("unit-second", Map.of("unit-second", "1", "unit-hour", Units.SECONDS_PER_HOUR, "unit-month", "2592000"));
 
     private final String base;
     private final Map<String, BigDecimal> per;

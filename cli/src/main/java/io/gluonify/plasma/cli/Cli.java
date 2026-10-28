@@ -39,6 +39,7 @@ import java.util.function.UnaryOperator;
  * Exit codes: 0 success, 1 failure, 2 usage.
  */
 public final class Cli {
+    private static final String OPT_CA = "--ca";
     private static final String OPT_TIMEOUT = "--timeout";
     private static final String OPT_PORT = "--port";
     private static final String OPT_DISCOVERY = "--discovery";
@@ -53,7 +54,7 @@ public final class Cli {
             "                      check that the SDK can call a service (crystallon, fermion...); --print writes the token itself",
             "",
             "Files: ~/.gluonify/config.json and ~/.gluonify/tokens/<zone>.json (0600); GLUONIFY_HOME changes the folder.");
-    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z", Locale.ROOT);
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z", Locale.ROOT);
 
     final UnaryOperator<String> environment;
     final UnaryOperator<String> properties;
@@ -132,7 +133,7 @@ public final class Cli {
     // ------------------------------------------------------------------------------------------------ login
 
     private void login(final List<String> args) {
-        final Map<String, String> opts = options(args, List.of(OPT_PORT, "--ca", OPT_DISCOVERY, "--scope", OPT_TIMEOUT), List.of("--no-browser"));
+        final Map<String, String> opts = options(args, List.of(OPT_PORT, OPT_CA, OPT_DISCOVERY, "--scope", OPT_TIMEOUT), List.of("--no-browser"));
         if (args.size() != 1) {
             throw new UsageException("login needs exactly one zone, for example: gluonify login gluonify.lan");
         }
@@ -142,7 +143,7 @@ public final class Cli {
         }
         final Login.Options o = new Login.Options(zone,
                 opts.containsKey(OPT_DISCOVERY) ? URI.create(opts.get(OPT_DISCOVERY)) : null,
-                opts.containsKey("--ca") ? Path.of(opts.get("--ca")).toAbsolutePath() : null,
+                opts.containsKey(OPT_CA) ? Path.of(opts.get(OPT_CA)).toAbsolutePath() : null,
                 opts.containsKey(OPT_PORT) ? integer(opts.get(OPT_PORT), OPT_PORT, 0, 65535) : 0,
                 opts.getOrDefault("--scope", Login.DEFAULT_SCOPE),
                 Duration.ofSeconds(opts.containsKey(OPT_TIMEOUT) ? integer(opts.get(OPT_TIMEOUT), OPT_TIMEOUT, 1, 3600) : 300),
@@ -283,7 +284,7 @@ public final class Cli {
     // ------------------------------------------------------------------------------------------------ tools
 
     String time(final Instant instant) {
-        return TIME.format(instant.atZone(timeZone));
+        return TIME_FORMAT.format(instant.atZone(timeZone));
     }
 
     /** Removes the options from {@code args} (which keeps the arguments) and returns them. */

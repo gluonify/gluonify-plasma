@@ -25,11 +25,11 @@ import java.util.concurrent.Executors;
  */
 public final class FakeCrystallon implements AutoCloseable {
     private static final String TEMPLATES_PATH = "/v1/templates/";
-    private static final byte[] PDF = minimalPdf();
+    private static final byte[] MINIMAL_PDF = minimalPdf();
 
     /** The rendered PDF: a valid minimal one-page blank PDF (header, catalog, exact cross-reference table). A copy on each call. */
     public static byte[] pdf() {
-        return PDF.clone();
+        return MINIMAL_PDF.clone();
     }
 
     /**
@@ -102,6 +102,7 @@ public final class FakeCrystallon implements AutoCloseable {
         return this;
     }
 
+    @SuppressWarnings("PMD.UseTryWithResources") // Java 17 target: HttpExchange is AutoCloseable only from Java 18
     private void handle(final HttpExchange ex) throws IOException {
         try {
             final byte[] body = ex.getRequestBody().readAllBytes(); // always read to the end
@@ -135,9 +136,9 @@ public final class FakeCrystallon implements AutoCloseable {
             if (render.query() != null && render.query().contains("pdfa=true")) {
                 ex.getResponseHeaders().add("X-Crystallon-PDFA", "valid");
             }
-            ex.sendResponseHeaders(200, PDF.length);
+            ex.sendResponseHeaders(200, MINIMAL_PDF.length);
             try (OutputStream out = ex.getResponseBody()) {
-                out.write(PDF);
+                out.write(MINIMAL_PDF);
             }
         }
         finally {

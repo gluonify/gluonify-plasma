@@ -17,6 +17,7 @@ public final class UsageCatalog {
     private UsageCatalog() {}
 
     private static final String KIND = "kind";
+    private static final List<String> VFS_KINDS = List.of("std", "tmp", SERVICE_GDOWN);
     private static final String MODEL = "model";
     private static final String ENGINE = "engine";
     private static final String AGENT = "agent";
@@ -49,9 +50,9 @@ public final class UsageCatalog {
         unit("strange.instance.net_egress", Quantity.BYTES);
         unit("strange.instance.net_ingress", Quantity.BYTES);
         unit("strange.instance.disk_state", Quantity.MB_SECONDS);
-        unit("strange.vfs.bytes_written", Quantity.BYTES, "kind", List.of("std", "tmp", SERVICE_GDOWN));
-        unit("strange.vfs.bytes_read", Quantity.BYTES, "kind", List.of("std", "tmp", SERVICE_GDOWN));
-        unit("strange.vfs.ops", Quantity.COUNT, "kind", List.of("std", "tmp", SERVICE_GDOWN));
+        unit("strange.vfs.bytes_written", Quantity.BYTES, KIND, VFS_KINDS);
+        unit("strange.vfs.bytes_read", Quantity.BYTES, KIND, VFS_KINDS);
+        unit("strange.vfs.ops", Quantity.COUNT, KIND, VFS_KINDS);
         unit("higgs.ingress.requests", Quantity.COUNT, "class", List.of("2xx", "3xx", "4xx", "5xx"));
         unit("higgs.ingress.bytes_in", Quantity.BYTES);
         unit("higgs.ingress.bytes_out", Quantity.BYTES);
@@ -61,13 +62,13 @@ public final class UsageCatalog {
         unit("higgs.acme.certificates", Quantity.COUNT);
         unit("higgs.storage.blob_bytes", Quantity.GB_HOURS);
         unit("higgs.locks.ops", Quantity.COUNT);
-        unit("rup.vfs.stored_bytes", Quantity.GB_HOURS, "kind", List.of("std", "tmp", SERVICE_GDOWN));
-        unit("gdown.db.queries", Quantity.COUNT, "kind", List.of("read", "write"));
+        unit("rup.vfs.stored_bytes", Quantity.GB_HOURS, KIND, VFS_KINDS);
+        unit("gdown.db.queries", Quantity.COUNT, KIND, List.of("read", "write"));
         unit("gdown.db.query_seconds", Quantity.SECONDS);
         unit("gdown.db.rows", Quantity.COUNT);
         unit("gdown.db.stored_bytes", Quantity.GB_HOURS);
         unit("gdown.db.memory_reserved", Quantity.MB_SECONDS, false, false, Map.of());
-        unit("charm.tokens.issued", Quantity.COUNT, "kind", List.of("service", "node", "user"));
+        unit("charm.tokens.issued", Quantity.COUNT, KIND, List.of("service", "node", "user"));
         unit("charm.logins", Quantity.COUNT);
         unit("top.env.reads", Quantity.COUNT);
         unit("top.entries", Quantity.OBJECT_SECONDS);

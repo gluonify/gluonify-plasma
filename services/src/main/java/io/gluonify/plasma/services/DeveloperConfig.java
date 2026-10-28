@@ -34,7 +34,7 @@ public final class DeveloperConfig {
     /** Environment variable: a folder other than {@code ~/.gluonify}. */
     public static final String ENV_HOME = "GLUONIFY_HOME";
 
-    private static final Pattern ZONE = Pattern.compile("[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?");
+    private static final Pattern ZONE_NAME = Pattern.compile("[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?");
 
     /**
      * A known zone.
@@ -81,7 +81,7 @@ public final class DeveloperConfig {
 
     /** @return true if {@code zone} is an accepted zone name (lower case, digits, dots and hyphens; no scheme, port or path) */
     public static boolean validZone(final String zone) {
-        return zone != null && ZONE.matcher(zone).matches() && !zone.contains("..");
+        return zone != null && ZONE_NAME.matcher(zone).matches() && !zone.contains("..");
     }
 
     /** Reads the file; absent: an empty configuration. @throws GluonifyServicesException if the file is unreadable */

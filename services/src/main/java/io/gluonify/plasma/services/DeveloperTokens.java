@@ -249,8 +249,8 @@ public final class DeveloperTokens {
         synchronized (jvmLock) {
             try {
                 SecureFiles.directory(file.getParent());
-                try (FileChannel ch = FileChannel.open(file.resolveSibling(zone + ".json.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-                     FileLock lock = ch.lock()) {
+                try (FileChannel ch = FileChannel.open(file.resolveSibling(zone + ".json.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+                    ch.lock(); // released when the channel closes
                     final Session s = read(home, zone).orElseThrow(() -> notLoggedIn(zone));
                     if (!force && s.fresh(clock, MARGIN)) {
                         return s; // renewed in the meantime

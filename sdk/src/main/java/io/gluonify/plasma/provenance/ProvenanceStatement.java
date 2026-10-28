@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
  * exactly the canonical bytes of the statement obtained.
  */
 public record ProvenanceStatement(String app, Map<String, String> artifacts, String imageDigest, String keyId, Instant signedAt) {
+    private static final String UNREADABLE_STATEMENT = "provenance: unreadable statement";
     public static final String MAGIC = "gluonify-provenance 1";
     static final Pattern APP_PATTERN = Pattern.compile("[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?");
     static final Pattern ARCH = Pattern.compile("[a-z0-9]{1,16}(-[a-z0-9]{1,16})?");
@@ -70,9 +71,9 @@ public record ProvenanceStatement(String app, Map<String, String> artifacts, Str
 
     /** Strict parsing: any unexpected line, any different order or spacing is rejected (the bytes must be canonical). */
     public static ProvenanceStatement parse(final byte[] bytes) {
-        if (bytes == null || bytes.length == 0 || bytes.length > MAX_BYTES) throw new IllegalArgumentException("provenance: unreadable statement");
+        if (bytes == null || bytes.length == 0 || bytes.length > MAX_BYTES) throw new IllegalArgumentException(UNREADABLE_STATEMENT);
         String[] l = new String(bytes, StandardCharsets.UTF_8).split("\n", -1);
-        if (l.length < 6 || !l[0].equals(MAGIC) || !l[l.length - 1].isEmpty()) throw new IllegalArgumentException("provenance: unreadable statement");
+        if (l.length < 6 || !l[0].equals(MAGIC) || !l[l.length - 1].isEmpty()) throw new IllegalArgumentException(UNREADABLE_STATEMENT);
         int i = 1;
         String app = value(l[i++], "app");
         Map<String, String> arts = new TreeMap<>();
@@ -82,7 +83,7 @@ public record ProvenanceStatement(String app, Map<String, String> artifacts, Str
         }
         String image = null;
         if (i < l.length && l[i].startsWith("image ")) image = value(l[i++], "image");
-        if (i + 3 != l.length) throw new IllegalArgumentException("provenance: unreadable statement");
+        if (i + 3 != l.length) throw new IllegalArgumentException(UNREADABLE_STATEMENT);
         String key = value(l[i++], "key");
         Instant at;
         try {

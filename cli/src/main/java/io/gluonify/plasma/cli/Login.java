@@ -38,9 +38,12 @@ import java.util.concurrent.TimeoutException;
  * present, {@code iss} (RFC 9207) are checked. The CLI never sees a password.
  */
 final class Login {
+    private static final String KEY_CODE = "code";
+    private static final String INTERRUPTED = "the login was interrupted";
+    private static final String KEY_ISSUER = "iss";
     private static final String KEY_ERROR = "error";
     static final String DEFAULT_SCOPE = "openid";
-    static final String CALLBACK = "/callback";
+    static final String CALLBACK_PATH = "/callback";
 
     /** Login options. {@code port} 0: a free port. */
     record Options(String zone, URI discovery, Path ca, int port, String scope, Duration timeout, boolean noBrowser) {
@@ -60,6 +63,7 @@ final class Login {
     private record Connection(HttpClient http, Options options, URI discoveryUrl) {
     }
 
+    @SuppressWarnings("PMD.CloseResource") // Java 17 target: ExecutorService is not AutoCloseable there; shut down in the finally block
     DeveloperTokens.Session run(final Options o) {
         final URI discoveryUrl = o.discovery() != null ? o.discovery() : Discovery.defaultUrl(o.zone());
         if (!Http.secure(discoveryUrl)) {
@@ -87,7 +91,7 @@ final class Login {
         server.createContext("/", ex -> callback(ex, state, provider.issuer(), o.zone(), code));
         server.start();
         try {
-            final Challenge challenge = new Challenge(state, verifier, "http://127.0.0.1:" + server.getAddress().getPort() + CALLBACK);
+            final Challenge challenge = new Challenge(state, verifier, "http://127.0.0.1:" + server.getAddress().getPort() + CALLBACK_PATH);
             return exchange(new Connection(http, o, discoveryUrl), provider, challenge, authorize(o, provider, challenge, code));
         }
         finally {
@@ -131,7 +135,7 @@ final class Login {
     /** Prints the authorization address, opens the browser unless asked not to, and waits for the code of the callback. */
     private String authorize(final Options o, final Provider p, final Challenge c, final CompletableFuture<String> code) {
         final Map<String, String> q = new LinkedHashMap<>();
-        q.put("response_type", "code");
+        q.put("response_type", KEY_CODE);
         q.put("client_id", p.discovery().clientId());
         q.put("redirect_uri", c.redirect());
         q.put("scope", o.scope());
@@ -160,11 +164,12 @@ final class Login {
         }
         catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new GluonifyServicesException("the login was interrupted", e);
+            throw new GluonifyServicesException(INTERRUPTED, e);
         }
     }
 
     /** Exchanges the code for the tokens at Charm, then stores the session and the zone. */
+    @SuppressWarnings("PMD.CloseResource") // the HttpClient belongs to the caller (Connection), and is not AutoCloseable on the Java 17 target
     private DeveloperTokens.Session exchange(final Connection connection, final Provider p, final Challenge c, final String authorizationCode) {
         final HttpClient http = connection.http();
         final Options o = connection.options();
@@ -172,7 +177,7 @@ final class Login {
         final Discovery d = p.discovery();
         final Map<String, String> form = new LinkedHashMap<>();
         form.put("grant_type", "authorization_code");
-        form.put("code", authorizationCode);
+        form.put(KEY_CODE, authorizationCode);
         form.put("redirect_uri", c.redirect());
         form.put("client_id", d.clientId());
         form.put("code_verifier", c.verifier());
@@ -191,11 +196,12 @@ final class Login {
     }
 
     /** The browser's return: a single valid call ends the login; other paths (favicon...) get 404. */
+    @SuppressWarnings("PMD.UseTryWithResources") // Java 17 target: HttpExchange is AutoCloseable only from Java 18
     private static void callback(final HttpExchange ex, final String state, final String issuer, final String zone, final CompletableFuture<String> code)
             throws IOException {
         try {
             ex.getRequestBody().readAllBytes();
-            if (!"GET".equals(ex.getRequestMethod()) || !CALLBACK.equals(ex.getRequestURI().getRawPath()) || code.isDone()) {
+            if (!"GET".equals(ex.getRequestMethod()) || !CALLBACK_PATH.equals(ex.getRequestURI().getRawPath()) || code.isDone()) {
                 page(ex, 404, "Not found.");
                 return;
             }
@@ -211,12 +217,12 @@ final class Login {
                         + (p.get("error_description") == null ? "" : " (" + p.get("error_description") + ")")));
                 return;
             }
-            if (p.get("iss") != null && issuer != null && !issuer.equals(p.get("iss"))) {
+            if (p.get(KEY_ISSUER) != null && issuer != null && !issuer.equals(p.get(KEY_ISSUER))) {
                 page(ex, 400, "The login answer comes from another issuer. Run gluonify login again.");
-                code.completeExceptionally(new GluonifyServicesException("the login answer comes from another issuer (" + p.get("iss") + ")"));
+                code.completeExceptionally(new GluonifyServicesException("the login answer comes from another issuer (" + p.get(KEY_ISSUER) + ")"));
                 return;
             }
-            final String c = p.get("code");
+            final String c = p.get(KEY_CODE);
             if (c == null || c.isBlank()) {
                 page(ex, 400, "The login answer has no code. Run gluonify login again.");
                 code.completeExceptionally(new GluonifyServicesException("the login answer has no code"));
@@ -260,7 +266,7 @@ final class Login {
         }
         catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new GluonifyServicesException("the login was interrupted", e);
+            throw new GluonifyServicesException(INTERRUPTED, e);
         }
         if (!r.ok()) {
             throw new GluonifyServicesException("cannot read " + what + " at " + url + " (HTTP " + r.status() + ")");
@@ -277,7 +283,7 @@ final class Login {
         }
         catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new GluonifyServicesException("the login was interrupted", e);
+            throw new GluonifyServicesException(INTERRUPTED, e);
         }
     }
 

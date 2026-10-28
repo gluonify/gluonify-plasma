@@ -17,6 +17,9 @@ import tools.jackson.databind.node.ObjectNode;
  * Prism relays both identically. The caller is already authenticated ({@link McpResource}).
  */
 public final class McpServer {
+    private static final String JSONRPC_VERSION = "2.0";
+    private static final String KEY_NAME = "name";
+    private static final String TEXT = "text";
     private static final String KEY_JSONRPC = "jsonrpc";
     private static final String KEY_PROTOCOL_VERSION = "protocolVersion";
     private static final Logger LOG = Logger.getLogger("gluonify.mcp");
@@ -55,7 +58,7 @@ public final class McpServer {
         } catch (JacksonException e) {
             return error(null, McpContract.PARSE_ERROR, "parse error");
         }
-        if (message == null || !message.isObject() || !"2.0".equals(message.path(KEY_JSONRPC).asString(null)) || !message.path("method").isString()) {
+        if (message == null || !message.isObject() || !JSONRPC_VERSION.equals(message.path(KEY_JSONRPC).asString(null)) || !message.path("method").isString()) {
             return error(null, McpContract.INVALID_REQUEST, "not a JSON-RPC 2.0 request");
         }
         if (!message.has("id")) {
@@ -140,12 +143,12 @@ public final class McpServer {
         final ObjectNode r = mapper.createObjectNode();
         r.put(KEY_PROTOCOL_VERSION, McpContract.negotiate(asked));
         r.putObject("capabilities").putObject("tools").put("listChanged", false);
-        r.putObject("serverInfo").put("name", McpContract.SERVER_NAME).put("version", version);
+        r.putObject("serverInfo").put(KEY_NAME, McpContract.SERVER_NAME).put("version", version);
         return r;
     }
 
     private Reply call(final JsonNode id, final JsonNode params, final McpCaller caller) {
-        if (params == null || !params.isObject() || !params.path("name").isString()) {
+        if (params == null || !params.isObject() || !params.path(KEY_NAME).isString()) {
             return error(id, McpContract.INVALID_PARAMS, "params.name (string) is required");
         }
         JsonNode arguments = params.get("arguments");
@@ -155,7 +158,7 @@ public final class McpServer {
         if (!arguments.isObject()) {
             return error(id, McpContract.INVALID_PARAMS, "params.arguments must be an object");
         }
-        final String name = params.get("name").asString();
+        final String name = params.get(KEY_NAME).asString();
         final McpRegistry.Tool tool = registry.get(name).orElse(null);
         if (tool == null) {
             return error(id, McpContract.INVALID_PARAMS, "unknown tool: " + cut(name, 64));
@@ -225,7 +228,7 @@ public final class McpServer {
                 text = data.isString() ? data.asString() : mapper.writeValueAsString(data);
                 structured = data.isObject() ? data : null;
             }
-            r.putArray("content").addObject().put("type", "text").put("text", text);
+            r.putArray("content").addObject().put("type", TEXT).put(TEXT, text);
             if (structured != null) {
                 r.set("structuredContent", structured);
             }
@@ -242,14 +245,14 @@ public final class McpServer {
 
     private Reply toolError(final JsonNode id, final String message) {
         final ObjectNode r = mapper.createObjectNode();
-        r.putArray("content").addObject().put("type", "text").put("text", message);
+        r.putArray("content").addObject().put("type", TEXT).put(TEXT, message);
         r.put("isError", true);
         return result(id, r);
     }
 
     private Reply result(final JsonNode id, final JsonNode result) {
         final ObjectNode r = mapper.createObjectNode();
-        r.put(KEY_JSONRPC, "2.0");
+        r.put(KEY_JSONRPC, JSONRPC_VERSION);
         r.set("id", id);
         r.set("result", result);
         return Reply.json(mapper.writeValueAsString(r));
@@ -257,7 +260,7 @@ public final class McpServer {
 
     private Reply error(final JsonNode id, final int code, final String message) {
         final ObjectNode r = mapper.createObjectNode();
-        r.put(KEY_JSONRPC, "2.0");
+        r.put(KEY_JSONRPC, JSONRPC_VERSION);
         if (id == null) {
             r.putNull("id");
         } else {

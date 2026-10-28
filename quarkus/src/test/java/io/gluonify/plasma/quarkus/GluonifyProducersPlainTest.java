@@ -55,6 +55,6 @@ class GluonifyProducersPlainTest {
         finally {
             System.clearProperty("GLUONIFY_SERVICE_CRYSTALLON_URL");
         }
-        assertEquals("crystallon", GluonifyProducers.CRYSTALLON);
+        assertEquals("crystallon", GluonifyProducers.CRYSTALLON_SERVICE);
     }
 }

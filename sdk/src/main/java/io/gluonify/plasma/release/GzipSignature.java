@@ -36,6 +36,7 @@ import java.util.stream.IntStream;
  * hold it (valid signature, not expired, claims equal to those of the manifest).
  */
 public final class GzipSignature {
+    private static final String INSTEAD_OF = " instead of ";
     private GzipSignature() {}
 
     public static final int SI1 = 'G';
@@ -179,7 +180,11 @@ public final class GzipSignature {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(unsignedHeader(h));
             byte[] buf = new byte[65536];
-            for (int n; (n = in.read(buf)) > 0; ) md.update(buf, 0, n);
+            int n = in.read(buf);
+            while (n > 0) {
+                md.update(buf, 0, n);
+                n = in.read(buf);
+            }
             return HexFormat.of().formatHex(md.digest());
         } catch (java.security.NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
@@ -302,9 +307,9 @@ public final class GzipSignature {
     }
 
     private static void checkExpected(final Claims c, final Expected expected) {
-        if (expected.name() != null && !expected.name().equals(c.name())) throw new ReleaseManifest.Invalid("file signature: component " + c.name() + " instead of " + expected.name());
-        if (expected.arch() != null && !expected.arch().equals(c.arch())) throw new ReleaseManifest.Invalid("file signature: architecture " + c.arch() + " instead of " + expected.arch());
-        if (expected.version() != null && !expected.version().equals(c.version())) throw new ReleaseManifest.Invalid("file signature: version " + c.version() + " instead of " + expected.version());
-        if (expected.sequence() != null && expected.sequence() != c.sequence()) throw new ReleaseManifest.Invalid("file signature: sequence " + c.sequence() + " instead of " + expected.sequence());
+        if (expected.name() != null && !expected.name().equals(c.name())) throw new ReleaseManifest.Invalid("file signature: component " + c.name() + INSTEAD_OF + expected.name());
+        if (expected.arch() != null && !expected.arch().equals(c.arch())) throw new ReleaseManifest.Invalid("file signature: architecture " + c.arch() + INSTEAD_OF + expected.arch());
+        if (expected.version() != null && !expected.version().equals(c.version())) throw new ReleaseManifest.Invalid("file signature: version " + c.version() + INSTEAD_OF + expected.version());
+        if (expected.sequence() != null && expected.sequence() != c.sequence()) throw new ReleaseManifest.Invalid("file signature: sequence " + c.sequence() + INSTEAD_OF + expected.sequence());
     }
 }

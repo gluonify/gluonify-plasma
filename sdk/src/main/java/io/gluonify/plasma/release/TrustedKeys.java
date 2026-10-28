@@ -19,18 +19,19 @@ import java.util.regex.Pattern;
  * Immutable object: each step returns a new set, which the caller writes atomically.
  */
 public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, long sequence) {
+    private static final String UNREADABLE_KEY = "unreadable public key";
     /** @param sha256 SHA-256 digest of the DER (that of {@code --key-sha256}); @param der SubjectPublicKeyInfo in Base64. */
     public record Key(String sha256, String der) {
         static final Pattern B64 = Pattern.compile("[A-Za-z0-9+/]{40,120}={0,2}");
 
         public static Key ofDer(final String b64) {
-            if (b64 == null || !B64.matcher(b64).matches()) throw new ReleaseManifest.Invalid("unreadable public key");
+            if (b64 == null || !B64.matcher(b64).matches()) throw new ReleaseManifest.Invalid(UNREADABLE_KEY);
             byte[] d;
             try {
                 d = Base64.getDecoder().decode(b64);
                 java.security.KeyFactory.getInstance("Ed25519").generatePublic(new java.security.spec.X509EncodedKeySpec(d));
             } catch (java.security.GeneralSecurityException | IllegalArgumentException e) {
-                throw new ReleaseManifest.Invalid("unreadable public key");
+                throw new ReleaseManifest.Invalid(UNREADABLE_KEY);
             }
             return new Key(sha(d), b64);
         }
@@ -44,7 +45,7 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
             try {
                 return java.security.KeyFactory.getInstance("Ed25519").generatePublic(new java.security.spec.X509EncodedKeySpec(Base64.getDecoder().decode(der)));
             } catch (java.security.GeneralSecurityException e) {
-                throw new ReleaseManifest.Invalid("unreadable public key");
+                throw new ReleaseManifest.Invalid(UNREADABLE_KEY);
             }
         }
 

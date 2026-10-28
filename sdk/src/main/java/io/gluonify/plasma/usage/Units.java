@@ -8,6 +8,7 @@ package io.gluonify.plasma.usage;
 final class Units {
 
     static final String GB_HOUR = "GB-hour";
+    static final String SECONDS_PER_HOUR = "3600";
 
     private Units() {
 

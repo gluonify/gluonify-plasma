@@ -25,16 +25,14 @@ public final class Canonical {
             sb.append("null");
         } else if (o instanceof String s) {
             string(sb, s);
-        } else if (o instanceof Boolean || o instanceof Integer || o instanceof Long || o instanceof Short || o instanceof Byte) {
+        } else if (isExact(o)) {
             sb.append(o);
         } else if (o instanceof java.math.BigDecimal d) {
             sb.append(d.toPlainString());
         } else if (o instanceof Enum<?> e) {
             string(sb, e.name());
         } else if (o instanceof Map<?, ?> m) {
-            Map<String, Object> sorted = new TreeMap<>();
-            m.forEach((k, v) -> { if (v != null) sorted.put(String.valueOf(k), v); });
-            object(sb, sorted);
+            object(sb, sorted(m));
         } else if (o instanceof Collection<?> c) {
             collection(sb, c);
         } else if (o.getClass().isRecord()) {
@@ -42,6 +40,22 @@ public final class Canonical {
         } else {
             throw new IllegalArgumentException("non-canonical type: " + o.getClass().getName());
         }
+    }
+
+    /** A boolean or an integer type: written as is. */
+    private static boolean isExact(final Object o) {
+        return o instanceof Boolean || o instanceof Integer || o instanceof Long || o instanceof Short || o instanceof Byte;
+    }
+
+    /** The entries of {@code m} without absent values, sorted by key. */
+    private static Map<String, Object> sorted(final Map<?, ?> m) {
+        final Map<String, Object> sorted = new TreeMap<>();
+        m.forEach((k, v) -> {
+            if (v != null) {
+                sorted.put(String.valueOf(k), v);
+            }
+        });
+        return sorted;
     }
 
     private static void collection(final StringBuilder sb, final Collection<?> c) {

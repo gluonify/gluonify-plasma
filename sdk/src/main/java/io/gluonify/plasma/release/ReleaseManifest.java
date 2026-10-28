@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
  * @param artifacts one file per component and architecture
  */
 public record ReleaseManifest(int schema, String version, long sequence, String createdAt, String expires, List<Artifact> artifacts) {
+    private static final String END_OF_TEXT_FIELD = "\",\n";
     /** @param name component; arch: amd64, arm64 or all; file: simple file name; sha256: lowercase hexadecimal digest; size: size in bytes. */
     public record Artifact(String name, String arch, String file, String sha256, long size) {
         /** Single file compressed with gzip ({@code .gz} name, excluding {@code .tar.gz}): sha256 and size are those of the served {@code .gz} (see {@link Gzip}). */
@@ -152,10 +153,10 @@ public record ReleaseManifest(int schema, String version, long sequence, String 
     public String toJson() {
         var sb = new StringBuilder("{\n");
         sb.append("\"schema\":").append(schema).append(",\n");
-        sb.append("\"version\":\"").append(version).append("\",\n");
+        sb.append("\"version\":\"").append(version).append(END_OF_TEXT_FIELD);
         sb.append("\"sequence\":").append(sequence).append(",\n");
-        sb.append("\"createdAt\":\"").append(createdAt).append("\",\n");
-        sb.append("\"expires\":\"").append(expires).append("\",\n");
+        sb.append("\"createdAt\":\"").append(createdAt).append(END_OF_TEXT_FIELD);
+        sb.append("\"expires\":\"").append(expires).append(END_OF_TEXT_FIELD);
         sb.append("\"artifacts\":[\n");
         for (int i = 0; i < artifacts.size(); i++) {
             Artifact a = artifacts.get(i);

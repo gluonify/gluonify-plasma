@@ -151,6 +151,7 @@ public class FermionClientEndpoint {
         }, millis, millis, TimeUnit.MILLISECONDS);
     }
 
+    @SuppressWarnings("PMD.CloseResource") // one daemon scheduler, created on first use and kept for the endpoint's lifetime
     private ScheduledExecutorService scheduler() {
         ScheduledExecutorService s = heartbeats;
         if (s == null) {

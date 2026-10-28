@@ -25,6 +25,7 @@ import tools.jackson.databind.node.ObjectNode;
  * declaration throws {@link IllegalStateException}, so the application does not start with it.
  */
 public final class McpRegistry {
+    private static final String TOOL = "MCP tool ";
 
     /**
      * A declared tool.
@@ -147,10 +148,10 @@ public final class McpRegistry {
             throw new IllegalStateException("invalid MCP tool name '" + name + "' (" + where + "): must match " + McpContract.TOOL_NAME.pattern());
         }
         if (a.description().isBlank()) {
-            throw new IllegalStateException("MCP tool " + name + " (" + where + "): a description is required");
+            throw new IllegalStateException(TOOL + name + " (" + where + "): a description is required");
         }
         if (!Modifier.isPublic(m.getModifiers())) {
-            throw new IllegalStateException("MCP tool " + name + " (" + where + "): the method must be public");
+            throw new IllegalStateException(TOOL + name + " (" + where + "): the method must be public");
         }
         final Class<?>[] types = m.getParameterTypes();
         final int[] positions = parameterPositions(types, name, where);
@@ -173,7 +174,7 @@ public final class McpRegistry {
             } else if (argument < 0 && types[i] != McpCaller.class) {
                 argument = i;
             } else {
-                throw new IllegalStateException("MCP tool " + name + " (" + where + "): one arguments parameter and optionally an McpCaller, found also "
+                throw new IllegalStateException(TOOL + name + " (" + where + "): one arguments parameter and optionally an McpCaller, found also "
                         + types[i].getSimpleName());
             }
         }
@@ -193,10 +194,10 @@ public final class McpRegistry {
             schema.putObject("properties");
         }
         if (!"object".equals(schema.path("type").asString(""))) {
-            throw new IllegalStateException("MCP tool " + what + ": the input schema must be an object schema (\"type\": \"object\")");
+            throw new IllegalStateException(TOOL + what + ": the input schema must be an object schema (\"type\": \"object\")");
         }
         if (McpContract.utf8Size(mapper.writeValueAsString(schema)) > McpContract.MAX_SCHEMA_BYTES) {
-            throw new IllegalStateException("MCP tool " + what + ": the input schema is larger than " + McpContract.MAX_SCHEMA_BYTES / 1024 + " KiB");
+            throw new IllegalStateException(TOOL + what + ": the input schema is larger than " + McpContract.MAX_SCHEMA_BYTES / 1024 + " KiB");
         }
         return schema;
     }
@@ -206,10 +207,10 @@ public final class McpRegistry {
         try {
             n = mapper.readTree(text);
         } catch (JacksonException e) {
-            throw new IllegalStateException("MCP tool " + what + ": the input schema is not valid JSON");
+            throw new IllegalStateException(TOOL + what + ": the input schema is not valid JSON");
         }
         if (!(n instanceof ObjectNode o)) {
-            throw new IllegalStateException("MCP tool " + what + ": the input schema must be a JSON object");
+            throw new IllegalStateException(TOOL + what + ": the input schema must be a JSON object");
         }
         return o;
     }

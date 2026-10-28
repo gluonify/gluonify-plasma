@@ -34,6 +34,7 @@ import tools.jackson.databind.node.ObjectNode;
  * A record that contains itself is cut at the second occurrence ({@code {"type":TYPE_OBJECT}}). For anything richer, give {@link McpTool#inputSchema()}.
  */
 public final class McpSchemas {
+    private static final String KEY_TYPE = "type";
     private static final String TYPE_ARRAY = "array";
     private static final String KEY_ITEMS = "items";
     private static final String TYPE_OBJECT = "object";
@@ -69,7 +70,7 @@ public final class McpSchemas {
         }
         if (type instanceof GenericArrayType g) {
             final ObjectNode s = F.objectNode();
-            s.put("type", TYPE_ARRAY);
+            s.put(KEY_TYPE, TYPE_ARRAY);
             s.set(KEY_ITEMS, schema(g.getGenericComponentType(), seen));
             return s;
         }
@@ -87,7 +88,7 @@ public final class McpSchemas {
         final Class<?> raw = (Class<?>) p.getRawType();
         final Type[] args = p.getActualTypeArguments();
         if (Collection.class.isAssignableFrom(raw)) {
-            s.put("type", TYPE_ARRAY);
+            s.put(KEY_TYPE, TYPE_ARRAY);
             s.set(KEY_ITEMS, schema(args[0], seen));
             if (Set.class.isAssignableFrom(raw)) {
                 s.put("uniqueItems", true);
@@ -95,7 +96,7 @@ public final class McpSchemas {
             return s;
         }
         if (Map.class.isAssignableFrom(raw)) {
-            s.put("type", TYPE_OBJECT);
+            s.put(KEY_TYPE, TYPE_OBJECT);
             s.set("additionalProperties", schema(args[1], seen));
             return s;
         }
@@ -127,30 +128,30 @@ public final class McpSchemas {
         final ObjectNode s = F.objectNode();
         final String scalar = scalarType(c);
         if (scalar != null) {
-            s.put("type", scalar);
+            s.put(KEY_TYPE, scalar);
         } else if (c.isEnum()) {
-            s.put("type", "string");
+            s.put(KEY_TYPE, "string");
             final var values = s.putArray("enum");
             for (final Object e : c.getEnumConstants()) {
                 values.add(((Enum<?>) e).name());
             }
         } else if (c.isArray()) {
-            s.put("type", TYPE_ARRAY);
+            s.put(KEY_TYPE, TYPE_ARRAY);
             s.set(KEY_ITEMS, schema(c.getComponentType(), seen));
         } else if (Collection.class.isAssignableFrom(c)) {
-            s.put("type", TYPE_ARRAY);
+            s.put(KEY_TYPE, TYPE_ARRAY);
         } else if (Map.class.isAssignableFrom(c)) {
-            s.put("type", TYPE_OBJECT);
+            s.put(KEY_TYPE, TYPE_OBJECT);
         } else if (c.isRecord()) {
             recordSchema(c, s, seen);
         } else if (!JsonNode.class.isAssignableFrom(c) && c != Object.class) {
-            s.put("type", TYPE_OBJECT);
+            s.put(KEY_TYPE, TYPE_OBJECT);
         }
         return s;
     }
 
     private static void recordSchema(final Class<?> c, final ObjectNode s, final Set<Class<?>> seen) {
-        s.put("type", TYPE_OBJECT);
+        s.put(KEY_TYPE, TYPE_OBJECT);
         if (!seen.add(c)) {
             return;
         }

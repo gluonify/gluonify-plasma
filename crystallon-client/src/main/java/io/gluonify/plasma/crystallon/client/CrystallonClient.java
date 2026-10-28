@@ -312,6 +312,7 @@ public final class CrystallonClient {
         return s.substring(0, end);
     }
 
+    @SuppressWarnings("PMD.CloseResource") // the client is created once and shared for the client's lifetime; not AutoCloseable on the Java 17 target
     private HttpClient http() {
         HttpClient h = http.get();
         if (h == null) {

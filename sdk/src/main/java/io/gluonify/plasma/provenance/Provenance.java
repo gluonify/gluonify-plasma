@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
  * {@code .sig} file. Signing and verification by the JDK ({@code Ed25519}), without dependencies.
  */
 public final class Provenance {
+    private static final String UNREADABLE_TOKEN = "provenance: unreadable token";
     private static final String ED25519 = "Ed25519";
     private Provenance() {}
 
@@ -73,16 +74,16 @@ public final class Provenance {
 
     /** Splits the token without verifying anything; the statement is NOT read here (it is read only after the signature). */
     static byte[][] split(final String token) {
-        if (!wellFormed(token)) throw new IllegalArgumentException("provenance: unreadable token");
+        if (!wellFormed(token)) throw new IllegalArgumentException(UNREADABLE_TOKEN);
         int dot = token.indexOf('.');
         try {
             Base64.Decoder dec = Base64.getUrlDecoder();
             byte[] b = dec.decode(token.substring(0, dot));
             byte[] s = dec.decode(token.substring(dot + 1));
-            if (s.length != 64 || b.length > ProvenanceStatement.MAX_BYTES) throw new IllegalArgumentException("provenance: unreadable token");
+            if (s.length != 64 || b.length > ProvenanceStatement.MAX_BYTES) throw new IllegalArgumentException(UNREADABLE_TOKEN);
             return new byte[][] {b, s};
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("provenance: unreadable token");
+            throw new IllegalArgumentException(UNREADABLE_TOKEN);
         }
     }
 
