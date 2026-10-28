@@ -34,6 +34,8 @@ class DeveloperTokensGapsTest {
     final MutableClock clock = new MutableClock(Instant.parse("2026-10-11T10:00:00Z"));
     FakeCluster cluster;
     HttpServer slow;
+    /** The client the refusal tests hand to the renewal: built once per test, outside the asserted call. */
+    final Supplier<HttpClient> httpClient = http();
 
     @BeforeEach
     void start() throws Exception {
@@ -131,7 +133,8 @@ class DeveloperTokensGapsTest {
     @Test
     void writingWhereNothingCanBeWrittenIsReported() throws Exception {
         final Path blocked = Files.writeString(home.resolve("file-not-folder"), "x");
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.write(blocked, session(60, "r", 0)));
+        final DeveloperTokens.Session expiring = session(60, "r", 0);
+        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.write(blocked, expiring));
         assertTrue(e.getMessage().contains("cannot write the developer tokens of zone " + ZONE), e.getMessage());
     }
 
@@ -166,7 +169,8 @@ class DeveloperTokensGapsTest {
 
     @Test
     void aResponseWithoutAccessTokenIsRefused() {
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.fromTokenResponse(ORIGIN, Map.of("expires_in", 5), clock, null));
+        final Map<String, Object> noAccessToken = Map.of("expires_in", 5);
+        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.fromTokenResponse(ORIGIN, noAccessToken, clock, null));
         assertEquals("Charm answered without an access token", e.getMessage());
     }
 
@@ -220,9 +224,9 @@ class DeveloperTokensGapsTest {
 
     @Test
     void withoutASessionThereIsNoToken() {
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.accessToken(home, ZONE, http(), clock));
+        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.accessToken(home, ZONE, httpClient, clock));
         assertEquals("not logged in to zone test.lan: run gluonify login test.lan", e.getMessage());
-        assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.refreshed(home, ZONE, http(), clock, true));
+        assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.refreshed(home, ZONE, httpClient, clock, true));
     }
 
     @Test
@@ -264,10 +268,10 @@ class DeveloperTokensGapsTest {
     void aSessionThatCannotBeRenewedMustLogInAgain() {
         final DeveloperTokens.Session s = session(-10, "rt", now() - 1);
         DeveloperTokens.write(home, s);
-        final GluonifyServicesException expired = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.accessToken(home, ZONE, http(), clock));
+        final GluonifyServicesException expired = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.accessToken(home, ZONE, httpClient, clock));
         assertTrue(expired.getMessage().contains("has expired or was revoked: run gluonify login " + ZONE), expired.getMessage());
         DeveloperTokens.write(home, new DeveloperTokens.Session(ZONE, "c", null, s.accessToken(), s.expiresAt(), "rt", 0, null, null, null));
-        assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.accessToken(home, ZONE, http(), clock), "no token endpoint to renew at");
+        assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.accessToken(home, ZONE, httpClient, clock), "no token endpoint to renew at");
     }
 
     @Test
@@ -276,12 +280,12 @@ class DeveloperTokensGapsTest {
         DeveloperTokens.write(home, session(-10, once, 0));
         DeveloperTokens.refreshed(home, ZONE, http(), clock, true);
         DeveloperTokens.write(home, session(-10, once, 0));
-        final GluonifyServicesException used = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.refreshed(home, ZONE, http(), clock, true));
+        final GluonifyServicesException used = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.refreshed(home, ZONE, httpClient, clock, true));
         assertTrue(used.getMessage().contains("has expired or was revoked"), used.getMessage());
 
         cluster.tokenFailureStatus = 401;
         DeveloperTokens.write(home, session(-10, cluster.newRefreshToken(), 0));
-        final GluonifyServicesException denied = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.refreshed(home, ZONE, http(), clock, true));
+        final GluonifyServicesException denied = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.refreshed(home, ZONE, httpClient, clock, true));
         assertTrue(denied.getMessage().contains("has expired or was revoked"), denied.getMessage());
     }
 
@@ -290,11 +294,11 @@ class DeveloperTokensGapsTest {
         DeveloperTokens.write(home, session(-10, cluster.newRefreshToken(), 0));
         cluster.tokenFailureStatus = 500;
         cluster.tokenFailureBody = "{\"error\":\"boom\"}";
-        final GluonifyServicesException withError = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.refreshed(home, ZONE, http(), clock, true));
+        final GluonifyServicesException withError = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.refreshed(home, ZONE, httpClient, clock, true));
         assertTrue(withError.getMessage().contains("Charm answered HTTP 500 (boom)"), withError.getMessage());
         cluster.tokenFailureStatus = 503;
         cluster.tokenFailureBody = "<html>unavailable</html>";
-        final GluonifyServicesException withoutError = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.refreshed(home, ZONE, http(), clock, true));
+        final GluonifyServicesException withoutError = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.refreshed(home, ZONE, httpClient, clock, true));
         assertTrue(withoutError.getMessage().endsWith("Charm answered HTTP 503"), withoutError.getMessage());
     }
 
@@ -302,18 +306,18 @@ class DeveloperTokensGapsTest {
     void anInsecureOrUnreachableTokenEndpointIsReported() {
         final DeveloperTokens.Session s = session(-10, "rt", 0);
         DeveloperTokens.write(home, new DeveloperTokens.Session(ZONE, s.clientId(), URI.create("http://cluster.example/token"), s.accessToken(), s.expiresAt(), "rt", 0, null, null, null));
-        final GluonifyServicesException insecure = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.accessToken(home, ZONE, http(), clock));
+        final GluonifyServicesException insecure = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.accessToken(home, ZONE, httpClient, clock));
         assertTrue(insecure.getMessage().contains("is not https: run gluonify login " + ZONE), insecure.getMessage());
 
         DeveloperTokens.write(home, new DeveloperTokens.Session(ZONE, s.clientId(), URI.create("http://127.0.0.1:1/token"), s.accessToken(), s.expiresAt(), "rt", 0, null, null, null));
-        final GluonifyServicesException down = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.accessToken(home, ZONE, http(), clock));
+        final GluonifyServicesException down = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.accessToken(home, ZONE, httpClient, clock));
         assertTrue(down.getMessage().contains("Charm is unreachable at http://127.0.0.1:1/token"), down.getMessage());
     }
 
     @Test
     void aFolderThatCannotHoldTheLockIsReported() throws Exception {
         Files.writeString(home.resolve("tokens"), "a file where the folder should be");
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.refreshed(home, ZONE, http(), clock, true));
+        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.refreshed(home, ZONE, httpClient, clock, true));
         assertTrue(e.getMessage().contains("cannot lock the developer tokens of zone " + ZONE), e.getMessage());
     }
 
@@ -348,7 +352,7 @@ class DeveloperTokensGapsTest {
         });
         interrupter.start();
         try {
-            final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.refreshed(home, ZONE, http(), clock, true));
+            final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> DeveloperTokens.refreshed(home, ZONE, httpClient, clock, true));
             assertTrue(e.getMessage().contains("was interrupted"), e.getMessage());
             assertTrue(Thread.currentThread().isInterrupted(), "the interruption is restored for the caller");
         }

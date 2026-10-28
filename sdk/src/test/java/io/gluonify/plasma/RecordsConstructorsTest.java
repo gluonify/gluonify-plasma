@@ -28,7 +28,8 @@ class RecordsConstructorsTest {
         final List<Class<?>> out = new ArrayList<>();
         try (Stream<Path> files = Files.walk(root)) {
             for (final Path p : files.filter(f -> f.toString().endsWith(".class")).toList()) {
-                final String name = root.relativize(p).toString().replace('/', '.').replaceAll("\\.class$", "");
+                final String file = root.relativize(p).toString().replace('/', '.');
+                final String name = file.substring(0, file.length() - ".class".length());
                 if (name.equals("module-info") || name.endsWith("package-info")) {
                     continue;
                 }
@@ -77,7 +78,8 @@ class RecordsConstructorsTest {
     static void touch(final Class<?> type, final Object instance) throws ReflectiveOperationException {
         try {
             assertNotNull(instance.toString(), type.getName());
-            assertEquals(instance, instance, type.getName());
+            final Object same = instance;
+            assertEquals(same, instance, type.getName());
             assertEquals(instance.hashCode(), instance.hashCode(), type.getName());
         }
         catch (final RuntimeException absentValue) {

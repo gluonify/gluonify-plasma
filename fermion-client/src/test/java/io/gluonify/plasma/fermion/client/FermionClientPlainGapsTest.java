@@ -36,11 +36,11 @@ class FermionClientPlainGapsTest {
         c.identity.config = c.config;
         c.identity.applicationName = "orders";
         final SkillHandlerRegistry registry = new SkillHandlerRegistry();
-        registry.handlers = instance(SkillHandler.class, List.of());
+        registry.handlers = instance(List.of());
         registry.index();
         c.registry = registry;
-        c.usages = instance(WorkflowUsage.class, List.of());
-        c.tokens = instance(FermionTokenProvider.class, List.<FermionTokenProvider>of(() -> token));
+        c.usages = instance(List.of());
+        c.tokens = instance(List.<FermionTokenProvider>of(() -> token));
         c.connectorFactory = PlainFermionFixtures.connectors(next, connectorCalls);
         c.mapper = mapper;
         return c;
@@ -109,7 +109,7 @@ class FermionClientPlainGapsTest {
     }
 
     @Test
-    void helloCarriesTheSelfUrlWithoutTrailingSlashes() throws Exception {
+    void helloCarriesTheSelfUrlWithoutTrailingSlashes() {
         final FermionClient c = client(Map.of("url", Optional.of("ws://localhost:1"), "selfUrl", Optional.of("http://orders:8080//")));
         assertEquals("http://orders:8080/q/openapi", c.hello().openApiUrl());
         assertNull(client(Map.of("selfUrl", Optional.of("  "))).hello().openApiUrl());
@@ -119,7 +119,7 @@ class FermionClientPlainGapsTest {
     @Test
     void withoutATokenProviderOrTokenNothingIsAttempted() {
         final FermionClient none = active();
-        none.tokens = instance(FermionTokenProvider.class, List.of());
+        none.tokens = instance(List.of());
         none.connect();
         assertEquals(0, none.connectorsCreated());
 

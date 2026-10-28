@@ -24,7 +24,7 @@ class FermionClientTest {
     @Inject
     ObjectMapper mapper;
 
-    static void await(final String what, final BooleanSupplier condition) throws InterruptedException {
+    static void await(final String what, final BooleanSupplier condition) {
         Waits.until(what, condition, Duration.ofSeconds(20));
     }
 

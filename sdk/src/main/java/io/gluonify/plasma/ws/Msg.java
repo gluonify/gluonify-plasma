@@ -80,8 +80,8 @@ public sealed interface Msg {
     /** Progress of a task (output line of the installer, no secret). */
     record TaskProgress(String id, String message) implements Msg {}
 
-    /** Running instances, ready ones (Quarkus health check UP) and the generation with which each started; also serves as a heartbeat. */
     /**
+     * Running instances, ready ones (Quarkus health check UP) and the generation with which each started; also serves as a heartbeat.
      * {@code pins}: digests of the images designated by a tag that THIS node resolved (application -> {@link ImagePin}); the control-plane records the first one
      * for the whole cluster (gluonify-codex/provenance.md § 8). Absent from an old agent: empty.
      */
@@ -150,9 +150,7 @@ public sealed interface Msg {
     /**
      * Description of the host attached to every {@link State} (read from /proc by the agent): agent version, number of processors, memory used (MB), 1-minute load,
      * free disk space of the data directory (MB) and machine uptime (seconds). An unknown value is -1 (0 for {@code cpuCount}).
-     */
-    /**
-     * Description of the host. {@code x86Level}: x86-64 level of the processor ("v1" to "v4", read from the /proc/cpuinfo flags); null on arm64, macOS, Windows and for an old
+     * {@code x86Level}: x86-64 level of the processor ("v1" to "v4", read from the /proc/cpuinfo flags); null on arm64, macOS, Windows and for an old
      * agent: the scheduler never places an executable of a higher level on this node (see {@link io.gluonify.plasma.AppSpec#artifactLevel}). {@code pythonVersion}: minor
      * version of the node's {@code python3} ("3.13"); null: no python3 (or old agent): the scheduler places no Python application there, and a Python application goes there only
      * if its version ({@link io.gluonify.plasma.AppSpec#pythonVersion}) is the same.

@@ -81,8 +81,7 @@ class UsageResourceTest extends UsageContractTests {
     }
 
     static UsageResource resource(final Path proc, final UsageContributor... contributors) {
-        return new UsageResource(new ProcessUsage(proc, Path.of("/nonexistent"), 100, () -> 0, 0, () -> 1), () -> 1760700000000L,
-                () -> List.of(contributors), "gdown", "0.7.0", "gluonify-app-gdown-1", "n1");
+        return new UsageResource(new ProcessUsage(new ProcessUsage.Roots(proc, Path.of("/nonexistent")), 100, () -> 0, 0, () -> 1), () -> 1760700000000L, () -> List.of(contributors), new UsageReport.Identity("gdown", "0.7.0", "gluonify-app-gdown-1", "n1"));
     }
 
     @Override

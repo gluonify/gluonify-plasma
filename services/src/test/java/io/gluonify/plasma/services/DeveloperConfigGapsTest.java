@@ -130,6 +130,7 @@ class DeveloperConfigGapsTest {
         assertEquals("b.lan", c.without("a.lan").current().orElseThrow().name());
         assertTrue(c.without("a.lan").without("b.lan").current().isEmpty());
         assertEquals("b.lan", c.without("unknown.lan").current().orElseThrow().name());
-        assertThrows(UnsupportedOperationException.class, () -> c.zones().clear());
+        final Map<String, DeveloperConfig.Zone> zones = c.zones();
+        assertThrows(UnsupportedOperationException.class, zones::clear);
     }
 }

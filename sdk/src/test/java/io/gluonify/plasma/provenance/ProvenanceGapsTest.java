@@ -7,6 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HashMap;
@@ -126,7 +128,8 @@ class ProvenanceGapsTest {
         final KeyPair stranger = key();
         refused(() -> Provenance.verify(token, stranger.getPublic()), "invalid signature");
         final String tampered = token.substring(0, 20) + (token.charAt(20) == 'A' ? 'B' : 'A') + token.substring(21);
-        assertThrows(IllegalArgumentException.class, () -> Provenance.verify(tampered, signer.getPublic()));
+        final PublicKey signerKey = signer.getPublic();
+        assertThrows(IllegalArgumentException.class, () -> Provenance.verify(tampered, signerKey));
         final KeyPair rsa = KeyPairGenerator.getInstance("RSA").generateKeyPair();
         refused(() -> Provenance.verify(token, rsa.getPublic()), "invalid signature");
         refused(() -> Provenance.verify("garbage", signer.getPublic()), "unreadable token");
@@ -136,7 +139,9 @@ class ProvenanceGapsTest {
     void signingNeedsAnEd25519Key() throws Exception {
         final KeyPairGenerator rsa = KeyPairGenerator.getInstance("RSA");
         rsa.initialize(2048);
-        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> Provenance.sign(statement(), rsa.generateKeyPair().getPrivate()));
+        final ProvenanceStatement statement = statement();
+        final PrivateKey rsaKey = rsa.generateKeyPair().getPrivate();
+        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> Provenance.sign(statement, rsaKey));
         assertTrue(e.getMessage().contains("Ed25519 key expected"), e.getMessage());
     }
 
@@ -151,7 +156,8 @@ class ProvenanceGapsTest {
         assertNotEquals(a, new Provenance.Signed(statement(), new byte[]{1}, a.signature()));
         assertNotEquals(a, new Provenance.Signed(statement(), a.statementBytes(), new byte[]{1}));
         assertNotEquals(a, new Provenance.Signed(new ProvenanceStatement("other", Map.of("amd64", A), null, "k", AT), a.statementBytes(), a.signature()));
-        assertNotEquals(a, "text");
+        final Object other = "text";
+        assertNotEquals(a, other);
         assertTrue(a.toString().startsWith("Signed[statement="));
     }
 

@@ -2,6 +2,7 @@ package io.gluonify.plasma;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
@@ -183,32 +184,54 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
     public AppSpec {
         requireName(name);
         artifacts = checkedArtifacts(artifacts, image);
-        replicas = replicas == null ? 1 : replicas;
-        port = port == null ? 8080 : port;
-        memoryMb = memoryMb == null ? 64 : memoryMb;
+        replicas = Objects.requireNonNullElse(replicas, 1);
+        port = Objects.requireNonNullElse(port, 8080);
+        memoryMb = Objects.requireNonNullElse(memoryMb, 64);
         requireNamespaceAndUuid(topNamespace, uuid);
-        scratchMb = scratchMb == null ? DEFAULT_SCRATCH_MB : scratchMb;
-        nas = nas != null && nas;
-        if (scratchMb < 0 || scratchMb > MAX_SCRATCH_MB) throw new IllegalArgumentException("scratchMb out of range (0 to " + MAX_SCRATCH_MB + ")");
-        env = env == null ? Map.of() : Collections.unmodifiableMap(new TreeMap<>(env));
-        generated = generated == null ? java.util.List.of() : java.util.List.copyOf(generated);
-        uses = uses == null ? java.util.List.of() : java.util.List.copyOf(uses);
-        internal = internal != null && internal;
-        ports = ports == null ? java.util.List.of() : java.util.List.copyOf(ports);
+        scratchMb = Objects.requireNonNullElse(scratchMb, DEFAULT_SCRATCH_MB);
+        nas = Boolean.TRUE.equals(nas);
+        requireScratch(scratchMb);
+        env = sorted(env);
+        generated = copyOrEmpty(generated);
+        uses = copyOrEmpty(uses);
+        internal = Boolean.TRUE.equals(internal);
+        ports = copyOrEmpty(ports);
         requirePorts(ports, port);
         requireEnv(env);
         requireGenerated(generated, env);
         requireUses(uses);
         requireFormats(pin, role, pullSecret, distributedQuotaMb);
-        distributed = distributed == null ? java.util.List.of() : java.util.List.copyOf(distributed);
+        distributed = copyOrEmpty(distributed);
         requireDistributed(distributed, distributedLocks, distributedQuotaMb);
         requireSleepCompatible(sleep, internal, ports, role, distributedLocks);
         Organizations.requireValid(organization);
-        if (provenance != null && provenance.isBlank()) provenance = null;
+        provenance = normalizedProvenance(provenance);
         artifactLevel = normalizedLevel(artifactLevel);
         pythonVersion = PythonVersions.normalize(pythonVersion);
         mcp = Boolean.TRUE.equals(mcp) ? Boolean.TRUE : null; // false and absent are the same: stable equality and JSON of the stored specification
-        if (provenance != null && !io.gluonify.plasma.provenance.Provenance.wellFormed(provenance)) throw new IllegalArgumentException("provenance: unreadable token (base64url.base64url expected)");
+        requireSizes(replicas, port, memoryMb);
+    }
+
+    private static <T> java.util.List<T> copyOrEmpty(final java.util.List<T> list) {
+        return list == null ? java.util.List.of() : java.util.List.copyOf(list);
+    }
+
+    private static Map<String, String> sorted(final Map<String, String> env) {
+        return env == null ? Map.of() : Collections.unmodifiableMap(new TreeMap<>(env));
+    }
+
+    private static void requireScratch(final int scratchMb) {
+        if (scratchMb < 0 || scratchMb > MAX_SCRATCH_MB) throw new IllegalArgumentException("scratchMb out of range (0 to " + MAX_SCRATCH_MB + ")");
+    }
+
+    /** Blank: none; otherwise a well-formed token ({@code base64url.base64url}), checked here before the signature is. */
+    private static String normalizedProvenance(final String provenance) {
+        if (provenance == null || provenance.isBlank()) return null;
+        if (!io.gluonify.plasma.provenance.Provenance.wellFormed(provenance)) throw new IllegalArgumentException("provenance: unreadable token (base64url.base64url expected)");
+        return provenance;
+    }
+
+    private static void requireSizes(final int replicas, final int port, final int memoryMb) {
         if (replicas < 0 || replicas > 100) throw new IllegalArgumentException("replicas out of range");
         if (port < 1 || port > 65535) throw new IllegalArgumentException("invalid port");
         if (memoryMb < 16) throw new IllegalArgumentException("minimum memory: 16 MB");

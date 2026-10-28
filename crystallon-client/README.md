@@ -159,7 +159,7 @@ or implement `PayloadCodec` (two methods: `byte[] write(Object)` and `<T> T read
 
 ## Quarkus (CDI)
 
-The module brings neither `beans.xml` nor an extension: its classes are not beans. With the **`io.gluonify.plasma:gluonify-plasma-quarkus`** dependency, the application writes nothing: `@Inject CrystallonClient crystallon;` receives the client from `create()` with the application's `ObjectMapper` (`@DefaultBean` producer, created on first injection; see [quarkus/README.md](../quarkus/README.md)).
+The module brings neither `beans.xml` nor an extension: its classes are not beans. With the **`io.gluonify.plasma:gluonify-plasma-quarkus`** dependency, the application writes nothing: `@Inject CrystallonClient crystallon;` receives the client from `create()` with the application's `ObjectMapper` (`@Reserve` producer, created on first injection; see [quarkus/README.md](../quarkus/README.md)).
 
 To call as the signed-in person, the application produces its own client, which replaces the default one:
 

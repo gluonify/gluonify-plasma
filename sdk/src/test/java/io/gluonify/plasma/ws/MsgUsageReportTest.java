@@ -32,9 +32,7 @@ class MsgUsageReportTest {
 
     @Test
     void reportRoundTripWithAgentContractAndInstanceLines() {
-        UsageReport agent = UsageReport.of("strange", "0.7.0", null, "n1", 1760700000000L,
-                new UsageReport.Process(12.0, 8L << 20, "rss", null, 7, 100L), null, UsageReport.ESTIMATED,
-                List.of(new AppShare("shop", "u-1", 3.0, 1 << 20, UsageReport.ESTIMATED, "vfs bytes")));
+        UsageReport agent = UsageReport.of(new UsageReport.Identity("strange", "0.7.0", null, "n1"), new UsageReport.Snapshot(1760700000000L, new UsageReport.Process(12.0, 8L << 20, "rss", null, 7, 100L), null), UsageReport.ESTIMATED, List.of(new AppShare("shop", "u-1", 3.0, 1 << 20, UsageReport.ESTIMATED, "vfs bytes")));
         var active = new Msg.UsageInstance("shop-0", "shop", "u-1", "active", true, 128, 42.5, 50e6, 12.0, false, 1760700000000L);
         var stopped = new Msg.UsageInstance("shop-1", "shop", "u-1", "stopped", false, 128, 40.0, 48e6, null, true, 1760699000000L);
         var report = new Msg.UsageReport(9, 200, null, "n1", 1760700000001L, agent, List.of(active, stopped));

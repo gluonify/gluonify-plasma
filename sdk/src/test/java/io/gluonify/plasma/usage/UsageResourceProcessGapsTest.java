@@ -115,7 +115,7 @@ class UsageResourceProcessGapsTest {
     @Test
     void theDeprecatedConstructorBuildsTheSameResource() {
         final ProcessUsage usage = new ProcessUsage(new ProcessUsage.Roots(dir, dir), 100, () -> 1, 0, () -> 1);
-        final UsageResource r = new UsageResource(usage, () -> 7L, List::of, "gdown", "1", null, null);
+        final UsageResource r = new UsageResource(usage, () -> 7L, List::of, new UsageReport.Identity("gdown", "1", null, null));
         assertEquals("gdown", r.report().component());
         assertEquals(7L, r.report().at());
     }
@@ -150,11 +150,8 @@ class UsageResourceProcessGapsTest {
 
     @Test
     void aFailingContributorLeavesTheProcessOnly() {
-        final UsageContributor failing = new UsageContributor() {
-            @Override
-            public Collection<AppShare> byApp() {
-                throw new IllegalStateException("boom");
-            }
+        final UsageContributor failing = () -> {
+            throw new IllegalStateException("boom");
         };
         final UsageReport r = resource(List.of(contributor(List.of(new AppShare("a", "u", 1, 1, "measured")), "measured", 5L), failing)).report();
         assertEquals(UsageReport.NONE, r.attribution());
@@ -301,7 +298,7 @@ class UsageResourceProcessGapsTest {
     @SuppressWarnings({"deprecation", "removal"})
     @Test
     void theDeprecatedConstructorAndTheRealProcessWork() {
-        final ProcessUsage d = new ProcessUsage(dir, dir, 0, () -> 1, 0, () -> 1);
+        final ProcessUsage d = new ProcessUsage(new ProcessUsage.Roots(dir, dir), 0, () -> 1, 0, () -> 1);
         assertNull(d.process().cpuSecondsTotal());
         final UsageReport.Process real = new ProcessUsage().process();
         assertNotNull(real.heapBytes());

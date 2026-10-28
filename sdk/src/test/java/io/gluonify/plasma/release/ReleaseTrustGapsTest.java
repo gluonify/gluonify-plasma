@@ -18,6 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 class ReleaseTrustGapsTest {
     static final Instant NOW = Instant.parse("2026-10-01T00:00:00Z");
     static final String SHA = "ab".repeat(32);
+    static final Duration RETIRE_AFTER = Duration.ofDays(90);
 
     @TempDir
     Path dir;
@@ -49,13 +50,18 @@ class ReleaseTrustGapsTest {
     // --- manifest structure ---
 
     @Test
-    void aManifestIsValidatedFieldByField() {
+    void aManifestHeaderIsValidatedFieldByField() {
         assertEquals(good(), good().validate());
         final ReleaseManifest g = good();
         assertTrue(refusal(() -> new ReleaseManifest(2, "1.2.3", 5, NOW.toString(), NOW.toString(), g.artifacts()).validate()).contains("unsupported manifest schema"));
         assertTrue(refusal(() -> new ReleaseManifest(1, null, 5, NOW.toString(), NOW.toString(), g.artifacts()).validate()).contains("invalid version"));
         assertTrue(refusal(() -> new ReleaseManifest(1, "latest", 5, NOW.toString(), NOW.toString(), g.artifacts()).validate()).contains("invalid version"));
         assertTrue(refusal(() -> new ReleaseManifest(1, "1.2.3", 0, NOW.toString(), NOW.toString(), g.artifacts()).validate()).contains("invalid sequence"));
+    }
+
+    @Test
+    void manifestDatesAndArtifactListAreValidated() {
+        final ReleaseManifest g = good();
         assertTrue(refusal(() -> new ReleaseManifest(1, "1.2.3", 5, null, NOW.toString(), g.artifacts()).validate()).contains("dates absentes"));
         assertTrue(refusal(() -> new ReleaseManifest(1, "1.2.3", 5, NOW.toString(), null, g.artifacts()).validate()).contains("dates absentes"));
         assertTrue(refusal(() -> new ReleaseManifest(1, "1.2.3", 5, "yesterday", NOW.toString(), g.artifacts()).validate()).contains("invalid date"));
@@ -70,16 +76,20 @@ class ReleaseTrustGapsTest {
         for (int i = 0; i <= ReleaseManifest.MAX_ARTIFACTS; i++) {
             many.add(artifact("gluonify-strange", "amd64", "f" + i));
         }
-        assertTrue(refusal(() -> manifest(many).validate((n) -> true)).contains("invalid artifact list"));
+        assertTrue(refusal(() -> manifest(many).validate(n -> true)).contains("invalid artifact list"));
     }
 
     @Test
-    void everyArtifactFieldIsCheckedAndDuplicatesAreRefused() {
+    void anArtifactNamesAKnownComponentAndArchitecture() {
         assertTrue(refusal(() -> manifest(java.util.Arrays.asList((ReleaseManifest.Artifact) null)).validate()).contains("unknown component: null"));
         assertTrue(refusal(() -> manifest(List.of(artifact(null, "amd64", "f"))).validate()).contains("unknown component"));
         assertTrue(refusal(() -> manifest(List.of(artifact("gluonify-unknown", "amd64", "f"))).validate()).contains("unknown component: gluonify-unknown"));
         assertTrue(refusal(() -> manifest(List.of(artifact("gluonify-strange", null, "f"))).validate()).contains("invalid architecture"));
         assertTrue(refusal(() -> manifest(List.of(artifact("gluonify-strange", "sparc", "f"))).validate()).contains("invalid architecture: sparc"));
+    }
+
+    @Test
+    void anArtifactHasASafeFileNameADigestAndASize() {
         assertTrue(refusal(() -> manifest(List.of(artifact("gluonify-strange", "amd64", null))).validate()).contains("invalid file name"));
         assertTrue(refusal(() -> manifest(List.of(artifact("gluonify-strange", "amd64", "../etc/passwd"))).validate()).contains("invalid file name"));
         assertTrue(refusal(() -> manifest(List.of(artifact("gluonify-strange", "amd64", "a..b"))).validate()).contains("invalid file name"));
@@ -87,6 +97,10 @@ class ReleaseTrustGapsTest {
         assertTrue(refusal(() -> manifest(List.of(new ReleaseManifest.Artifact("gluonify-strange", "amd64", "f", "XYZ", 1))).validate()).contains("invalid digest"));
         assertTrue(refusal(() -> manifest(List.of(new ReleaseManifest.Artifact("gluonify-strange", "amd64", "f", SHA, 0))).validate()).contains("invalid size"));
         assertTrue(refusal(() -> manifest(List.of(new ReleaseManifest.Artifact("gluonify-strange", "amd64", "f", SHA, ReleaseManifest.MAX_ARTIFACT_BYTES + 1))).validate()).contains("invalid size"));
+    }
+
+    @Test
+    void duplicateArtifactsAreRefused() {
         assertTrue(refusal(() -> manifest(List.of(artifact("gluonify-strange", "amd64", "a"), artifact("gluonify-strange", "amd64", "b"))).validate()).contains("artefact en double"));
         assertEquals(2, manifest(List.of(artifact("gluonify-strange", "amd64", "a"), artifact("gluonify-strange", "arm64", "b"))).validate().artifacts().size());
         assertEquals(1, manifest(List.of(artifact("other-store-name", "amd64", "a"))).validate(n -> ReleaseManifest.SAFE_NAME.matcher(n).matches()).artifacts().size());
@@ -178,7 +192,8 @@ class ReleaseTrustGapsTest {
         assertNotEquals(s, new TrustedKeys.Signed(new byte[]{1}, new byte[]{3}, null));
         assertNotEquals(s, new TrustedKeys.Signed(new byte[]{9}, new byte[]{2}, null));
         assertNotEquals(s, new TrustedKeys.Signed(new byte[]{1}, new byte[]{2}, new byte[]{0}));
-        assertNotEquals(s, "x");
+        final Object other = "x";
+        assertNotEquals(s, other);
         assertTrue(s.toString().startsWith("Signed[manifest=[1]"));
         final TrustedKeys.Announcement a = new TrustedKeys.Announcement(new byte[]{1}, new byte[]{2}, new byte[]{3});
         assertEquals(a, new TrustedKeys.Announcement(new byte[]{1}, new byte[]{2}, new byte[]{3}));
@@ -186,7 +201,8 @@ class ReleaseTrustGapsTest {
         assertNotEquals(a, new TrustedKeys.Announcement(new byte[]{1}, new byte[]{2}, new byte[]{4}));
         assertNotEquals(a, new TrustedKeys.Announcement(new byte[]{1}, new byte[]{9}, new byte[]{3}));
         assertNotEquals(a, new TrustedKeys.Announcement(new byte[]{9}, new byte[]{2}, new byte[]{3}));
-        assertNotEquals(a, null);
+        final Object none = null;
+        assertNotEquals(a, none, "never equal to null");
         assertTrue(a.toString().startsWith("Announcement[rollover=[1]"));
     }
 
@@ -219,8 +235,8 @@ class ReleaseTrustGapsTest {
         final byte[] m = good().toJson().getBytes(StandardCharsets.UTF_8);
         final TrustedKeys keys = TrustedKeys.single(TrustedKeys.Key.ofDer(der(o)));
         assertEquals(5, keys.verify(m, ReleaseSigner.sign(m, o.getPrivate()), null, ReleaseManifest::parse, 0, NOW).manifest().sequence());
-        assertEquals(5, ReleaseVerifier.verify(m, ReleaseSigner.sign(m, o.getPrivate()), o.getPublic(), ReleaseManifest::parse, 0, NOW).sequence());
-        assertEquals(5, ReleaseVerifier.verify(m, ReleaseSigner.sign(m, o.getPrivate()), o.getPublic(), ReleaseManifest::parse, 0, NOW, n -> true).sequence());
+        assertEquals(5, ReleaseVerifier.verify(m, ReleaseSigner.sign(m, o.getPrivate()), o.getPublic(), ReleaseVerifier.Policy.of(ReleaseManifest::parse, 0, NOW)).sequence());
+        assertEquals(5, ReleaseVerifier.verify(m, ReleaseSigner.sign(m, o.getPrivate()), o.getPublic(), new ReleaseVerifier.Policy(ReleaseManifest::parse, 0, NOW, n -> true)).sequence());
         assertTrue(refusal(() -> keys.applyRollover(m, null, null, null, null, null, 0, NOW)).contains("incomplete key announcement"));
         assertFalse(keys.finish(m, ReleaseSigner.sign(m, o.getPrivate()), null, 0, NOW).changed(), "no next key: nothing to finish");
     }
@@ -233,9 +249,9 @@ class ReleaseTrustGapsTest {
     }
 
     @Test
-    void aKeyAnnouncementIsValidatedFieldByField() throws Exception {
+    void aKeyAnnouncementHeaderIsValidatedFieldByField() throws Exception {
         final KeyPair n = gen();
-        final Instant retire = NOW.plus(Duration.ofDays(90));
+        final Instant retire = NOW.plus(RETIRE_AFTER);
         final KeyRollover ok = announcement(n, NOW, retire);
         assertSame(ok, ok.validate());
         assertEquals(retire, ok.retireAt());
@@ -248,10 +264,26 @@ class ReleaseTrustGapsTest {
         assertTrue(refusal(() -> new KeyRollover(1, "1.2.3", 0, SHA, NOW.toString(), k, s, retire.toString()).validate()).contains("invalid sequence"));
         assertTrue(refusal(() -> new KeyRollover(1, "1.2.3", 5, null, NOW.toString(), k, s, retire.toString()).validate()).contains("invalid manifest digest"));
         assertTrue(refusal(() -> new KeyRollover(1, "1.2.3", 5, "XYZ", NOW.toString(), k, s, retire.toString()).validate()).contains("invalid manifest digest"));
+    }
+
+    @Test
+    void aKeyAnnouncementDatesAreValidated() throws Exception {
+        final KeyRollover ok = announcement(gen(), NOW, NOW.plus(RETIRE_AFTER));
+        final String k = ok.nextKey();
+        final String s = ok.nextKeySha256();
+        final Instant retire = ok.retireAt();
         assertTrue(refusal(() -> new KeyRollover(1, "1.2.3", 5, SHA, "later", k, s, retire.toString()).validate()).contains("invalid date"));
         assertTrue(refusal(() -> new KeyRollover(1, "1.2.3", 5, SHA, NOW.toString(), k, s, null).validate()).contains("invalid date"));
         assertTrue(refusal(() -> new KeyRollover(1, "1.2.3", 5, SHA, NOW.toString(), k, s, NOW.toString()).validate()).contains("out of range"));
         assertTrue(refusal(() -> new KeyRollover(1, "1.2.3", 5, SHA, NOW.toString(), k, s, NOW.plus(Duration.ofDays(401)).toString()).validate()).contains("out of range"));
+    }
+
+    @Test
+    void aKeyAnnouncementKeyMatchesItsDigest() throws Exception {
+        final KeyRollover ok = announcement(gen(), NOW, NOW.plus(RETIRE_AFTER));
+        final String k = ok.nextKey();
+        final String s = ok.nextKeySha256();
+        final Instant retire = ok.retireAt();
         assertTrue(refusal(() -> new KeyRollover(1, "1.2.3", 5, SHA, NOW.toString(), null, s, retire.toString()).validate()).contains("invalid key"));
         assertTrue(refusal(() -> new KeyRollover(1, "1.2.3", 5, SHA, NOW.toString(), "not base64!", s, retire.toString()).validate()).contains("invalid key"));
         assertTrue(refusal(() -> new KeyRollover(1, "1.2.3", 5, SHA, NOW.toString(), k, null, retire.toString()).validate()).contains("digest does not match"));

@@ -125,8 +125,8 @@ class UsageEmitterSpoolGapsTest {
         use(r, 1);
         r.clock().set(T0 + 61_000);
         long expectedBackoff = UsageEmitter.MIN_BACKOFF;
-        for (final int status : new int[]{401, 403, 500, 503, 429, 500, 500, 500, 500, 500, 500, 500}) {
-            r.transport().statuses.add(status);
+        for (final int code : new int[]{401, 403, 500, 503, 429, 500, 500, 500, 500, 500, 500, 500}) {
+            r.transport().statuses.add(code);
         }
         r.emitter().tick();
         assertEquals(1, r.spool().size());
@@ -194,7 +194,7 @@ class UsageEmitterSpoolGapsTest {
         final AtomicLong clock = new AtomicLong(T0);
         final UsageSpool spool = new UsageSpool(null, 1000, 3_600_000, clock::get);
         final UsageMeter meter = new UsageMeter(new UsageMeter.Identity("rup", "r1", "n1", "1.0", "PRD"), 100, clock::get, spool);
-        final UsageEmitter emitter = new UsageEmitter(meter, spool, () -> new Scripted(), () -> {
+        final UsageEmitter emitter = new UsageEmitter(meter, spool, Scripted::new, () -> {
             throw new IllegalStateException("clock broke");
         });
         assertDoesNotThrow(emitter::tick);

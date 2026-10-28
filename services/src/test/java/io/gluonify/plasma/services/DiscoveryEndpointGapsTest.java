@@ -73,10 +73,11 @@ class DiscoveryEndpointGapsTest {
     @Test
     void aMissingPartOfAnEndpointIsRefused() {
         final java.util.function.Supplier<String> none = () -> null;
-        assertThrows(NullPointerException.class, () -> new Endpoint(null, URI.create("https://a"), none, Endpoint.Source.OVERRIDE, null, null));
+        final URI a = URI.create("https://a");
+        assertThrows(NullPointerException.class, () -> new Endpoint(null, a, none, Endpoint.Source.OVERRIDE, null, null));
         assertThrows(NullPointerException.class, () -> new Endpoint("s", null, none, Endpoint.Source.OVERRIDE, null, null));
-        assertThrows(NullPointerException.class, () -> new Endpoint("s", URI.create("https://a"), null, Endpoint.Source.OVERRIDE, null, null));
-        assertThrows(NullPointerException.class, () -> new Endpoint("s", URI.create("https://a"), none, null, null, null));
+        assertThrows(NullPointerException.class, () -> new Endpoint("s", a, null, Endpoint.Source.OVERRIDE, null, null));
+        assertThrows(NullPointerException.class, () -> new Endpoint("s", a, none, null, null, null));
         assertEquals(Map.of(), Discovery.parse("{}").services());
     }
 }

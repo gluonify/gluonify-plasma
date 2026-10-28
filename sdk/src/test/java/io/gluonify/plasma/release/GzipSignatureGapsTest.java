@@ -107,7 +107,8 @@ class GzipSignatureGapsTest {
         assertEquals(a.hashCode(), new GzipSignature.Signed(new byte[]{1, 2}, new byte[]{3}).hashCode());
         assertNotEquals(a, new GzipSignature.Signed(new byte[]{1, 9}, new byte[]{3}));
         assertNotEquals(a, new GzipSignature.Signed(new byte[]{1, 2}, new byte[]{9}));
-        assertNotEquals(a, "text");
+        final Object other = "text";
+        assertNotEquals(a, other);
         assertEquals("Signed[claimsBytes=2 bytes, signature=1 bytes]", a.toString());
     }
 
@@ -134,7 +135,7 @@ class GzipSignatureGapsTest {
     }
 
     @Test
-    void malformedExtraFieldsAreRefused() throws Exception {
+    void malformedExtraFieldsAreRefused() {
         assertTrue(refusal(() -> GzipSignature.read(gz(new byte[]{'A', 'B'}, new byte[]{1}))).contains("malformed FEXTRA"));
         final byte[] outOfRange = {'A', 'B', 9, 0, 1};
         assertTrue(refusal(() -> GzipSignature.read(gz(outOfRange, new byte[]{1}))).contains("subfield out of range"));
@@ -230,8 +231,8 @@ class GzipSignatureGapsTest {
     void theSignedDigestIsThatOfTheUnsignedFormWhateverTheCodeReadingPath() throws Exception {
         final Path u = plain();
         assertEquals(ReleaseVerifier.sha256(u), GzipSignature.unsignedDigest(u));
-        assertEquals(GzipSignature.SI1, 'G');
-        assertEquals(GzipSignature.SI2, 'L');
+        assertEquals('G', GzipSignature.SI1);
+        assertEquals('L', GzipSignature.SI2);
         assertEquals(1, GzipSignature.FORMAT);
     }
 }

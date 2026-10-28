@@ -15,7 +15,7 @@
 
 | Bean | Producer | Source |
 |---|---|---|
-| `CrystallonClient` | `GluonifyProducers` (`@DefaultBean`, `@Singleton`, created on first injection) | `GluonifyServices.endpoint("crystallon")` and the application's `ObjectMapper` (Jackson 3) |
+| `CrystallonClient` | `GluonifyProducers` (`@Reserve`, `@Singleton`, created on first injection) | `GluonifyServices.endpoint("crystallon")` and the application's `ObjectMapper` (Jackson 3) |
 | `FermionTokenProvider` | in `gluonify-plasma-fermion-client` itself (`GluonifyTokenProducer`): this module does not depend on fermion-client, which stays optional | `FermionTokenProvider.gluonify()` |
 
 A bean of the same type in the application replaces the default one (for example a client that forwards the signed-in person's token, see the README of crystallon-client). The client is created on first injection: an application that does not use Crystallon has nothing to declare; an application that uses it without `uses` gets, at that injection, a `GluonifyServicesException` that says what to do. Native image: nothing static, the client's `HttpClient` is created on the first call.

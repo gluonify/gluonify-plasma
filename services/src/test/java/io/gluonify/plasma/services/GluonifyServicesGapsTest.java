@@ -40,6 +40,20 @@ class GluonifyServicesGapsTest {
         return GluonifyServices.builder().environment(env::get).properties(props::get).home(home).clock(clock).build();
     }
 
+    /**
+     * The refusal of {@code resolve(service)}, the services being built outside the asserted call.
+     *
+     * @param type expected exception
+     * @param service name given to {@code resolve}
+     * @param why message of a failed assertion, or null
+     * @param <T> type of the exception
+     * @return the exception thrown
+     */
+    <T extends Throwable> T refused(final Class<T> type, final String service, final String why) {
+        final GluonifyServices s = services();
+        return assertThrows(type, () -> s.resolve(service), why);
+    }
+
     void login(final DeveloperConfig.Zone zone, final List<String> audiences) {
         DeveloperConfig.empty().with(zone).write(home);
         DeveloperTokens.write(home, new DeveloperTokens.Session(zone.name(), FakeCluster.CLIENT_ID, URI.create(cluster.issuer() + "/token"), cluster.jwt(audiences),
@@ -86,7 +100,7 @@ class GluonifyServicesGapsTest {
     }
 
     @Test
-    void aTokenFileThatCannotBeReadIsReported() throws Exception {
+    void aTokenFileThatCannotBeReadIsReported() {
         env.put("GLUONIFY_ENVIRONMENT", "SBX");
         env.put("GLUONIFY_SERVICE_FERMION_URL", "https://fermion.sbx");
         env.put("GLUONIFY_FERMION_TOKEN_FILE", home.toString());
@@ -112,12 +126,12 @@ class GluonifyServicesGapsTest {
     void anAddressMustBeAnAbsoluteHttpOrWebSocketUrl() {
         for (final String bad : new String[]{"http://exa mple", "ftp://host/x", "/relative", "http:///nohost", "just text"}) {
             props.put("GLUONIFY_SERVICE_FERMION_URL", bad);
-            assertThrows(GluonifyServicesException.class, () -> services().resolve("fermion"), bad);
+            refused(GluonifyServicesException.class, "fermion", bad);
         }
         props.put("GLUONIFY_SERVICE_FERMION_URL", "http://exa mple");
-        assertTrue(assertThrows(GluonifyServicesException.class, () -> services().resolve("fermion")).getMessage().endsWith("is not a valid URL"));
+        assertTrue(refused(GluonifyServicesException.class, "fermion", null).getMessage().endsWith("is not a valid URL"));
         props.put("GLUONIFY_SERVICE_FERMION_URL", "ftp://host/x");
-        assertTrue(assertThrows(GluonifyServicesException.class, () -> services().resolve("fermion")).getMessage().endsWith("must be an absolute http(s) URL"));
+        assertTrue(refused(GluonifyServicesException.class, "fermion", null).getMessage().endsWith("must be an absolute http(s) URL"));
         for (final String ok : new String[]{"ws://host/x", "wss://host/x", "HTTPS://host/x"}) {
             props.put("GLUONIFY_SERVICE_FERMION_URL", ok);
             assertEquals(Endpoint.Source.OVERRIDE, services().resolve("fermion").source(), ok);
@@ -128,9 +142,9 @@ class GluonifyServicesGapsTest {
     void aServiceNameIsCheckedAndNormalized() {
         props.put("GLUONIFY_SERVICE_MY_SVC_URL", "https://my.svc");
         assertEquals("my-svc", services().resolve("  My-Svc ").service());
-        assertThrows(IllegalArgumentException.class, () -> services().resolve("not a name"));
-        assertThrows(IllegalArgumentException.class, () -> services().resolve(""));
-        assertThrows(NullPointerException.class, () -> services().resolve(null));
+        refused(IllegalArgumentException.class, "not a name", null);
+        refused(IllegalArgumentException.class, "", null);
+        refused(NullPointerException.class, null, null);
         assertEquals("GLUONIFY_SERVICE_MY_SVC_URL", GluonifyServices.urlKey("my-svc"));
         assertEquals("GLUONIFY_MY_SVC_TOKEN", GluonifyServices.tokenKey("my-svc"));
         assertEquals("GLUONIFY_MY_SVC_TOKEN_FILE", GluonifyServices.tokenFileKey("my-svc"));
@@ -150,7 +164,7 @@ class GluonifyServicesGapsTest {
         assertEquals(Endpoint.Source.PLATFORM, services().resolveOptional("b").orElseThrow().source());
         env.put("GLUONIFY_SERVICE_C_URL", " ");
         assertTrue(services().resolveOptional("c").isEmpty(), "a blank address is no address");
-        assertThrows(GluonifyServicesException.class, () -> services().resolve("c"), "required on the platform: refused");
+        refused(GluonifyServicesException.class, "c", "required on the platform: refused");
 
         env.clear();
         assertFalse(services().onPlatform());
@@ -161,7 +175,7 @@ class GluonifyServicesGapsTest {
     void aZoneThatPublishesNoServiceSaysSo() {
         cluster.services.clear();
         login();
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> services().resolve("crystallon"));
+        final GluonifyServicesException e = refused(GluonifyServicesException.class, "crystallon", null);
         assertTrue(e.getMessage().contains("(it publishes no service)"), e.getMessage());
     }
 
@@ -175,7 +189,7 @@ class GluonifyServicesGapsTest {
         catch (final java.io.IOException e) {
             throw new IllegalStateException(e);
         }
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> services().resolve("crystallon"));
+        final GluonifyServicesException e = refused(GluonifyServicesException.class, "crystallon", null);
         assertTrue(e.getMessage().contains("no current zone in"), e.getMessage());
     }
 
@@ -209,7 +223,7 @@ class GluonifyServicesGapsTest {
     @Test
     void aCertificateAuthorityFileThatCannotBeUsedPointsToTheConfigurationFile() {
         login(new DeveloperConfig.Zone("test.lan", cluster.discoveryUrl(), "SBX", home.resolve("absent-ca.pem")), cluster.audiences);
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> services().resolve("crystallon"));
+        final GluonifyServicesException e = refused(GluonifyServicesException.class, "crystallon", null);
         assertTrue(e.getMessage().contains("fix caFile in " + home.resolve(DeveloperConfig.FILE)), e.getMessage());
     }
 

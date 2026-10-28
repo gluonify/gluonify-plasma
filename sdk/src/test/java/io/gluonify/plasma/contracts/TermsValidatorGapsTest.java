@@ -15,7 +15,6 @@ import io.gluonify.plasma.contracts.ContractTerms.Subscription;
 import io.gluonify.plasma.contracts.ContractTerms.Tier;
 import io.gluonify.plasma.contracts.ContractTerms.Validity;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

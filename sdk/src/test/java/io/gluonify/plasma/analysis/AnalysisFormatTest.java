@@ -24,7 +24,7 @@ class AnalysisFormatTest {
 
     @Test
     void findingRoundTripsAndUsesLowerCaseNames() throws Exception {
-        Finding f = Finding.open(FindingKind.SONAR, "acme.shop", "GN04", Severity.MAJOR, false, new Location("src/main/java/acme/OrderClient.java", 42), Map.of("type", "acme.Order"))
+        Finding f = Finding.open(new Finding.Subject(FindingKind.SONAR, "acme.shop", "GN04"), Severity.MAJOR, false, new Location("src/main/java/acme/OrderClient.java", 42), Map.of("type", "acme.Order"))
                 .withRef("gluonify:GN04");
         String s = json.writeValueAsString(f);
         JsonNode n = json.readTree(s);
@@ -56,7 +56,7 @@ class AnalysisFormatTest {
         assertEquals(Finding.CURRENT_VERSION, f.v());
         assertEquals(Map.of(), f.args());
         assertEquals(FindingStatus.OPEN, f.status());
-        String s = json.writeValueAsString(Finding.open(FindingKind.NATIVE, "b1", "N-ELF", Severity.BLOCKER, true, null, null));
+        String s = json.writeValueAsString(Finding.open(new Finding.Subject(FindingKind.NATIVE, "b1", "N-ELF"), Severity.BLOCKER, true, null, null));
         assertFalse(s.contains("location"));
         assertFalse(s.contains("ref"));
         assertTrue(s.contains("\"args\":{}"));
@@ -67,7 +67,7 @@ class AnalysisFormatTest {
         Location l = new Location("a/B.java", 3);
         String id = Finding.idOf(FindingKind.CONFORMITY, "shop", "R-SECRET", l);
         assertEquals(id, Finding.idOf(FindingKind.CONFORMITY, "shop", "R-SECRET", new Location("a/B.java", 3)));
-        assertEquals(id, Finding.open(FindingKind.CONFORMITY, "shop", "R-SECRET", Severity.BLOCKER, true, l, Map.of()).id());
+        assertEquals(id, Finding.open(new Finding.Subject(FindingKind.CONFORMITY, "shop", "R-SECRET"), Severity.BLOCKER, true, l, Map.of()).id());
         Set<String> ids = new HashSet<>(List.of(id,
                 Finding.idOf(FindingKind.NATIVE, "shop", "R-SECRET", l),
                 Finding.idOf(FindingKind.CONFORMITY, "other", "R-SECRET", l),
@@ -145,9 +145,9 @@ class AnalysisFormatTest {
 
     @Test
     void reportSortsMostSevereFirstAndCountsFindings() throws Exception {
-        Finding minor = Finding.open(FindingKind.NATIVE, "b", "N-TAILLE", Severity.MINOR, false, null, Map.of("sizeMb", "250"));
-        Finding blocker = Finding.open(FindingKind.NATIVE, "b", "N-ELF", Severity.BLOCKER, true, null, Map.of());
-        Finding conf = Finding.open(FindingKind.CONFORMITY, "b", "R-SANTE", Severity.MAJOR, false, Location.of("pom.xml"), Map.of());
+        Finding minor = Finding.open(new Finding.Subject(FindingKind.NATIVE, "b", "N-TAILLE"), Severity.MINOR, false, null, Map.of("sizeMb", "250"));
+        Finding blocker = Finding.open(new Finding.Subject(FindingKind.NATIVE, "b", "N-ELF"), Severity.BLOCKER, true, null, Map.of());
+        Finding conf = Finding.open(new Finding.Subject(FindingKind.CONFORMITY, "b", "R-SANTE"), Severity.MAJOR, false, Location.of("pom.xml"), Map.of());
         AnalysisReport r = new AnalysisReport(0, "b", new AnalysisSummary(null, null, null, null, 0), List.of(minor, conf, blocker));
         assertEquals(List.of(blocker, conf, minor), r.findings());
         assertEquals(3, r.summary().findings());
@@ -161,7 +161,7 @@ class AnalysisFormatTest {
     void unitsFollowTheCatalogueNaming() {
         final Pattern naming = Pattern.compile("(bup|geiger)\\.[a-z]+\\.[a-z]+");
         for (String u : AnalysisUnits.ALL) assertTrue(naming.matcher(u).matches(), u);
-        assertEquals(new HashSet<>(AnalysisUnits.ALL).size(), AnalysisUnits.ALL.size());
+        assertEquals(AnalysisUnits.ALL.size(), new HashSet<>(AnalysisUnits.ALL).size());
         assertEquals(List.of("native", "deps", "sonar"), AnalysisUnits.ANALYSIS_KINDS);
     }
 

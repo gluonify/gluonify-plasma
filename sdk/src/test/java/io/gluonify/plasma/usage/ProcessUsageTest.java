@@ -24,7 +24,7 @@ class ProcessUsageTest {
     }
 
     private ProcessUsage usage(final long start) throws IOException {
-        return new ProcessUsage(proc(), cg(), 100, () -> 100_000, start, () -> 4096);
+        return new ProcessUsage(new ProcessUsage.Roots(proc(), cg()), 100, () -> 100_000, start, () -> 4096);
     }
 
     /** A realistic {@code /proc/<pid>/stat}: comm with a space and a parenthesis, utime 1000, stime 234, 7 threads. */
@@ -59,7 +59,7 @@ class ProcessUsageTest {
 
     @Test
     void procAbsentOrUnreadableDoesNotThrowAndInventsNothing() throws IOException {
-        final Process p = new ProcessUsage(tmp.resolve("nope"), tmp.resolve("nope2"), 100, () -> 0, 0, () -> {
+        final Process p = new ProcessUsage(new ProcessUsage.Roots(tmp.resolve("nope"), tmp.resolve("nope2")), 100, () -> 0, 0, () -> {
             throw new IllegalStateException();
         }).process();
         assertNull(p.cpuSecondsTotal());

@@ -110,7 +110,8 @@ class BoundedBodySubscriberTest {
         s.onError(new java.io.IOException("connection reset"));
         s.onError(new java.io.IOException("second error"));
         s.onComplete();
-        final CompletionException e = assertThrows(CompletionException.class, () -> s.getBody().toCompletableFuture().join());
+        final java.util.concurrent.CompletableFuture<BoundedBody.Body> body = s.getBody().toCompletableFuture();
+        final CompletionException e = assertThrows(CompletionException.class, body::join);
         assertEquals("connection reset", e.getCause().getMessage());
     }
 
@@ -144,9 +145,12 @@ class BoundedBodySubscriberTest {
     @Test
     void bodiesCompareByContent() {
         final BoundedBody.Body a = new BoundedBody.Body(new byte[]{1}, false);
-        assertEquals(a, a);
-        assertNotEquals(a, null);
-        assertNotEquals(a, "text");
+        final BoundedBody.Body same = a;
+        assertEquals(same, a);
+        final Object none = null;
+        assertNotEquals(a, none, "never equal to null");
+        final Object other = "text";
+        assertNotEquals(a, other);
         assertNotEquals(a, new BoundedBody.Body(new byte[]{1}, true));
         assertEquals(URI.create("http://x").hashCode(), URI.create("http://x").hashCode());
     }

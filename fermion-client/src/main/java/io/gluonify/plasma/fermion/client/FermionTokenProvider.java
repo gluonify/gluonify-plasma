@@ -12,7 +12,7 @@ import java.util.function.UnaryOperator;
 /**
  * Provides the Charm token (audience {@code gluonify-fermion}) sent in the first {@code auth} frame. Called on every (re)connection:
  * the implementation returns a valid token, renewed if necessary. Without an application bean, the client uses {@link #gluonify()} (
- * {@code @DefaultBean} producer of this module): nothing to write.
+ * {@code @Reserve} producer of this module): nothing to write.
  */
 @FunctionalInterface
 public interface FermionTokenProvider {

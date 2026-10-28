@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.PublicKey;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
@@ -36,7 +37,7 @@ class ReleaseTest {
         assertEquals(3, m.artifacts().size());
         byte[] bytes = m.toJson().getBytes(StandardCharsets.UTF_8);
         byte[] sig = ReleaseSigner.signBase64(bytes, k.getPrivate()).getBytes(StandardCharsets.US_ASCII);
-        ReleaseManifest v = ReleaseVerifier.verify(bytes, sig, k.getPublic(), ReleaseManifest::parse, 7, NOW);
+        ReleaseManifest v = ReleaseVerifier.verify(bytes, sig, k.getPublic(), ReleaseVerifier.Policy.of(ReleaseManifest::parse, 7, NOW));
         assertEquals(m, v);
         assertEquals("gluonify-strange-linux-arm64", v.find("gluonify-strange", "arm64").orElseThrow().file());
         assertEquals("gluonify-node-image.tar.gz", v.find("gluonify-node-image", "arm64").orElseThrow().file());
@@ -49,18 +50,25 @@ class ReleaseTest {
         byte[] bytes = manifest().toJson().getBytes(StandardCharsets.UTF_8);
         byte[] sig = ReleaseSigner.sign(bytes, k.getPrivate());
         byte[] altered = new String(bytes, StandardCharsets.UTF_8).replace("1.2.3", "1.2.4").getBytes(StandardCharsets.UTF_8);
-        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(altered, sig, k.getPublic(), ReleaseManifest::parse, 0, NOW));
-        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(bytes, sig, keys().getPublic(), ReleaseManifest::parse, 0, NOW));
-        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(bytes, new byte[]{1, 2, 3}, k.getPublic(), ReleaseManifest::parse, 0, NOW));
+        final ReleaseVerifier.Policy any = ReleaseVerifier.Policy.of(ReleaseManifest::parse, 0, NOW);
+        final PublicKey key = k.getPublic();
+        final PublicKey stranger = keys().getPublic();
+        final byte[] garbage = {1, 2, 3};
+        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(altered, sig, key, any));
+        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(bytes, sig, stranger, any));
+        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(bytes, garbage, key, any));
     }
 
     @Test void rollbackAndExpirationRefused() throws Exception {
         KeyPair k = keys();
         byte[] bytes = manifest().toJson().getBytes(StandardCharsets.UTF_8);
         byte[] sig = ReleaseSigner.sign(bytes, k.getPrivate());
-        var e = assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(bytes, sig, k.getPublic(), ReleaseManifest::parse, 8, NOW));
+        final PublicKey key = k.getPublic();
+        final ReleaseVerifier.Policy newer = ReleaseVerifier.Policy.of(ReleaseManifest::parse, 8, NOW);
+        var e = assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(bytes, sig, key, newer));
         assertTrue(e.getMessage().contains("rollback"));
-        e = assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(bytes, sig, k.getPublic(), ReleaseManifest::parse, 1, NOW.plusSeconds(86400L * 91)));
+        final ReleaseVerifier.Policy later = ReleaseVerifier.Policy.of(ReleaseManifest::parse, 1, NOW.plusSeconds(86400L * 91));
+        e = assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(bytes, sig, key, later));
         assertTrue(e.getMessage().contains("expired"));
     }
 
@@ -135,13 +143,15 @@ class ReleaseTest {
         byte[] m = getClass().getResourceAsStream("/release/manifest.json").readAllBytes();
         byte[] sig = getClass().getResourceAsStream("/release/manifest.json.sig").readAllBytes();
         String pem = new String(getClass().getResourceAsStream("/release/release.pub").readAllBytes(), StandardCharsets.US_ASCII);
-        ReleaseManifest v = ReleaseVerifier.verify(m, sig, ReleaseVerifier.publicKey(pem), ReleaseManifest::parse, 7, NOW);
+        final PublicKey key = ReleaseVerifier.publicKey(pem);
+        final ReleaseVerifier.Policy policy = ReleaseVerifier.Policy.of(ReleaseManifest::parse, 7, NOW);
+        ReleaseManifest v = ReleaseVerifier.verify(m, sig, key, policy);
         assertEquals("1.2.3", v.version());
         assertEquals(7, v.sequence());
         assertTrue(v.find("gluonify-node-image", "arm64").isPresent());
         // one byte changed: refused
         m[m.length - 3] ^= 1;
-        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(m, sig, ReleaseVerifier.publicKey(pem), ReleaseManifest::parse, 7, NOW));
+        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(m, sig, key, policy));
     }
 
     @Test

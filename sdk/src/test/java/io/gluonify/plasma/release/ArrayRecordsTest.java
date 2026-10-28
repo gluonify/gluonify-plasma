@@ -16,7 +16,8 @@ class ArrayRecordsTest {
         assertEquals(a, same);
         assertEquals(a.hashCode(), same.hashCode());
         assertNotEquals(a, new TrustedKeys.Signed(new byte[] {1, 2}, new byte[] {4}, null));
-        assertNotEquals(a, "not a record");
+        final Object other = "not a record";
+        assertNotEquals(a, other);
         assertTrue(a.toString().contains("manifest=[1, 2]"));
     }
 
@@ -27,7 +28,8 @@ class ArrayRecordsTest {
         assertEquals(a, same);
         assertEquals(a.hashCode(), same.hashCode());
         assertNotEquals(a, new TrustedKeys.Announcement(new byte[] {1}, new byte[] {2}, new byte[] {9}));
-        assertNotEquals(a, "not a record");
+        final Object other = "not a record";
+        assertNotEquals(a, other);
         assertTrue(a.toString().contains("rollover=[1]"));
     }
 }

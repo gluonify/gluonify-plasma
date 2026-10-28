@@ -5,6 +5,7 @@ import static io.gluonify.plasma.fermion.client.PlainFermionFixtures.instance;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.gluonify.plasma.fermion.FermionMsg;
+import io.quarkus.websockets.next.WebSocketClientConnection;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +47,7 @@ class FermionClientEndpointPlainGapsTest {
     FermionClientEndpoint endpoint(final Duration heartbeat, final SkillHandler... skills) {
         final FermionClientEndpoint e = new FermionClientEndpoint();
         final SkillHandlerRegistry registry = new SkillHandlerRegistry();
-        registry.handlers = instance(SkillHandler.class, List.of(skills));
+        registry.handlers = instance(List.of(skills));
         registry.index();
         e.registry = registry;
         e.client = client;
@@ -245,7 +246,9 @@ class FermionClientEndpointPlainGapsTest {
     @Test
     void closingTheChannelTellsTheClientAndAnErrorIsOnlyLogged() {
         final FermionClientEndpoint e = endpoint(Duration.ZERO);
-        e.onClose(link.connection());
-        e.onError(new IllegalStateException("socket error"));
+        final WebSocketClientConnection closed = link.connection();
+        assertDoesNotThrow(() -> e.onClose(closed));
+        final IllegalStateException error = new IllegalStateException("socket error");
+        assertDoesNotThrow(() -> e.onError(error));
     }
 }

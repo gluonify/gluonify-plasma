@@ -48,7 +48,7 @@ final class PlainFermionFixtures {
 
     /** An {@code Instance} that iterates over, and resolves to, these beans. */
     @SuppressWarnings("unchecked")
-    static <T> Instance<T> instance(final Class<?> type, final List<T> beans) {
+    static <T> Instance<T> instance(final List<T> beans) {
         return (Instance<T>) Proxy.newProxyInstance(PlainFermionFixtures.class.getClassLoader(), new Class<?>[]{Instance.class}, (p, m, a) -> switch (m.getName()) {
             case "iterator" -> beans.iterator();
             case "isResolvable" -> !beans.isEmpty();

@@ -26,7 +26,7 @@ class DisabledClientTest {
     FermionClient client;
 
     @Test
-    void inactiveWithoutUrl() throws Exception {
+    void inactiveWithoutUrl() {
         final int sessions = FakeFermionServer.sessions;
         Waits.holds("no session is opened", () -> sessions == FakeFermionServer.sessions, Duration.ofMillis(2500));
         assertFalse(client.isActive());

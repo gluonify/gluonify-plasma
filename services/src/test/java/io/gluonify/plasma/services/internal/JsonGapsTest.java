@@ -137,8 +137,10 @@ class JsonGapsTest {
 
     @Test
     void writingAnUnknownTypeIsRefused() {
-        assertThrows(IllegalArgumentException.class, () -> Json.write(new Object()));
-        assertThrows(IllegalArgumentException.class, () -> Json.write(List.of(new StringBuilder("x"))));
+        final Object plain = new Object();
+        assertThrows(IllegalArgumentException.class, () -> Json.write(plain));
+        final List<StringBuilder> builders = List.of(new StringBuilder("x"));
+        assertThrows(IllegalArgumentException.class, () -> Json.write(builders));
     }
 
     @Test

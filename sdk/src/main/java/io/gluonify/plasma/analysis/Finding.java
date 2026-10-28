@@ -41,7 +41,7 @@ public record Finding(Integer v, String id, FindingKind kind, String rule, Sever
     @Deprecated(forRemoval = true)
     public static final Pattern RULE = RULE_PATTERN;
     /** Argument name: simple identifier, usable as is in a translated string ({@code {type}}). */
-    public static final Pattern ARG_PATTERN = Pattern.compile("[a-zA-Z][a-zA-Z0-9_]{0,63}");
+    public static final Pattern ARG_PATTERN = Pattern.compile("[a-zA-Z]\\w{0,63}");
     /** Maximum length of an argument value. */
     public static final int MAX_ARG_LENGTH = 1024;
     public static final int MAX_ARGS = 32;

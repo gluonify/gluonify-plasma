@@ -218,10 +218,13 @@ class ContractsGapsTest {
 
     @Test
     void aTypeThatHasNoCanonicalFormIsRefused() {
-        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> Canonical.json(new Object()));
+        final Object plain = new Object();
+        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> Canonical.json(plain));
         assertTrue(e.getMessage().startsWith("non-canonical type: java.lang.Object"), e.getMessage());
-        assertThrows(IllegalArgumentException.class, () -> Canonical.json(List.of(1.5)), "a floating point number has no canonical form");
-        assertThrows(IllegalArgumentException.class, () -> Canonical.json(Map.of("k", new int[0])));
+        final List<Double> floating = List.of(1.5);
+        assertThrows(IllegalArgumentException.class, () -> Canonical.json(floating), "a floating point number has no canonical form");
+        final Map<String, int[]> array = Map.of("k", new int[0]);
+        assertThrows(IllegalArgumentException.class, () -> Canonical.json(array));
     }
 
     @Test

@@ -145,9 +145,9 @@ class UsageReportGapsTest {
     @Test
     void theDeprecatedLongFormsStillAssemble() {
         final List<AppShare> shares = List.of(new AppShare("a", "u", 1, 2, "measured", null, 5L));
-        final UsageReport nine = UsageReport.of("gdown", "0.8.0", "i-1", "n1", 1L, PROCESS, null, "measured", shares);
+        final UsageReport nine = UsageReport.of(new UsageReport.Identity("gdown", "0.8.0", "i-1", "n1"), new UsageReport.Snapshot(1L, PROCESS, null), "measured", shares);
         assertEquals(5L, nine.storageBytes());
-        final UsageReport ten = UsageReport.of("gdown", "0.8.0", "i-1", "n1", 1L, PROCESS, null, "measured", shares, 50L);
+        final UsageReport ten = UsageReport.of(new UsageReport.Identity("gdown", "0.8.0", "i-1", "n1"), new UsageReport.Snapshot(1L, PROCESS, null), "measured", shares, 50L);
         assertEquals(50L, ten.storageBytes());
         assertEquals("gdown", ten.component());
     }

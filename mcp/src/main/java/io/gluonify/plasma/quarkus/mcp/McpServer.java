@@ -67,17 +67,67 @@ public final class McpServer {
         }
         final String method = message.get("method").asString();
         final JsonNode params = message.get("params");
-        return switch (method) {
-            case "initialize" -> result(id, initialize(params));
-            case "tools/list" -> {
-                final ObjectNode r = mapper.createObjectNode();
-                final ArrayNode list = r.putArray("tools");
-                registry.tools().forEach(t -> list.add(t.describe(mapper)));
-                yield result(id, r);
+        final RpcMethod served = RpcMethod.of(method);
+        if (served == null) {
+            return error(id, McpContract.METHOD_NOT_FOUND, "method not found: " + cut(method, 64));
+        }
+        return served.handler.handle(this, id, params, caller);
+    }
+
+    /** The JSON-RPC methods this server answers, each with its handler. */
+    private enum RpcMethod {
+
+        /** Handshake: negotiated protocol version, capabilities and server information. */
+        INITIALIZE("initialize", (server, id, params, caller) -> server.result(id, server.initialize(params))),
+
+        /** Descriptions of the registered tools. */
+        TOOLS_LIST("tools/list", (server, id, params, caller) -> server.result(id, server.toolList())),
+
+        /** Call of one tool. */
+        TOOLS_CALL("tools/call", McpServer::call);
+
+        private final String wire;
+        private final Handler handler;
+
+        RpcMethod(final String wire, final Handler handler) {
+
+            this.wire = wire;
+            this.handler = handler;
+        }
+
+        /** The method named {@code wire} on the wire, or null when this server does not serve it. */
+        static RpcMethod of(final String wire) {
+
+            for (final RpcMethod m : values()) {
+                if (m.wire.equals(wire)) {
+                    return m;
+                }
             }
-            case "tools/call" -> call(id, params, caller);
-            default -> error(id, McpContract.METHOD_NOT_FOUND, "method not found: " + cut(method, 64));
-        };
+            return null;
+        }
+    }
+
+    /** Answers one JSON-RPC request. */
+    @FunctionalInterface
+    private interface Handler {
+
+        /**
+         * The reply to a request.
+         *
+         * @param server the server answering
+         * @param id     the request id
+         * @param params the request parameters (may be null)
+         * @param caller the authenticated caller
+         * @return the reply
+         */
+        Reply handle(McpServer server, JsonNode id, JsonNode params, McpCaller caller);
+    }
+
+    private ObjectNode toolList() {
+        final ObjectNode r = mapper.createObjectNode();
+        final ArrayNode list = r.putArray("tools");
+        registry.tools().forEach(t -> list.add(t.describe(mapper)));
+        return r;
     }
 
     /** HTTP 413 for a body larger than {@link McpContract#MAX_BODY_BYTES}. */

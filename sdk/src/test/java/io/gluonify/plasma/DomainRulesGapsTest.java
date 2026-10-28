@@ -84,7 +84,7 @@ class DomainRulesGapsTest {
     }
 
     @Test
-    void numbersNamesAndFormatsAreChecked() {
+    void numbersAreBounded() {
         refuses(with("replicas", 101), "replicas out of range");
         refuses(with("replicas", -1), "replicas out of range");
         refuses(with("port", 0), "invalid port");
@@ -92,6 +92,11 @@ class DomainRulesGapsTest {
         refuses(with("memoryMb", 8), "minimum memory");
         refuses(with("scratchMb", -1), "scratchMb out of range");
         refuses(with("scratchMb", AppSpec.MAX_SCRATCH_MB + 1), "scratchMb out of range");
+        refuses(with("distributedQuotaMb", 0, "distributed", List.of("std")), "distributedQuotaMb");
+    }
+
+    @Test
+    void namesAndImagesAreChecked() {
         refuses(with("name", "api"), "reserved name");
         refuses(with("name", "ns1"), "reserved name");
         refuses(with("name", "Bad Name"), "invalid application name");
@@ -99,14 +104,21 @@ class DomainRulesGapsTest {
         assertEquals("nsa-long", spec(with("name", "nsa-long")).name(), "only the short ns names are reserved");
         refuses(with("image", null), "image or artifacts required");
         refuses(with("image", " "), "image or artifacts required");
+    }
+
+    @Test
+    void formatsAreChecked() {
         refuses(with("pin", "bad pin!"), "invalid pin");
         refuses(with("role", "UPPER"), "invalid role");
         refuses(with("pullSecret", "token"), "pullSecret");
-        refuses(with("distributedQuotaMb", 0, "distributed", List.of("std")), "distributedQuotaMb");
         refuses(with("topNamespace", "Bad_NS"), "invalid topNamespace");
         refuses(with("uuid", "not-a-uuid"), "invalid uuid");
         refuses(with("provenance", "garbage!"), "provenance: unreadable token");
         refuses(with("artifactLevel", "amd64:v9"), "artifactLevel");
+    }
+
+    @Test
+    void optionalValuesAreNormalised() {
         assertEquals("amd64:v3", spec(with("artifactLevel", " AMD64:V3 ")).artifactLevel());
         assertNull(spec(with("artifactLevel", " ")).artifactLevel());
         assertNull(spec(with("provenance", " ")).provenance());
@@ -229,14 +241,18 @@ class DomainRulesGapsTest {
         assertEquals(List.of(), r.forDistro("ubuntu24.04"), "a distribution without packages is dropped");
         assertEquals(List.of(), r.forDistro("unknown"));
         assertFalse(r.isEmpty());
-        assertThrows(IllegalArgumentException.class, () -> new Requires(Map.of("Debian", List.of("curl"))));
-        assertThrows(IllegalArgumentException.class, () -> new Requires(Map.of("debian13", List.of("-rf"))));
-        assertThrows(IllegalArgumentException.class, () -> new Requires(Map.of("debian13", java.util.Arrays.asList("curl", null))));
+        final Map<String, List<String>> upperCase = Map.of("Debian", List.of("curl"));
+        assertThrows(IllegalArgumentException.class, () -> new Requires(upperCase));
+        final Map<String, List<String>> option = Map.of("debian13", List.of("-rf"));
+        assertThrows(IllegalArgumentException.class, () -> new Requires(option));
+        final Map<String, List<String>> nullPackage = Map.of("debian13", java.util.Arrays.asList("curl", null));
+        assertThrows(IllegalArgumentException.class, () -> new Requires(nullPackage));
         final List<String> many = new ArrayList<>();
         for (int i = 0; i <= Requires.MAX_PACKAGES; i++) {
             many.add("package" + i);
         }
-        assertThrows(IllegalArgumentException.class, () -> new Requires(Map.of("debian13", many)));
+        final Map<String, List<String>> tooMany = Map.of("debian13", many);
+        assertThrows(IllegalArgumentException.class, () -> new Requires(tooMany));
         final Map<String, List<String>> nullDistro = new HashMap<>();
         nullDistro.put(null, List.of("curl"));
         assertThrows(IllegalArgumentException.class, () -> new Requires(nullDistro));
@@ -321,7 +337,9 @@ class DomainRulesGapsTest {
         assertTrue(NodeCapacity.of(Map.of(), List.of(), null).isEmpty());
         assertFalse(NodeCapacity.of(Map.of("heavy", 1), List.of(), null).isEmpty());
         assertFalse(NodeCapacity.of(Map.of(), List.of("23:30-07:00"), null).isEmpty());
-        assertThrows(IllegalArgumentException.class, () -> NodeCapacity.of(Map.of("heavy", -1), List.of(), null));
+        final Map<String, Integer> negative = Map.of("heavy", -1);
+        final List<String> noWindow = List.of();
+        assertThrows(IllegalArgumentException.class, () -> NodeCapacity.of(negative, noWindow, null));
         final Map<String, Integer> nullSlot = new HashMap<>();
         nullSlot.put("heavy", null);
         assertThrows(IllegalArgumentException.class, () -> NodeCapacity.of(nullSlot, List.of(), null));
@@ -372,7 +390,8 @@ class DomainRulesGapsTest {
             many.put("arg" + i, "v");
         }
         assertThrows(IllegalArgumentException.class, () -> new Finding(null, "id", FindingKind.NATIVE, "N-ELF", Severity.MAJOR, null, null, many, null, null));
-        assertThrows(IllegalArgumentException.class, () -> new Finding(null, "id", FindingKind.NATIVE, "N-ELF", Severity.MAJOR, null, null, Map.of("1bad", "v"), null, null));
+        final Map<String, String> badName = Map.of("1bad", "v");
+        assertThrows(IllegalArgumentException.class, () -> new Finding(null, "id", FindingKind.NATIVE, "N-ELF", Severity.MAJOR, null, null, badName, null, null));
         final Finding withArgs = new Finding(null, "id", FindingKind.NATIVE, "N-ELF", Severity.MAJOR, null, null, Map.of("type", "x".repeat(2000)), null, null);
         assertEquals(Finding.MAX_ARG_LENGTH, withArgs.args().get("type").length());
         assertEquals("", Finding.arg(null));

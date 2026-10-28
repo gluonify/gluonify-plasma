@@ -3,10 +3,11 @@ package io.gluonify.plasma.quarkus;
 import io.gluonify.plasma.crystallon.client.CrystallonClient;
 import io.gluonify.plasma.crystallon.client.Jackson3Codec;
 import io.gluonify.plasma.services.GluonifyServices;
-import io.quarkus.arc.DefaultBean;
+import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
+import jakarta.enterprise.inject.Reserve;
 import jakarta.inject.Singleton;
 import tools.jackson.databind.ObjectMapper;
 
@@ -16,7 +17,7 @@ import tools.jackson.databind.ObjectMapper;
  * tests); the JSON is that of the application's {@link ObjectMapper} (Jackson 3 of Quarkus 4), so that dates and the omission of {@code null}
  * follow its configuration.
  *
- * <p>Each producer is a {@link DefaultBean}: a bean of the same type in the application replaces it (for example a {@code CrystallonClient}
+ * <p>Each producer is a {@link Reserve} bean: a bean of the same type in the application replaces it (for example a {@code CrystallonClient}
  * that forwards the signed-in person's token, {@code CrystallonTokens.forwarding(...)}). The client is created on first injection (not at
  * startup): an application that does not use Crystallon does not have to declare it in {@code uses}. Nothing static: native image without
  * configuration (the client's {@code HttpClient} is created on the first call).
@@ -35,8 +36,10 @@ public class GluonifyProducers {
      *                                                               what to do: {@code uses}, {@code gluonify login}, {@code GluonifyTestServices})
      */
     @Produces
-    @DefaultBean
-    @Singleton // not ApplicationScoped: CrystallonClient is a final class that a client proxy cannot subclass
+    @Reserve
+    @Priority(0) // a reserve is enabled only with a priority (CDI 5): any application bean of the type wins over it
+    // singleton scope rather than application scope: CrystallonClient is a final class that a client proxy cannot subclass
+    @Singleton
     CrystallonClient crystallon(final Instance<ObjectMapper> mapper) {
         return crystallon(GluonifyServices.defaults(), mapper.isResolvable() ? mapper.get() : null);
     }

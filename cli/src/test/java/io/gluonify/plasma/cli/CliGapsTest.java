@@ -419,7 +419,7 @@ class CliGapsTest {
     }
 
     @Test
-    void aZoneWithoutTokensIsForgottenFromTheConfiguration() throws Exception {
+    void aZoneWithoutTokensIsForgottenFromTheConfiguration() {
         assertEquals(0, login(), err());
         assertTrue(DeveloperTokens.delete(home, "test.lan"));
         assertEquals(0, run(browser, "logout"));
@@ -452,7 +452,7 @@ class CliGapsTest {
     }
 
     @Test
-    void statusShowsEveryStateOfASession() throws Exception {
+    void statusShowsEveryStateOfASession() {
         assertEquals(0, login(), err());
         final DeveloperTokens.Session s = DeveloperTokens.read(home, "test.lan").orElseThrow();
         final URI discovery = cluster.discoveryUrl();
@@ -507,7 +507,8 @@ class CliGapsTest {
         assumeTrue(Files.isExecutable(Path.of("/usr/bin/xdg-open")) == false && Files.isExecutable(Path.of("/usr/local/bin/xdg-open")) == false, "a real xdg-open would open a window");
         try {
             System.setProperty("os.name", "TestOS");
-            Cli.openBrowser(URI.create("https://example.invalid/login")); // no xdg-open here: the failure is swallowed, the address was printed
+            final URI login = URI.create("https://example.invalid/login");
+            assertDoesNotThrow(() -> Cli.openBrowser(login), "no xdg-open here: the failure is swallowed, the address was printed");
         }
         finally {
             System.setProperty("os.name", saved);

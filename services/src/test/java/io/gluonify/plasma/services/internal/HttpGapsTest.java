@@ -192,7 +192,8 @@ class HttpGapsTest {
         final Path junk = Files.writeString(dir.resolve("junk.pem"), "-----BEGIN CERTIFICATE-----\nnot a certificate\n-----END CERTIFICATE-----\n");
         assertThrows(IllegalArgumentException.class, () -> Http.client(junk));
 
-        final IllegalArgumentException missing = assertThrows(IllegalArgumentException.class, () -> Http.client(dir.resolve("absent.pem")));
+        final Path absent = dir.resolve("absent.pem");
+        final IllegalArgumentException missing = assertThrows(IllegalArgumentException.class, () -> Http.client(absent));
         assertTrue(missing.getMessage().contains("cannot read the certificate authority file"), missing.getMessage());
     }
 

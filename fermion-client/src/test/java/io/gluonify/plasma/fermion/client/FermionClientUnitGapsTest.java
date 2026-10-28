@@ -12,7 +12,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -223,8 +222,7 @@ class FermionClientUnitGapsTest {
         final SkillHandlerRegistry registry = new SkillHandlerRegistry();
         registry.handlers = (Instance<SkillHandler>) Proxy.newProxyInstance(FermionClientUnitGapsTest.class.getClassLoader(), new Class<?>[]{Instance.class}, (p, m, a) -> {
             if (m.getName().equals("iterator")) {
-                final Iterator<SkillHandler> it = List.of(handlers).iterator();
-                return it;
+                return List.of(handlers).iterator();
             }
             throw new UnsupportedOperationException(m.getName());
         });

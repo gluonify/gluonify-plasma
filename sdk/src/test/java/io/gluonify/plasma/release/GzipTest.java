@@ -82,7 +82,7 @@ class GzipTest {
         KeyPair k = ReleaseTest.keys();
         byte[] bytes = m.toJson().getBytes(StandardCharsets.UTF_8);
         byte[] sig = ReleaseSigner.sign(bytes, k.getPrivate());
-        assertEquals(m, ReleaseVerifier.verify(bytes, sig, k.getPublic(), ReleaseManifest::parse, 7, Instant.parse("2026-10-02T00:00:00Z")));
+        assertEquals(m, ReleaseVerifier.verify(bytes, sig, k.getPublic(), ReleaseVerifier.Policy.of(ReleaseManifest::parse, 7, Instant.parse("2026-10-02T00:00:00Z"))));
         // a name with a separator or ".." is still refused, .gz or not
         var bad = new ReleaseManifest(1, "1.2.3", 7, m.createdAt(), m.expires(), java.util.List.of(new ReleaseManifest.Artifact("gluonify-strange", "amd64", "../x.gz", amd.sha256(), 5)));
         assertThrows(ReleaseManifest.Invalid.class, bad::validate);

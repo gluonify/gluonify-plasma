@@ -226,7 +226,9 @@ class CrystallonClientStubGapsTest {
 
     @Test
     void anUnreachableCrystallonIsReportedWithTheKindOfFailure() {
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> CrystallonClient.builder().baseUrl("http://127.0.0.1:1").build().byId("t").render(Map.of()));
+        final TemplateRef template = CrystallonClient.builder().baseUrl("http://127.0.0.1:1").build().byId("t");
+        final Map<String, Object> data = Map.of();
+        final CrystallonException e = assertThrows(CrystallonException.class, () -> template.render(data));
         assertTrue(e.getMessage().startsWith("Crystallon is unreachable ("), e.getMessage());
     }
 
@@ -292,7 +294,8 @@ class CrystallonClientStubGapsTest {
         assertNotEquals(a, new RenderedPdf(PDF.clone(), 1, 1, null));
         assertNotEquals(a, new RenderedPdf(PDF.clone(), 1, 0, Boolean.TRUE));
         assertNotEquals(a, new RenderedPdf(new byte[]{1}, 1, 0, null));
-        assertNotEquals(a, "a string");
+        final Object other = "a string";
+        assertNotEquals(a, other);
         assertEquals("RenderedPdf[bytes=16 bytes, pages=1, warnings=0, pdfa=null]", a.toString());
         assertEquals("RenderedPdf[bytes=null, pages=0, warnings=0, pdfa=true]", new RenderedPdf(null, 0, 0, Boolean.TRUE).toString());
     }
@@ -314,7 +317,8 @@ class CrystallonClientStubGapsTest {
         assertThrows(IllegalArgumentException.class, () -> c.inline("   "));
         assertThrows(IllegalArgumentException.class, () -> c.inline("{\"a\":1}"));
         assertThrows(IllegalArgumentException.class, () -> c.inline("[1]"));
-        assertThrows(IllegalArgumentException.class, () -> c.inline(java.util.List.of(1, 2)), "an array is not a template object");
+        final java.util.List<Integer> array = java.util.List.of(1, 2);
+        assertThrows(IllegalArgumentException.class, () -> c.inline(array), "an array is not a template object");
         assertNotNull(c.inline("  invoice "));
         assertNotNull(c.inline(Map.of("title", "x")));
     }
@@ -333,7 +337,8 @@ class CrystallonClientStubGapsTest {
             }
         };
         final CrystallonClient c = client().json(nullCodec).build();
-        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> c.inline(new Object()));
+        final Object template = new Object();
+        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> c.inline(template));
         assertTrue(e.getMessage().contains("not null"), e.getMessage());
     }
 
@@ -348,7 +353,8 @@ class CrystallonClientStubGapsTest {
             assertThrows(IllegalArgumentException.class, () -> b.baseUrl(bad), bad);
         }
         assertThrows(IllegalArgumentException.class, () -> b.timeout(Duration.ZERO));
-        assertThrows(IllegalArgumentException.class, () -> b.timeout(Duration.ofSeconds(-1)));
+        final Duration negative = Duration.ofSeconds(-1);
+        assertThrows(IllegalArgumentException.class, () -> b.timeout(negative));
         assertThrows(IllegalArgumentException.class, () -> b.maxPdfBytes(0));
         assertThrows(NullPointerException.class, () -> b.tokens(null));
         assertThrows(NullPointerException.class, () -> b.json(null));
@@ -434,8 +440,10 @@ class CrystallonClientStubGapsTest {
         assertTrue(CrystallonTokens.fromEnvironment(Map.of("GLUONIFY_CRYSTALLON_TOKEN_FILE", " ")::get).token().isEmpty());
         assertTrue(CrystallonTokens.fromEnvironment(Map.<String, String>of()::get).token().isEmpty());
         assertEquals("file-token", CrystallonTokens.platform(Map.of("GLUONIFY_CRYSTALLON_TOKEN_FILE", file.toString())::get).token().orElseThrow());
-        assertThrows(IllegalStateException.class, () -> CrystallonTokens.platform(Map.of("GLUONIFY_CRYSTALLON_TOKEN_FILE", " ")::get));
-        assertThrows(IllegalStateException.class, () -> CrystallonTokens.platform(Map.<String, String>of()::get));
+        final Map<String, String> blankFile = Map.of("GLUONIFY_CRYSTALLON_TOKEN_FILE", " ");
+        assertThrows(IllegalStateException.class, () -> CrystallonTokens.platform(blankFile::get));
+        final Map<String, String> empty = Map.of();
+        assertThrows(IllegalStateException.class, () -> CrystallonTokens.platform(empty::get));
         if (System.getenv("GLUONIFY_CRYSTALLON_TOKEN_FILE") == null) {
             assertThrows(IllegalStateException.class, CrystallonTokens::platform);
             assertNotNull(CrystallonTokens.fromEnvironment());
@@ -447,7 +455,8 @@ class CrystallonClientStubGapsTest {
         final Endpoint failing = new Endpoint("crystallon", URI.create("http://127.0.0.1:1"), () -> {
             throw new io.gluonify.plasma.services.GluonifyServicesException("run gluonify login test.lan");
         }, Endpoint.Source.DEVELOPER, null, "test.lan");
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> CrystallonTokens.of(failing).token());
+        final CrystallonTokens tokens = CrystallonTokens.of(failing);
+        final CrystallonException e = assertThrows(CrystallonException.class, tokens::token);
         assertEquals("run gluonify login test.lan", e.getMessage());
         assertEquals(0, e.status());
         assertThrows(NullPointerException.class, () -> CrystallonTokens.of(null));
@@ -456,12 +465,13 @@ class CrystallonClientStubGapsTest {
     // --- path segments ---
 
     @Test
-    void pathSegmentsAreEncodedAndDotsCannotNavigate() {
+    void pathSegmentsAreEncodedAndDotsCannotNavigate() throws IOException {
         assertEquals("%2E", CrystallonClient.segment("."));
         assertEquals("%2E%2E", CrystallonClient.segment(".."));
         assertEquals("a%20b%2Fc%C3%A9", CrystallonClient.segment("a b/cé"));
         assertEquals("A-z_9.~", CrystallonClient.segment("A-z_9.~"));
-        assertThrows(IllegalArgumentException.class, () -> client().build().byId(" "));
-        assertThrows(IllegalArgumentException.class, () -> client().build().byName(null));
+        final CrystallonClient c = client().build();
+        assertThrows(IllegalArgumentException.class, () -> c.byId(" "));
+        assertThrows(IllegalArgumentException.class, () -> c.byName(null));
     }
 }

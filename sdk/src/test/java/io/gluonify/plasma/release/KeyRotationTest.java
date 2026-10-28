@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.PublicKey;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
@@ -189,14 +190,17 @@ class KeyRotationTest {
         KeyPair o = gen(), n = gen();
         Transition t = transition(o, n, 5);
         // 0.1.0 path: single key, strict parse, no reading of the rollover.json or .sig2 files
-        ReleaseManifest m = ReleaseVerifier.verify(t.manifest, Base64.getEncoder().encode(t.sig), o.getPublic(), ReleaseManifest::parse, 0, NOW);
+        ReleaseManifest m = ReleaseVerifier.verify(t.manifest, Base64.getEncoder().encode(t.sig), o.getPublic(), ReleaseVerifier.Policy.of(ReleaseManifest::parse, 0, NOW));
         assertEquals("1.1.0", m.version());
         // the transition manifest is byte for byte what 0.1.0 produced (no field added)
         assertEquals(m.toJson(), new String(t.manifest, StandardCharsets.UTF_8));
         // and a manifest carrying a keys field would be refused by that same old verifier: that is WHY the announcement is in a separate file
         String withKeys = new String(t.manifest, StandardCharsets.UTF_8).replace("\"artifacts\":[", "\"nextKey\":\"x\",\n\"artifacts\":[");
         byte[] wk = withKeys.getBytes(StandardCharsets.UTF_8);
-        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(wk, ReleaseSigner.sign(wk, o.getPrivate()), o.getPublic(), ReleaseManifest::parse, 0, NOW));
+        final byte[] wkSig = ReleaseSigner.sign(wk, o.getPrivate());
+        final PublicKey original = o.getPublic();
+        final ReleaseVerifier.Policy any = ReleaseVerifier.Policy.of(ReleaseManifest::parse, 0, NOW);
+        assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(wk, wkSig, original, any));
         // a 0.1.0 node has only one key: the same verification through the new set of original keys gives the same result
         assertEquals(m, TrustedKeys.single(key(o)).verify(t.manifest, t.sig, null, ReleaseManifest::parse, 0, NOW).manifest());
         // and the new key is worth nothing to it
