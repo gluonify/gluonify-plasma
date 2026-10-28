@@ -68,7 +68,7 @@ class FermionClientTest {
     }
 
     @Test
-    void authenticatesThenAnnouncesItself() throws Exception {
+    void authenticatesThenAnnouncesItself() {
         dropAndWaitNewSession();
         final List<FermionMsg> first = FakeFermionServer.FRAMES.stream().map(FakeFermionServer.Frame::msg).toList();
         final FermionMsg.Auth auth = assertInstanceOf(FermionMsg.Auth.class, first.get(0));
@@ -242,7 +242,7 @@ class FermionClientTest {
     }
 
     @Test
-    void reconnectsWithAFreshConnectorAfterACut() throws Exception {
+    void reconnectsWithAFreshConnectorAfterACut() {
         final int connectors = client.connectorsCreated();
         dropAndWaitNewSession();
         assertTrue(client.connectorsCreated() > connectors);
