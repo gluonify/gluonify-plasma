@@ -257,7 +257,8 @@ class FermionClientUnitGapsTest {
     @Test
     void partialDescriptionsAreAnErrorNamingTheMissingLanguages() {
         final List<Translation> partial = List.of(new Translation(Language.EN, "only english"), new Translation(Language.FR, "seulement"));
-        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> registry(handler("P", partial, null)).index());
+        final SkillHandlerRegistry registry = registry(handler("P", partial, null));
+        final IllegalStateException e = assertThrows(IllegalStateException.class, registry::index);
         assertTrue(e.getMessage().contains("descriptions missing for") && e.getMessage().contains("DE") && e.getMessage().contains("ES") && e.getMessage().contains("IT"), e.getMessage());
         assertFalse(e.getMessage().contains("EN"), e.getMessage());
     }

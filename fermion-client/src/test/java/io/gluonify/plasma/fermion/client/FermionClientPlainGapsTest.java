@@ -160,7 +160,9 @@ class FermionClientPlainGapsTest {
 
     @Test
     void anInactiveClientCannotSubmit() {
-        assertThrows(FermionClientException.class, () -> client(Map.of()).startWorkflow("w", "c", Map.of()));
+        final FermionClient inactive = client(Map.of());
+        final Map<String, Object> input = Map.of();
+        assertThrows(FermionClientException.class, () -> inactive.startWorkflow("w", "c", input));
     }
 
     @Test
