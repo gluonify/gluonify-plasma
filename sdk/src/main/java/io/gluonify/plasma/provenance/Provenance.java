@@ -205,6 +205,46 @@ public final class Provenance {
     }
 
     /**
+     * Public part of an Ed25519 private key (the JDK has no direct call: the key pair is regenerated from the 32-byte seed of the PKCS#8 encoding, RFC 8410), so that a
+     * signer can name and check its key without a separate public key file.
+     *
+     * @param k Ed25519 private key (PKCS#8 as produced by {@code openssl genpkey -algorithm ed25519})
+     * @return the matching public key
+     */
+    public static PublicKey publicKeyOf(final PrivateKey k) {
+        byte[] der = k.getEncoded();
+        try {
+            if (der == null || der.length < 48 || der[der.length - 34] != 0x04 || der[der.length - 33] != 0x20) throw new IllegalArgumentException("provenance: unreadable Ed25519 private key");
+            byte[] seed = Arrays.copyOfRange(der, der.length - 32, der.length);
+            java.security.KeyPairGenerator g = java.security.KeyPairGenerator.getInstance(ED25519);
+            g.initialize(java.security.spec.NamedParameterSpec.ED25519, new SeedRandom(seed));
+            return g.generateKeyPair().getPublic();
+        } catch (GeneralSecurityException e) {
+            throw new IllegalArgumentException("provenance: unreadable Ed25519 private key", e);
+        } finally {
+            if (der != null) Arrays.fill(der, (byte) 0);
+        }
+    }
+
+    /** Source that hands out a given seed once: the generator reads exactly the 32 bytes of the private key from it. */
+    private static final class SeedRandom extends java.security.SecureRandom {
+        private static final long serialVersionUID = 1L;
+        private final byte[] seed;
+
+        SeedRandom(final byte[] seed) {
+            super(new byte[0]);
+            this.seed = seed;
+        }
+
+        @Override
+        public void nextBytes(final byte[] bytes) {
+            if (bytes.length != seed.length) throw new IllegalStateException("provenance: unexpected seed request");
+            System.arraycopy(seed, 0, bytes, 0, seed.length);
+            Arrays.fill(seed, (byte) 0);
+        }
+    }
+
+    /**
      * Identifier derived from a public key: {@code <prefix>-<first 12 hexadecimal digits of the SHA-256 of its DER>} (for example {@code bup-1a2b3c4d5e6f}), so that a
      * key swap needs no separate identifier setting and the same key always gets the same identifier.
      *

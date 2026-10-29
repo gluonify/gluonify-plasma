@@ -130,6 +130,14 @@ class KeyRotationTest {
     }
 
     @Test
+    void publicKeyOfAPrivateKeyMatchesItsPair() throws Exception {
+
+        KeyPair k = pair();
+        assertArrayEquals(k.getPublic().getEncoded(), Provenance.publicKeyOf(k.getPrivate()).getEncoded());
+        assertArrayEquals(ProvenanceTest.vectorPublic().getEncoded(), Provenance.publicKeyOf(ProvenanceTest.vectorPrivate()).getEncoded());
+    }
+
+    @Test
     void derivedKeyIdIsStableAndValid() throws Exception {
 
         KeyPair k = pair();
