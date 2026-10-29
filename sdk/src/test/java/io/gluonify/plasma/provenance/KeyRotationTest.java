@@ -158,4 +158,79 @@ class KeyRotationTest {
         assertThrows(IllegalArgumentException.class, () -> Provenance.derivedKeyId("Bup", pub));
         assertThrows(IllegalArgumentException.class, () -> Provenance.derivedKeyId(null, pub));
     }
+
+    @Test
+    void everyMalformedLineIsRefused() throws Exception {
+
+        String key = Provenance.publicKeyBase64(pair().getPublic());
+        String good = "gluonify-key-rotation 1\nkind bup\nold bup-old\nnew bup-new\nnew-key " + key
+                + "\nsigned-at 2026-10-29T12:00:00Z\nretire-old-after 2026-11-28T12:00:00Z\n";
+        assertEquals("bup-new", KeyRotation.parse(good.getBytes(StandardCharsets.UTF_8)).newKeyId());
+        for (String bad : new String[] {good.replace("gluonify-key-rotation 1", "gluonify-key-rotation 2"), good + "extra\n",
+                good.replace("signed-at 2026-10-29T12:00:00Z", "signed-at 2026-13-29T12:00:00Z"), good.replace("kind bup", "sort bup"),
+                good.replace("old bup-old", "old "), good.replace("new bup-new", "new bup new"), "x".repeat(KeyRotation.MAX_BYTES + 1)}) {
+            byte[] bytes = bad.getBytes(StandardCharsets.UTF_8);
+            assertThrows(IllegalArgumentException.class, () -> KeyRotation.parse(bytes), bad);
+        }
+    }
+
+    @Test
+    void missingFieldsAreRefused() throws Exception {
+
+        String key = Provenance.publicKeyBase64(pair().getPublic());
+        assertThrows(IllegalArgumentException.class, () -> new KeyRotation("bup", null, "b", key, AT));
+        assertThrows(IllegalArgumentException.class, () -> new KeyRotation("bup", "a", null, key, AT));
+        assertThrows(IllegalArgumentException.class, () -> new KeyRotation("bup", "a", "b", null, AT));
+        assertThrows(IllegalArgumentException.class, () -> new KeyRotation(null, "a", "b", key, AT));
+    }
+
+    @Test
+    void keysOfAnotherAlgorithmNeitherSignNorVerify() throws Exception {
+
+        KeyPair ec = KeyPairGenerator.getInstance("EC").generateKeyPair();
+        KeyPair next = pair();
+        KeyRotation r = rotation(next);
+        java.security.PrivateKey ecPrivate = ec.getPrivate();
+        java.security.PrivateKey nextPrivate = next.getPrivate();
+        assertThrows(IllegalStateException.class, () -> KeyRotation.sign(r, ecPrivate, nextPrivate));
+        String token = KeyRotation.sign(r, pair().getPrivate(), nextPrivate);
+        java.security.PublicKey ecPublic = ec.getPublic();
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> KeyRotation.verify(token, ecPublic));
+        assertTrue(e.getMessage().contains("old key"));
+        assertThrows(IllegalArgumentException.class, () -> Provenance.publicKeyOf(ecPrivate));
+    }
+
+    @Test
+    void anOversizedStatementInATokenIsRefused() throws Exception {
+
+        String sig = b64(new byte[64]);
+        String token = "A".repeat(1400) + "." + sig + "." + sig;
+        java.security.PublicKey pub = pair().getPublic();
+        assertTrue(KeyRotation.wellFormed(token));
+        assertThrows(IllegalArgumentException.class, () -> KeyRotation.verify(token, pub));
+    }
+
+    @Test
+    void aPrivateKeyWithAnEmptyEncodingIsRefused() {
+
+        java.security.PrivateKey opaque = new java.security.PrivateKey() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public String getAlgorithm() {
+                return "Ed25519";
+            }
+
+            @Override
+            public String getFormat() {
+                return null;
+            }
+
+            @Override
+            public byte[] getEncoded() {
+                return new byte[0];
+            }
+        };
+        assertThrows(IllegalArgumentException.class, () -> Provenance.publicKeyOf(opaque));
+    }
 }
