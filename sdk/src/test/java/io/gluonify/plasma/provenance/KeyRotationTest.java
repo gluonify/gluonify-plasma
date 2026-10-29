@@ -3,6 +3,7 @@ package io.gluonify.plasma.provenance;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -80,13 +81,15 @@ class KeyRotationTest {
         KeyPair old = pair();
         KeyPair next = pair();
         KeyRotation r = rotation(next);
-        assertThrows(IllegalArgumentException.class, () -> KeyRotation.sign(r, old.getPrivate(), pair().getPrivate()));
+        java.security.PrivateKey oldPrivate = old.getPrivate();
+        java.security.PrivateKey otherPrivate = pair().getPrivate();
+        assertThrows(IllegalArgumentException.class, () -> KeyRotation.sign(r, oldPrivate, otherPrivate));
         String good = KeyRotation.sign(r, old.getPrivate(), next.getPrivate());
         java.security.Signature other = java.security.Signature.getInstance("Ed25519");
         other.initSign(pair().getPrivate());
         other.update(r.canonicalBytes());
         String forged = good.substring(0, good.lastIndexOf('.') + 1) + b64(other.sign());
-        assertFalse(forged.equals(good));
+        assertNotEquals(good, forged);
         java.security.PublicKey oldPublic = old.getPublic();
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> KeyRotation.verify(forged, oldPublic));
         assertTrue(e.getMessage().contains("new key"));
@@ -115,7 +118,8 @@ class KeyRotationTest {
         assertThrows(IllegalArgumentException.class, () -> new KeyRotation("bup", "a", "B", key, AT));
         assertThrows(IllegalArgumentException.class, () -> new KeyRotation("bup", "a", "a", key, AT));
         assertThrows(IllegalArgumentException.class, () -> new KeyRotation("bup", "a", "b", "short", AT));
-        assertThrows(IllegalArgumentException.class, () -> new KeyRotation("bup", "a", "b", "A".repeat(60), AT));
+        String notAKey = "A".repeat(60);
+        assertThrows(IllegalArgumentException.class, () -> new KeyRotation("bup", "a", "b", notAKey, AT));
         assertThrows(IllegalArgumentException.class, () -> new KeyRotation("bup", "a", "b", key, null));
     }
 
@@ -150,7 +154,8 @@ class KeyRotationTest {
         assertTrue(id.matches("bup-[0-9a-f]{12}"));
         assertEquals(id, Provenance.derivedKeyId("bup", Provenance.publicKey(Provenance.publicKeyBase64(k.getPublic()))));
         assertTrue(ProvenanceStatement.KEY_ID.matcher(id).matches());
-        assertThrows(IllegalArgumentException.class, () -> Provenance.derivedKeyId("Bup", k.getPublic()));
-        assertThrows(IllegalArgumentException.class, () -> Provenance.derivedKeyId(null, k.getPublic()));
+        java.security.PublicKey pub = k.getPublic();
+        assertThrows(IllegalArgumentException.class, () -> Provenance.derivedKeyId("Bup", pub));
+        assertThrows(IllegalArgumentException.class, () -> Provenance.derivedKeyId(null, pub));
     }
 }

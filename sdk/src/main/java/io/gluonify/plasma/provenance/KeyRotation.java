@@ -52,7 +52,7 @@ public record KeyRotation(String kind, String oldKeyId, String newKeyId, String 
     private static final String ED25519 = "Ed25519";
     private static final String UNREADABLE = "key rotation: unreadable statement";
     private static final String UNREADABLE_TOKEN = "key rotation: unreadable token";
-    private static final Pattern KIND = Pattern.compile("[a-z]{1,16}");
+    private static final Pattern KIND_PATTERN = Pattern.compile("[a-z]{1,16}");
     private static final Pattern KEY_B64 = Pattern.compile("[A-Za-z0-9+/]{40,120}={0,2}");
     private static final Pattern TOKEN = Pattern.compile("[A-Za-z0-9_-]{8,1400}\\.[A-Za-z0-9_-]{86}\\.[A-Za-z0-9_-]{86}");
     private static final int LINES = 8;
@@ -69,7 +69,7 @@ public record KeyRotation(String kind, String oldKeyId, String newKeyId, String 
      */
     public KeyRotation {
 
-        if (kind == null || !KIND.matcher(kind).matches()) throw new IllegalArgumentException("key rotation: invalid kind");
+        if (kind == null || !KIND_PATTERN.matcher(kind).matches()) throw new IllegalArgumentException("key rotation: invalid kind");
         if (oldKeyId == null || !ProvenanceStatement.KEY_ID.matcher(oldKeyId).matches()) throw new IllegalArgumentException("key rotation: invalid old key identifier");
         if (newKeyId == null || !ProvenanceStatement.KEY_ID.matcher(newKeyId).matches()) throw new IllegalArgumentException("key rotation: invalid new key identifier");
         if (oldKeyId.equals(newKeyId)) throw new IllegalArgumentException("key rotation: the new key must have another identifier");
