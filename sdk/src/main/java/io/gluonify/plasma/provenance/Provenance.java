@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
 public final class Provenance {
     private static final String UNREADABLE_TOKEN = "provenance: unreadable token";
     private static final String ED25519 = "Ed25519";
+    private static final String UNREADABLE_PRIVATE_KEY = "provenance: unreadable Ed25519 private key";
     private Provenance() {}
 
     /** Maximum length of a token (statement of at most 2048 bytes, signature of 64). */
@@ -185,7 +186,7 @@ public final class Provenance {
             String b64 = pem.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replaceAll("\\s", "");
             return KeyFactory.getInstance(ED25519).generatePrivate(new PKCS8EncodedKeySpec(Base64.getDecoder().decode(b64)));
         } catch (GeneralSecurityException | IllegalArgumentException | NullPointerException e) {
-            throw new IllegalArgumentException("provenance: unreadable Ed25519 private key");
+            throw new IllegalArgumentException(UNREADABLE_PRIVATE_KEY);
         }
     }
 
@@ -214,13 +215,13 @@ public final class Provenance {
     public static PublicKey publicKeyOf(final PrivateKey k) {
         byte[] der = k.getEncoded();
         try {
-            if (der == null || der.length < 48 || der[der.length - 34] != 0x04 || der[der.length - 33] != 0x20) throw new IllegalArgumentException("provenance: unreadable Ed25519 private key");
+            if (der == null || der.length < 48 || der[der.length - 34] != 0x04 || der[der.length - 33] != 0x20) throw new IllegalArgumentException(UNREADABLE_PRIVATE_KEY);
             byte[] seed = Arrays.copyOfRange(der, der.length - 32, der.length);
             java.security.KeyPairGenerator g = java.security.KeyPairGenerator.getInstance(ED25519);
             g.initialize(java.security.spec.NamedParameterSpec.ED25519, new SeedRandom(seed));
             return g.generateKeyPair().getPublic();
         } catch (GeneralSecurityException e) {
-            throw new IllegalArgumentException("provenance: unreadable Ed25519 private key", e);
+            throw new IllegalArgumentException(UNREADABLE_PRIVATE_KEY, e);
         } finally {
             if (der != null) Arrays.fill(der, (byte) 0);
         }
