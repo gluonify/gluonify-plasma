@@ -18,7 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 class ReleaseTrustGapsTest {
     static final Instant NOW = Instant.parse("2026-10-01T00:00:00Z");
     static final String SHA = "ab".repeat(32);
-    static final Duration RETIRE_AFTER = Duration.ofDays(90);
+    static final Duration RETIRE_AFTER = Duration.ofDays(30);
 
     @TempDir
     Path dir;
@@ -275,7 +275,7 @@ class ReleaseTrustGapsTest {
         assertTrue(refusal(() -> new KeyRollover(1, "1.2.3", 5, SHA, "later", k, s, retire.toString()).validate()).contains("invalid date"));
         assertTrue(refusal(() -> new KeyRollover(1, "1.2.3", 5, SHA, NOW.toString(), k, s, null).validate()).contains("invalid date"));
         assertTrue(refusal(() -> new KeyRollover(1, "1.2.3", 5, SHA, NOW.toString(), k, s, NOW.toString()).validate()).contains("out of range"));
-        assertTrue(refusal(() -> new KeyRollover(1, "1.2.3", 5, SHA, NOW.toString(), k, s, NOW.plus(Duration.ofDays(401)).toString()).validate()).contains("out of range"));
+        assertTrue(refusal(() -> new KeyRollover(1, "1.2.3", 5, SHA, NOW.toString(), k, s, NOW.plus(Duration.ofDays(31)).toString()).validate()).contains("out of range"));
     }
 
     @Test

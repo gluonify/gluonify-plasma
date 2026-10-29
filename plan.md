@@ -44,8 +44,8 @@
 - [ ] `CrystallonTokens.platform()`: application-to-service token. **Contract set on 2026-10-11**: `ServiceToken` (service, audience, token, expiry; file `/run/gluonify-tokens/<service>.token`, reserved variable `GLUONIFY_<SERVICE>_TOKEN_FILE`), messages `service-tokens-request` / `service-tokens`, `CrystallonTokens.platform()` and `FermionTokenProvider.platform()`. **Left**: issuance by Higgs (policy "service of `uses` -> audience and roles", Charm) and drop-off and renewal by Strange.
 - [ ] Fermion client: verify in native and against a real fermion (e2e); the module is done (unit tests only).
 - [ ] `install.sh` (shell, outside the SDK) does not read the per-file signature: it stays on the manifest, which is enough.
-- [ ] Per-file signature not required by default by the verifiers (sea, strange): to enable once the old publications are replaced.
-- [ ] Cross-signature by two publishers (two publication keys valid at all times) at key rotation.
+- [ ] Per-file signature not required by default by the verifiers (sea, strange): to enable once the old publications are replaced. 2026-10-29 (decision of the user): required by default, opt-out only on a private development cluster like MDWE; the defaults change in gluonify-strange and gluonify-sea (same batch).
+- [x] Cross-signature at key rotation (2026-10-29, decision of the user: the new key is signed by the old one, both trusted 30 days, then the old one is retired): release keys already had it (`rollover.json` signed by the old key, countersigned by the new one; `manifest.json.sig2` during the overlap); `KeyRollover.MAX_OVERLAP` lowered from 400 to 30 days; provenance keys (Bup) get `KeyRotation` (`gluonify-key-rotation 1`, signed by both keys, 30-day overlap) and `Provenance.derivedKeyId`, checked by Higgs (`KeyRotationTest`).
 
 ## Housekeeping (non-functional)
 - [x] `gluonify.code-workspace` and `CLAUDE.md` no longer tracked (2026-10-21, before the repository goes public): the workspace file stays local (`.git/info/exclude`), `CLAUDE.md` is a local link to `gluonify-horizon/context/repos/gluonify-plasma.md` placed by `horizon init`; history not rewritten (gitleaks 8.30.1 clean).

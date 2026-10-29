@@ -22,6 +22,8 @@ import java.util.regex.Pattern;
  * Provenance token: {@code base64url(canonical bytes of the statement) "." base64url(64-byte Ed25519 signature)}, without padding. A single string, carried
  * as is by {@code AppSpec.provenance} (Raft state, version history, rollback), {@code DeployRequest.provenance}, the stack configuration or a
  * {@code .sig} file. Signing and verification by the JDK ({@code Ed25519}), without dependencies.
+ *
+ * @author David CABILLIC
  */
 public final class Provenance {
     private static final String UNREADABLE_TOKEN = "provenance: unreadable token";
@@ -200,5 +202,23 @@ public final class Provenance {
     /** Public key of an Ed25519 private key (Base64 of the DER SubjectPublicKeyInfo), to declare in {@code gluonify.higgs.provenance.trusted-keys.<id>}. */
     public static String publicKeyBase64(final PublicKey k) {
         return Base64.getEncoder().encodeToString(k.getEncoded());
+    }
+
+    /**
+     * Identifier derived from a public key: {@code <prefix>-<first 12 hexadecimal digits of the SHA-256 of its DER>} (for example {@code bup-1a2b3c4d5e6f}), so that a
+     * key swap needs no separate identifier setting and the same key always gets the same identifier.
+     *
+     * @param prefix prefix of the identifier (the kind of the key, {@code bup}), {@code [a-z0-9]+}
+     * @param k      Ed25519 public key
+     * @return the identifier, valid for {@link ProvenanceStatement#KEY_ID}
+     */
+    public static String derivedKeyId(final String prefix, final PublicKey k) {
+        if (prefix == null || !prefix.matches("[a-z0-9]{1,40}")) throw new IllegalArgumentException("provenance: invalid key identifier prefix");
+        try {
+            byte[] d = java.security.MessageDigest.getInstance("SHA-256").digest(k.getEncoded());
+            return prefix + "-" + java.util.HexFormat.of().formatHex(d, 0, 6);
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException("provenance: SHA-256 unavailable", e);
+        }
     }
 }

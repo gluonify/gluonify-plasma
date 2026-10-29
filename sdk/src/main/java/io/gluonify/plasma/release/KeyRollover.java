@@ -22,8 +22,8 @@ public record KeyRollover(int schema, String version, long sequence, String mani
     /** @deprecated renamed {@link #SCHEMA_VERSION} (SonarQube S1845); removed in the version after 0.7.2. */
     @Deprecated(forRemoval = true)
     public static final int SCHEMA = SCHEMA_VERSION;
-    /** Maximum overlap accepted between the announcement and the end of the old key. */
-    public static final java.time.Duration MAX_OVERLAP = java.time.Duration.ofDays(400);
+    /** Maximum overlap accepted between the announcement and the end of the old key: both keys stay trusted 30 days (decision of the user, 2026-10-29). */
+    public static final java.time.Duration MAX_OVERLAP = java.time.Duration.ofDays(30);
     public static final int MAX_BYTES = 4096;
     static final Pattern B64 = Pattern.compile("[A-Za-z0-9+/]{40,120}={0,2}");
     static final Pattern SHA = Pattern.compile("[0-9a-f]{64}");

@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 /** Publication key rotation: rules of {@link TrustedKeys}, format of {@link KeyRollover}, compatibility with a 0.1.0-style manifest. */
 class KeyRotationTest {
     static final Instant NOW = Instant.parse("2026-10-01T00:00:00Z");
-    static final Instant RETIRE = NOW.plusSeconds(86400L * 90);
+    static final Instant RETIRE = NOW.plusSeconds(86400L * 30);
 
     static KeyPair gen() throws Exception {
         return KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
