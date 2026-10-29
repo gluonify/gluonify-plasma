@@ -514,4 +514,35 @@ class CliGapsTest {
             System.setProperty("os.name", saved);
         }
     }
+
+    // --- interruption: the thread is interrupted while it waits on the network or on the browser ---
+
+    @Test
+    void aLoginInterruptedBeforeTheDiscoveryStopsAndKeepsTheFlag() {
+        Thread.currentThread().interrupt();
+        final int code = login();
+        assertTrue(Thread.interrupted(), "the interrupt flag is restored for the caller");
+        assertEquals(1, code);
+        assertTrue(err().contains("the login was interrupted"), err());
+    }
+
+    @Test
+    void aLoginInterruptedWhileWaitingForTheBrowserStops() {
+        final int code = run(uri -> Thread.currentThread().interrupt(), "login", "test.lan", "--discovery", cluster.discoveryUrl().toString(), "--timeout", "20");
+        Thread.interrupted(); // the callback server's shutdown may have consumed the flag already: cleared for the next tests
+        assertEquals(1, code);
+        assertTrue(err().contains("the login was interrupted"), err());
+    }
+
+    @Test
+    void aLoginInterruptedBeforeTheCodeExchangeStops() {
+        final int code = run(uri -> {
+            get(uri); // the browser answers first: the code is there, then the thread is interrupted before the exchange
+            Thread.currentThread().interrupt();
+        }, "login", "test.lan", "--discovery", cluster.discoveryUrl().toString(), "--timeout", "20");
+        Thread.interrupted(); // the callback server's shutdown may have consumed the flag already: cleared for the next tests
+        assertEquals(1, code);
+        assertTrue(err().contains("the login was interrupted"), err());
+    }
+
 }
