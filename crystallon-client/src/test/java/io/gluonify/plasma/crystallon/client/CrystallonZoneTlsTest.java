@@ -81,7 +81,7 @@ class CrystallonZoneTlsTest {
     }
 
     @Test
-    void theZoneAuthorityOfTheEndpointIsTrusted() throws Exception {
+    void theZoneAuthorityOfTheEndpointIsTrusted() {
 
         final CrystallonClient client = CrystallonClient.builder().endpoint(endpoint(pem)).build();
         assertArrayEquals(PDF, client.byId("t").render(Map.of()).bytes());
@@ -91,7 +91,9 @@ class CrystallonZoneTlsTest {
     void withoutTheZoneAuthorityTheCertificateIsRefused() {
 
         final CrystallonClient client = CrystallonClient.builder().endpoint(endpoint(null)).build();
-        final CrystallonException e = assertThrows(CrystallonException.class, () -> client.byId("t").render(Map.of()));
+        final TemplateRef template = client.byId("t");
+        final Map<String, Object> data = Map.of();
+        final CrystallonException e = assertThrows(CrystallonException.class, () -> template.render(data));
         assertEquals(0, e.status(), "a transport failure, not an HTTP status: " + e.getMessage());
     }
 
@@ -99,7 +101,9 @@ class CrystallonZoneTlsTest {
     void anUnreadableZoneAuthorityIsExplainedWhenTheClientIsBuilt() {
 
         final Path absent = dir.resolve("absent.pem");
-        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> CrystallonClient.builder().endpoint(endpoint(absent)));
+        final CrystallonClient.Builder builder = CrystallonClient.builder();
+        final Endpoint endpoint = endpoint(absent);
+        final GluonifyServicesException e = assertThrows(GluonifyServicesException.class, () -> builder.endpoint(endpoint));
         assertTrue(e.getMessage().contains("fix caFile of zone gluonify.lan"), e.getMessage());
     }
 
