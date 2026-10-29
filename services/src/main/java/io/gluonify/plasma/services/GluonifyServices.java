@@ -265,7 +265,7 @@ public final class GluonifyServices {
         final String z = zone.name();
         final Path ca = zone.caFile();
         final Supplier<String> tokens = () -> DeveloperTokens.accessToken(h, z, () -> http(ca), clock);
-        return new Endpoint(s, svc.url(), tokens, Endpoint.Source.DEVELOPER, svc.audience(), z);
+        return new Endpoint(s, svc.url(), tokens, Endpoint.Source.DEVELOPER, svc.audience(), z, ca);
     }
 
     private Optional<DeveloperConfig.Zone> zone(final DeveloperConfig config) {

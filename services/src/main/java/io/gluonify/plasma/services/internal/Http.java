@@ -67,7 +67,15 @@ public final class Http {
         return s.substring(0, end);
     }
 
-    static SSLContext sslContext(final Path caFile) {
+    /**
+     * A TLS context that trusts the JDK's authorities and, in addition, those of {@code caFile} (PEM): the server certificate is checked
+     * against the system first, then against the file; never a context that trusts everything.
+     *
+     * @param caFile PEM file of one or more certificate authorities
+     * @return The context
+     * @throws IllegalArgumentException If the file cannot be read or holds no certificate
+     */
+    public static SSLContext sslContext(final Path caFile) {
         try {
             final List<X509Certificate> extra = new ArrayList<>();
             try (InputStream in = Files.newInputStream(caFile)) {

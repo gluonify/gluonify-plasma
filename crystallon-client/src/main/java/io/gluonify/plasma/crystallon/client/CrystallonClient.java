@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.UnaryOperator;
+import javax.net.ssl.SSLContext;
 
 /**
  * Crystallon client for applications: renders to PDF (or validates) a template stored in Crystallon, designated by its identifier or its
@@ -51,6 +52,7 @@ public final class CrystallonClient {
     private final PayloadCodec json;
     private final long maxPdfBytes;
     private final HttpClient configuredHttp;
+    private final SSLContext sslContext;
     private final Object httpLock = new Object();
     private final AtomicReference<HttpClient> http = new AtomicReference<>();
 
@@ -61,6 +63,7 @@ public final class CrystallonClient {
         this.json = b.json != null ? b.json : PayloadCodec.detect();
         this.maxPdfBytes = b.maxPdfBytes;
         this.configuredHttp = b.httpClient;
+        this.sslContext = b.sslContext;
     }
 
     public static Builder builder() {
@@ -312,6 +315,15 @@ public final class CrystallonClient {
         return s.substring(0, end);
     }
 
+    // the zone's TLS context when the endpoint carries one (development cluster signed by a local authority), the JDK's otherwise
+    private HttpClient newHttp(final Duration connect) {
+        final HttpClient.Builder b = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(connect);
+        if (sslContext != null) {
+            b.sslContext(sslContext);
+        }
+        return b.build();
+    }
+
     @SuppressWarnings("PMD.CloseResource") // the client is created once and shared for the client's lifetime; not AutoCloseable on the Java 17 target
     private HttpClient http() {
         HttpClient h = http.get();
@@ -320,7 +332,7 @@ public final class CrystallonClient {
                 h = http.get();
                 if (h == null) {
                     final Duration connect = timeout.compareTo(Duration.ofSeconds(10)) < 0 ? timeout : Duration.ofSeconds(10);
-                    h = configuredHttp != null ? configuredHttp : HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(connect).build();
+                    h = configuredHttp != null ? configuredHttp : newHttp(connect);
                     http.set(h);
                 }
             }
@@ -360,6 +372,7 @@ public final class CrystallonClient {
         private Duration timeout = DEFAULT_TIMEOUT;
         private PayloadCodec json;
         private HttpClient httpClient;
+        private SSLContext sslContext;
         private long maxPdfBytes = DEFAULT_MAX_PDF_BYTES;
 
         private Builder() {
@@ -385,11 +398,13 @@ public final class CrystallonClient {
 
         /**
          * The address and token source of a service resolved by {@link GluonifyServices} ({@code GluonifyServices.endpoint("crystallon")}).
-         * A later call to {@link #baseUrl(String)} or {@link #tokens(CrystallonTokens)} replaces the corresponding value.
+         * The endpoint's TLS context ({@link Endpoint#sslContext()}: the zone's authority on top of the JDK's) is used unless {@link #httpClient(HttpClient)}
+         * is given. A later call to {@link #baseUrl(String)} or {@link #tokens(CrystallonTokens)} replaces the corresponding value.
          */
         public Builder endpoint(final Endpoint endpoint) {
             Objects.requireNonNull(endpoint, "endpoint");
             baseUrl(endpoint.url());
+            sslContext = endpoint.sslContext().orElse(null);
             return tokens(CrystallonTokens.of(endpoint));
         }
 
