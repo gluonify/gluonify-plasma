@@ -24,6 +24,7 @@
     <module>crystallon-client</module>
     <module>testing</module>
     <module>quarkus</module>
+    <module>logging</module>
     <module>mcp</module>
     <module>cli</module>
   </modules>
@@ -135,6 +136,11 @@
       <dependency>
         <groupId>io.gluonify.plasma</groupId>
         <artifactId>gluonify-plasma-quarkus</artifactId>
+        <version>${gluonify.plasma.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.gluonify.plasma</groupId>
+        <artifactId>gluonify-plasma-logging</artifactId>
         <version>${gluonify.plasma.version}</version>
       </dependency>
       <dependency>

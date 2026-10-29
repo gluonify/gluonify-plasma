@@ -10,6 +10,7 @@ Maven parent POM of the Gluonify components (`io.gluonify.plasma:gluonify-plasma
 | `gluonify-plasma-crystallon-client` (`crystallon-client/`) | HTTP client of gluonify-crystallon: render a template to PDF by name or identifier, or a template sent with the request (`inline`); `CrystallonClient.create()` without configuration; no CDI, Jackson 2 or 3 detected at run time; [README](crystallon-client/README.md) | 17 |
 | `gluonify-plasma-testing` (`testing/`) | `GluonifyTestServices`: in-memory fake Crystallon for application tests; [README](testing/README.md) | 17 |
 | `gluonify-plasma-quarkus` (`quarkus/`) | `@Reserve` CDI producers (`CrystallonClient`): nothing to write in a Quarkus application; [README](quarkus/README.md) | 21 |
+| `gluonify-plasma-logging` (`logging/`) | **internal, not published**: `@LoggingFilter` `gluonify-jws-redaction` (`JwsRedactionFilter`) that replaces anything shaped like a JWT/JWS (`eyJ…`, bounded expression) in the formatted message of every record with `<redacted JWS>`, never drops a record; on by default on the console, file and syslog handlers of a service that depends on it (its `META-INF/microprofile-config.properties`, ordinal 100). Defence in depth: the services keep `io.quarkus.oidc.runtime.OidcProvider` at ERROR as well | 25 |
 | `gluonify-plasma-mcp` (`mcp/`) | **MCP tools of a Quarkus application** (`@McpTool`, `McpToolbox`, `POST /mcp` relayed by Prism; marker `META-INF/gluonify/mcp` read by Bup); [README](mcp/README.md) | 21 |
 | `gluonify-plasma-build-rules` (`build-rules/`) | the PMD ruleset checked by every Gluonify build (`gluonify/pmd/ruleset.xml`) and `quality_ratchet.py` (coverage and baseline ratchets): see [Quality gates](#quality-gates) | — |
 | `gluonify-plasma-cli` (`cli/`) | the `gluonify` command (executable jar): `login <zone>` in the browser (PKCE), `logout`, `status`, `token <service>`; [README](cli/README.md) | 17 |
@@ -71,6 +72,7 @@ An application no longer writes `uses` by hand for the services it reaches throu
 | `gluonify-plasma-fermion-client` | `fermion` | Fermion WebSocket client |
 | `gluonify-plasma-quarkus` | none | its producers go through `crystallon-client`, which it brings in: the marker comes from that jar |
 | `gluonify-plasma-services` | none | generic resolution, reaches no service by itself |
+| `gluonify-plasma-logging` | none | a log filter, reaches no service |
 | `gluonify-plasma-testing` | **none, never** | test dependency: a service is never inferred from tests (and Bup only reads the runtime scope) |
 | `gluonify-plasma-sdk`, `gluonify-plasma-cli` | none | JSON contracts; developer workstation tool |
 | `gluonify-plasma-mcp` | none in `services/`; **`META-INF/gluonify/mcp`** | not a service: the capability "serves MCP tools", read by Bup to set `mcp: true` (never a `uses` entry), see below |
