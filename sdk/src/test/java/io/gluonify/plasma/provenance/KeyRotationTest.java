@@ -69,7 +69,8 @@ class KeyRotationTest {
 
         KeyPair next = pair();
         String token = KeyRotation.sign(rotation(next), pair().getPrivate(), next.getPrivate());
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> KeyRotation.verify(token, pair().getPublic()));
+        java.security.PublicKey stranger = pair().getPublic();
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> KeyRotation.verify(token, stranger));
         assertTrue(e.getMessage().contains("old key"));
     }
 
@@ -86,7 +87,8 @@ class KeyRotationTest {
         other.update(r.canonicalBytes());
         String forged = good.substring(0, good.lastIndexOf('.') + 1) + b64(other.sign());
         assertFalse(forged.equals(good));
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> KeyRotation.verify(forged, old.getPublic()));
+        java.security.PublicKey oldPublic = old.getPublic();
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> KeyRotation.verify(forged, oldPublic));
         assertTrue(e.getMessage().contains("new key"));
     }
 
@@ -95,10 +97,11 @@ class KeyRotationTest {
 
         String key = Provenance.publicKeyBase64(pair().getPublic());
         String base = "gluonify-key-rotation 1\nkind bup\nold bup-old\nnew bup-new\nnew-key " + key + "\nsigned-at 2026-10-29T12:00:00Z\n";
-        assertThrows(IllegalArgumentException.class, () -> KeyRotation.parse((base + "retire-old-after 2027-10-29T12:00:00Z\n").getBytes(StandardCharsets.UTF_8)));
-        assertThrows(IllegalArgumentException.class, () -> KeyRotation.parse((base + "retire-old-after 2026-11-28T12:00:00Z").getBytes(StandardCharsets.UTF_8)));
-        assertThrows(IllegalArgumentException.class, () -> KeyRotation.parse(base.replace("kind bup", "kind  bup").getBytes(StandardCharsets.UTF_8)));
-        assertThrows(IllegalArgumentException.class, () -> KeyRotation.parse(base.replace("signed-at 2026", "signed-at x2026").getBytes(StandardCharsets.UTF_8)));
+        for (String bad : new String[] {base + "retire-old-after 2027-10-29T12:00:00Z\n", base + "retire-old-after 2026-11-28T12:00:00Z",
+                base.replace("kind bup", "kind  bup"), base.replace("signed-at 2026", "signed-at x2026")}) {
+            byte[] bytes = bad.getBytes(StandardCharsets.UTF_8);
+            assertThrows(IllegalArgumentException.class, () -> KeyRotation.parse(bytes), bad);
+        }
         assertThrows(IllegalArgumentException.class, () -> KeyRotation.parse(new byte[0]));
         assertThrows(IllegalArgumentException.class, () -> KeyRotation.parse(null));
     }
@@ -125,8 +128,10 @@ class KeyRotationTest {
         assertFalse(KeyRotation.wellFormed("abc"));
         assertNull(KeyRotation.claimedOldKeyId("abc"));
         assertNull(KeyRotation.claimedOldKeyId(b64("not a rotation".getBytes(StandardCharsets.UTF_8)) + "." + sig + "." + sig));
-        assertThrows(IllegalArgumentException.class, () -> KeyRotation.verify("abc", old.getPublic()));
-        assertThrows(IllegalArgumentException.class, () -> KeyRotation.verify("a".repeat(9) + "." + sig + "." + sig, old.getPublic()));
+        java.security.PublicKey oldPublic = old.getPublic();
+        String shortStatement = "a".repeat(9) + "." + sig + "." + sig;
+        assertThrows(IllegalArgumentException.class, () -> KeyRotation.verify("abc", oldPublic));
+        assertThrows(IllegalArgumentException.class, () -> KeyRotation.verify(shortStatement, oldPublic));
     }
 
     @Test

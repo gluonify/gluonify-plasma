@@ -233,7 +233,7 @@ public final class Provenance {
         private final byte[] seed;
 
         SeedRandom(final byte[] seed) {
-            super(new byte[0]);
+            super();
             this.seed = seed;
         }
 
