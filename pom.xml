@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.gluonify.plasma</groupId>
   <artifactId>gluonify-plasma</artifactId>
-  <version>0.2.0</version>
+  <version>0.3.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Gluonify Plasma (parent)</name>
   <description>Parent POM of the Gluonify components: Quarkus platform, versions, and the shared SDK (gluonify-plasma-sdk).</description>
@@ -45,7 +45,7 @@
     <!-- Version of the plasma artifacts this parent manages, kept equal to this POM's version (bin/publish-sdk.sh of gluonify-chamber sets both).
          A literal and not ${project.version}: Maven interpolates an inherited dependencyManagement in the CHILD's context, so a customer
          project with the parent 0.7.3 asked for gluonify-plasma-sdk at its own version (gluonify-probe, quark, 2026-10-23). -->
-    <gluonify.plasma.version>0.2.0</gluonify.plasma.version>
+    <gluonify.plasma.version>0.3.0-SNAPSHOT</gluonify.plasma.version>
     <!-- Version of gluonify-plasma-build-rules (the PMD ruleset). -->
     <gluonify.build-rules.version>${gluonify.plasma.version}</gluonify.build-rules.version>
     <!-- Coverage ratchet (JaCoCo, whole module): each repository sets its current level rounded down, raises it with its tests, never lowers it. -->
