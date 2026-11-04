@@ -179,11 +179,28 @@ public class ConsoleIndex {
     static Page load(final Supplier<InputStream> source) {
 
         try (InputStream in = source.get()) {
-            return in == null ? null : split(new String(in.readAllBytes(), StandardCharsets.UTF_8));
+            if (in == null) return null;
+            final Page p = split(new String(in.readAllBytes(), StandardCharsets.UTF_8));
+            if (p == null) LOG.warnf("%s has no <head>: the console base is left to the browser", INDEX);
+            return p;
         } catch (final IOException e) {
             LOG.warnf(e, "%s cannot be read: the console base is left to the browser", INDEX);
             return null;
         }
+    }
+
+    /**
+     * A page with the base of a request: for an application that serves the console's page itself on its own routes (a 404 fallback of the REST layer), the same
+     * {@code <base href>} as the one this filter writes for {@code /}.
+     *
+     * @param html the page as built
+     * @param forwardedPrefix the {@code X-Forwarded-Prefix} header of the request, or null
+     * @return the page with its base written after {@code <head>}; the page as it is when it has no head
+     */
+    public static String withBase(final String html, final String forwardedPrefix) {
+
+        final Page p = split(html);
+        return p == null ? html : p.with(base(forwardedPrefix));
     }
 
     /**
@@ -195,10 +212,7 @@ public class ConsoleIndex {
     static Page split(final String html) {
 
         final int head = html.indexOf(HEAD);
-        if (head < 0) {
-            LOG.warnf("%s has no <head>: the console base is left to the browser", INDEX);
-            return null;
-        }
+        if (head < 0) return null;
         final int at = head + HEAD.length();
         return new Page(html.substring(0, at), html.substring(at));
     }

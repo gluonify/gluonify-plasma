@@ -24,6 +24,9 @@ class ConsoleIndexPlainTest {
         assertNull(ConsoleIndex.split("<html><body>no head</body></html>"));
         final ConsoleIndex.Page page = ConsoleIndex.split("<html><head><title>x</title></head></html>");
         assertEquals("<html><head><base href=\"/top/\"><title>x</title></head></html>", page.with("/top/"));
+        assertEquals("<html><head><base href=\"/top/\"><title>x</title></head></html>", ConsoleIndex.withBase("<html><head><title>x</title></head></html>", "/top"));
+        assertEquals("<html><head><base href=\"/\"><title>x</title></head></html>", ConsoleIndex.withBase("<html><head><title>x</title></head></html>", "https://evil/"));
+        assertEquals("<html><body>no head</body></html>", ConsoleIndex.withBase("<html><body>no head</body></html>", "/top"));
     }
 
     @Test
@@ -37,6 +40,7 @@ class ConsoleIndexPlainTest {
             }
         }));
         assertEquals("x", ConsoleIndex.load(() -> new java.io.ByteArrayInputStream("<head>x".getBytes())).tail());
+        assertNull(ConsoleIndex.load(() -> new java.io.ByteArrayInputStream("no head".getBytes())));
     }
 
     @Test
