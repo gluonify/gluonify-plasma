@@ -22,6 +22,26 @@ Maven parent POM of the Gluonify components (`io.gluonify.plasma:gluonify-plasma
 mvn install      # installs the parent, the SDK and the clients into ~/.m2: prerequisite of gluonify-higgs, -strange, -rup
 ```
 
+## Native toolchain (two build profiles, decision of the user, 2026-11-05)
+
+Every component is a GraalVM native executable; the collector and its heap policy are chosen by **profiles of this parent**, not by each `Dockerfile.build`
+(the Dockerfiles only take the builder image and the toolchain as arguments: `--build-arg NATIVE_BUILDER_IMAGE=<image> --build-arg NATIVE_TOOLCHAIN=oracle|mandrel`,
+passed by `gluonify-chamber/bin/build-all.sh` and the laboratory worker `qw`; the pinned images live there). The repositories that do not inherit this POM copy the
+same profiles into their own (`calorimeter`, `gauge`, `prism`, `synchrotron`, `source`, `source-python-poc`, and `gdown`'s root POM without the heap policy, gDown
+having its own: `gluonify.gdown.native.gc-args`). A component on a **released** parent (`gluonify-probe` on 0.7.4) gets them with its next parent upgrade.
+
+| Property or profile | Effect |
+|---|---|
+| `-Dgluonify.native.toolchain=oracle` | **`gluonify-native-oracle`** (Linux x86_64): appends `--gc=G1,-R:MaxRAMPercentage=<gluonify.native.g1.max-ram-percentage>,-R:G1PeriodicGCInterval=<gluonify.native.g1.periodic-gc-interval>` to `quarkus.native.additional-build-args`; **`gluonify-native-oracle-arm64`** (aarch64): `--gc=serial` (G1 is Linux x86_64 only) |
+| `-Dgluonify.native.toolchain=mandrel` | **`gluonify-native-mandrel`**: `--gc=serial`, Mandrel's only collector |
+| `-Dgluonify.native.x86-level=v2\|v3` | **`gluonify-native-x86`** (amd64 natives): `-march=x86-64-<level>` after the component's `-march=compatibility` (the last wins) plus `-H:CPUFeatures=AES,CLMUL` (AES-NI and PCLMULQDQ, outside the x86-64 levels: without them the JDK's TLS runs AES-GCM in plain Java; required at v2 by the start-up check and Strange's `X86Level`) |
+| `-Dgluonify.native.extra.list=,<options>` | a build script's extra native-image options (PGO: `NATIVE_ARGS_<component>` of `build-all.sh`), comma-separated, **leading comma included** |
+| `gluonify.native.g1.max-ram-percentage` (`10`), `gluonify.native.g1.periodic-gc-interval` (`15000`) | the G1 heap policy: cap in percent of the RAM or cgroup limit (10 since 2026-11-05, decision of the user; GraalVM's default is 25), and a collection after 15 s without one (G1 keeps the heap it grew to; measured 2026-11-05 on the lab ingress: the periodic collection does not shrink the RSS, only the cap bounds it). Overridden at start by `-Xmx`, `-XX:MaxRAMPercentage=`, `-XX:G1PeriodicGCInterval=` |
+
+Each optional part of the list carries its own leading comma, so the composed `quarkus.native.additional-build-args-append` never has an empty element. Without
+`gluonify.native.toolchain` nothing is appended: a developer's `mvn -Pnative package` (Liberica NIK on macOS, GraalVM CE) and the customers' applications built by
+Bup (Mandrel, GFTC licence) are unchanged. Check a combination with `mvn -Pnative help:evaluate -Dexpression=quarkus.native.additional-build-args-append -DforceStdout -Dgluonify.native.toolchain=… [-Dos.arch=amd64]`.
+
 ## Quality gates
 
 Every repository that inherits this POM (and the ones that copy its configuration: gdown, calorimeter, synchrotron, source, gauge, sonar-rules, prism) fails `mvn verify` like a red test when its code breaks a rule or its coverage drops (decision of the user, 2026-10-19: 0 SonarQube issue, coverage above 95 %; rules in `gluonify-horizon/context/coding-standards.md`). The profile `gluonify-quality` (coverage) and the profile `gluonify-pmd` (PMD) are active in every module that has `src/main/java`, customer projects on this parent included. **PMD is on by default; `-Dgluonify.plasma.pmd.skip=true`** (command line or the project's `.mvn/maven.config`; not a POM `<properties>` entry, which Maven does not read for profile activation) turns the `gluonify-pmd` profile off, and then neither the plugin nor `gluonify-plasma-build-rules` is resolved (decision of the user, 2026-10-23: the customer chooses, on by default). The parent declares gluonify-sea (`https://images.gluonify.io/maven`, releases only) as a repository and a plugin repository, so that a customer project resolves the ruleset, a plugin dependency, as it resolved the parent:

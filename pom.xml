@@ -31,6 +31,14 @@
   </modules>
 
   <properties>
+    <!-- Native toolchain (gluonify-plasma README, "Native toolchain"): the G1 heap policy of the Oracle GraalVM builds on amd64, and the optional parts of the
+         native-image option list (each one carries its own leading comma, so the list never has an empty element): -Dgluonify.native.x86-level=v2|v3 fills
+         the first (profile gluonify-native-x86), a build script may set the second (-Dgluonify.native.extra.list=,<comma-separated options>). -->
+    <!-- 10 % of the RAM, not GraalVM's 25 % (decision of the user, 2026-11-05: the periodic collection gives the grown heap back to nobody, lab measurement; the cap is the only bound) -->
+    <gluonify.native.g1.max-ram-percentage>10</gluonify.native.g1.max-ram-percentage>
+    <gluonify.native.g1.periodic-gc-interval>15000</gluonify.native.g1.periodic-gc-interval>
+    <gluonify.native.march.list></gluonify.native.march.list>
+    <gluonify.native.extra.list></gluonify.native.extra.list>
     <!-- Default of -DskipTests, read by the coverage check (skipped when the tests are). -->
     <skipTests>false</skipTests>
     <maven.compiler.release>25</maven.compiler.release>
@@ -350,6 +358,70 @@
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <!-- Native toolchain (decision of the user, 2026-11-05: two build profiles on every artifact; gluonify-codex/plan.md, "Native toolchain"). Each component's
+         Dockerfile.build passes -Dgluonify.native.toolchain=oracle|mandrel (its NATIVE_TOOLCHAIN argument): the matching profile appends the collector to the
+         component's own quarkus.native.additional-build-args (the last -march wins, like the x86-64 level). Oracle GraalVM 25 uses G1 on Linux x86_64 only,
+         with an explicit heap policy; Mandrel 25 has only the serial collector. Without the property nothing is appended: a developer's `mvn -Pnative package`
+         (Liberica NIK, GraalVM CE) and the customers' applications built by Bup are unchanged. The conditions of one activation are all required (Maven 3.2.2+). -->
+    <profile>
+      <!-- Oracle GraalVM on Linux x86_64: the G1 collector and its heap policy (gluonify.native.g1.*) -->
+      <id>gluonify-native-oracle</id>
+      <activation>
+        <property>
+          <name>gluonify.native.toolchain</name>
+          <value>oracle</value>
+        </property>
+        <os>
+          <arch>amd64</arch>
+        </os>
+      </activation>
+      <properties>
+        <quarkus.native.additional-build-args-append>--gc=G1,-R:MaxRAMPercentage=${gluonify.native.g1.max-ram-percentage},-R:G1PeriodicGCInterval=${gluonify.native.g1.periodic-gc-interval}${gluonify.native.march.list}${gluonify.native.extra.list}</quarkus.native.additional-build-args-append>
+      </properties>
+    </profile>
+    <profile>
+      <!-- Oracle GraalVM on arm64: G1 is Linux x86_64 only -->
+      <id>gluonify-native-oracle-arm64</id>
+      <activation>
+        <property>
+          <name>gluonify.native.toolchain</name>
+          <value>oracle</value>
+        </property>
+        <os>
+          <arch>aarch64</arch>
+        </os>
+      </activation>
+      <properties>
+        <quarkus.native.additional-build-args-append>--gc=serial${gluonify.native.march.list}${gluonify.native.extra.list}</quarkus.native.additional-build-args-append>
+      </properties>
+    </profile>
+    <profile>
+      <!-- Mandrel: the serial collector, its only one -->
+      <id>gluonify-native-mandrel</id>
+      <activation>
+        <property>
+          <name>gluonify.native.toolchain</name>
+          <value>mandrel</value>
+        </property>
+      </activation>
+      <properties>
+        <quarkus.native.additional-build-args-append>--gc=serial${gluonify.native.march.list}${gluonify.native.extra.list}</quarkus.native.additional-build-args-append>
+      </properties>
+    </profile>
+    <profile>
+      <!-- amd64 natives: -march=x86-64-<level> after the pom's -march=compatibility (the last one wins), plus AES-NI and PCLMULQDQ, which no x86-64 level
+           includes: without them the JDK's TLS runs AES-GCM in plain Java (3x slower, ingress bench of 2026-10-29); the start-up check and Strange's X86Level
+           require them at v2 (the comma of the CPU features is escaped for Quarkus's list). -->
+      <id>gluonify-native-x86</id>
+      <activation>
+        <property>
+          <name>gluonify.native.x86-level</name>
+        </property>
+      </activation>
+      <properties>
+        <gluonify.native.march.list>,-march=x86-64-${gluonify.native.x86-level},-H:+UnlockExperimentalVMOptions,-H:CPUFeatures=AES\,CLMUL,-H:-UnlockExperimentalVMOptions</gluonify.native.march.list>
+      </properties>
     </profile>
   </profiles>
 </project>
