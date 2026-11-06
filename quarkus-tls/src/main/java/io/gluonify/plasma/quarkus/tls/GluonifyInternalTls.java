@@ -31,10 +31,27 @@ public class GluonifyInternalTls {
     @Inject
     TlsConfigurationRegistry registry;
 
-    /** Where the root comes from: the process environment; replaced by the tests. */
-    Supplier<Optional<X509TrustManager>> roots = GluonifyTls::trustManager;
+    private final Supplier<Optional<X509TrustManager>> roots;
 
     private boolean registered;
+
+    /**
+     * The configuration of the process environment's root.
+     */
+    public GluonifyInternalTls() {
+
+        this(GluonifyTls::trustManager);
+    }
+
+    /**
+     * The configuration of a given root.
+     *
+     * @param roots Where the root comes from
+     */
+    GluonifyInternalTls(final Supplier<Optional<X509TrustManager>> roots) {
+
+        this.roots = roots;
+    }
 
     void onStart(@Observes final StartupEvent event) {
 

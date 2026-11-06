@@ -53,12 +53,11 @@ class GluonifyInternalTlsTest {
     void aRootIsRegisteredOnce() {
 
         final List<String> names = new ArrayList<>();
-        final GluonifyInternalTls tls = new GluonifyInternalTls();
+        final GluonifyInternalTls tls = new GluonifyInternalTls(() -> Optional.of(MANAGER));
         tls.registry = (TlsConfigurationRegistry) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[] {TlsConfigurationRegistry.class}, (p, m, a) -> {
             names.add((String) a[0]);
             return null;
         });
-        tls.roots = () -> Optional.of(MANAGER);
         assertEquals(GluonifyInternalTls.CONFIGURATION, tls.name().orElseThrow());
         assertEquals(GluonifyInternalTls.CONFIGURATION, tls.name().orElseThrow());
         assertEquals(List.of(GluonifyInternalTls.CONFIGURATION), names);

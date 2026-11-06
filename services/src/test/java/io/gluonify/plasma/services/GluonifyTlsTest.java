@@ -66,7 +66,7 @@ class GluonifyTlsTest {
         assertTrue(GluonifyTls.caFile(junk).isPresent());
         assertTrue(GluonifyTls.trustManager(junk).isEmpty());
         assertSame(SSLContext.getDefault(), GluonifyTls.sslContext(junk));
-        assertTrue(GluonifyTls.builder(TIMEOUT, HttpClient.Redirect.NEVER, junk).build().sslContext() == SSLContext.getDefault());
+        assertSame(SSLContext.getDefault(), GluonifyTls.builder(TIMEOUT, HttpClient.Redirect.NEVER, junk).build().sslContext());
     }
 
     @Test
