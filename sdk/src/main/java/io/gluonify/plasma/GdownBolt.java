@@ -1,5 +1,6 @@
 package io.gluonify.plasma;
 
+import io.gluonify.plasma.services.GluonifyTls;
 import java.util.Set;
 
 /**
@@ -25,7 +26,7 @@ public final class GdownBolt {
     public static final String CA_FILE = CA_DIR + "/gluonify-internal-ca.pem";
 
     /** Variables set by the platform: never set by an application. */
-    public static final Set<String> RESERVED_ENV = Set.of(URL_ENV, CA_FILE_ENV);
+    public static final Set<String> RESERVED_ENV = Set.of(URL_ENV, CA_FILE_ENV, GluonifyTls.CA_FILE_ENV);
 
     /** True if the application uses gdown (mandatory or optional). */
     public static boolean usesGdown(final java.util.List<String> uses) {

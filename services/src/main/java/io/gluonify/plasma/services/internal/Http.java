@@ -77,6 +77,24 @@ public final class Http {
      */
     public static SSLContext sslContext(final Path caFile) {
         try {
+            final SSLContext ctx = SSLContext.getInstance("TLS");
+            ctx.init(null, new TrustManager[] {trustManager(caFile)}, null);
+            return ctx;
+        }
+        catch (final GeneralSecurityException e) {
+            throw new IllegalArgumentException("cannot read the certificate authority file " + caFile + " (" + e.getClass().getSimpleName() + ")", e);
+        }
+    }
+
+    /**
+     * A trust manager that accepts what the system accepts, or else the authorities of {@code caFile} (PEM); never one that accepts everything.
+     *
+     * @param caFile PEM file of one or more certificate authorities
+     * @return The trust manager
+     * @throws IllegalArgumentException If the file cannot be read or holds no certificate
+     */
+    public static X509TrustManager trustManager(final Path caFile) {
+        try {
             final List<X509Certificate> extra = new ArrayList<>();
             try (InputStream in = Files.newInputStream(caFile)) {
                 for (final Certificate c : CertificateFactory.getInstance("X.509").generateCertificates(in)) {
@@ -91,9 +109,7 @@ public final class Http {
             for (int k = 0; k < extra.size(); k++) {
                 ks.setCertificateEntry("gluonify-" + k, extra.get(k));
             }
-            final SSLContext ctx = SSLContext.getInstance("TLS");
-            ctx.init(null, new TrustManager[] {combined(trustManager(null), trustManager(ks))}, null);
-            return ctx;
+            return combined(trustManager((KeyStore) null), trustManager(ks));
         }
         catch (final IOException | GeneralSecurityException | RuntimeException e) {
             throw new IllegalArgumentException("cannot read the certificate authority file " + caFile + " (" + e.getClass().getSimpleName() + ")", e);

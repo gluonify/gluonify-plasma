@@ -18,11 +18,12 @@
 
   <modules>
     <module>build-rules</module>
-    <module>sdk</module>
     <module>services</module>
+    <module>sdk</module>
     <module>fermion-client</module>
     <module>crystallon-client</module>
     <module>testing</module>
+    <module>quarkus-tls</module>
     <module>quarkus</module>
     <module>console</module>
     <module>logging</module>
@@ -128,6 +129,11 @@
       <dependency>
         <groupId>io.gluonify.plasma</groupId>
         <artifactId>gluonify-plasma-testing</artifactId>
+        <version>${gluonify.plasma.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.gluonify.plasma</groupId>
+        <artifactId>gluonify-plasma-quarkus-tls</artifactId>
         <version>${gluonify.plasma.version}</version>
       </dependency>
       <dependency>

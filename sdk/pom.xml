@@ -16,6 +16,11 @@
     <maven.compiler.release>17</maven.compiler.release>
   </properties>
   <dependencies>
+    <!-- GluonifyTls: dependency-free jar, Java 17. -->
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-services</artifactId>
+    </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-annotations</artifactId>

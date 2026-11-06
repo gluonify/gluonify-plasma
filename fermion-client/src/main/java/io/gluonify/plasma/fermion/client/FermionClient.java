@@ -9,6 +9,7 @@ import io.quarkus.logging.Log;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
 import io.quarkus.websockets.next.WebSocketClientConnection;
+import io.gluonify.plasma.quarkus.tls.GluonifyInternalTls;
 import io.quarkus.websockets.next.WebSocketConnector;
 import io.vertx.core.buffer.Buffer;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -58,6 +59,9 @@ public class FermionClient {
      */
     @Inject
     Instance<WebSocketConnector<FermionClientEndpoint>> connectorFactory;
+
+    @Inject
+    GluonifyInternalTls internalTls;
 
     @Inject
     ObjectMapper mapper;
@@ -231,6 +235,9 @@ public class FermionClient {
             connectorsCreated.incrementAndGet();
             try {
                 connector.baseUri(url).pathParam("nodeId", identity.id());
+                if (url.startsWith("wss://")) {
+                    internalTls.name().ifPresent(connector::tlsConfigurationName);
+                }
                 final WebSocketClientConnection opened = connector.connect().await().atMost(CONNECT_TIMEOUT);
                 opened.sendTextAndAwait(mapper.writeValueAsString(new FermionMsg.Auth(token)));
                 opened.sendTextAndAwait(mapper.writeValueAsString(hello()));

@@ -30,6 +30,10 @@
       <artifactId>gluonify-plasma-crystallon-client</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-quarkus-tls</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-arc</artifactId>
     </dependency>

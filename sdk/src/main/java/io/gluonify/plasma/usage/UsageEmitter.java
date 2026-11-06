@@ -1,5 +1,6 @@
 package io.gluonify.plasma.usage;
 
+import io.gluonify.plasma.services.GluonifyTls;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -155,7 +156,7 @@ public final class UsageEmitter {
 
             @Override
             public synchronized int post(final String body) throws IOException, InterruptedException {
-                if (client == null) client = HttpClient.newBuilder().connectTimeout(timeout).build();
+                if (client == null) client = GluonifyTls.builder(timeout, HttpClient.Redirect.NEVER).build();
                 HttpRequest.Builder r = HttpRequest.newBuilder(URI.create(target)).timeout(timeout).header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
                 if (tokenFile != null && Files.isReadable(tokenFile)) {

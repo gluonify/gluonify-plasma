@@ -240,7 +240,7 @@ public final class GluonifyServices {
         else {
             tokens = () -> null; // platform without service tokens: the service will answer 401 if it requires one
         }
-        return new Endpoint(s, uri(url, key), tokens, Endpoint.Source.PLATFORM, null, null);
+        return new Endpoint(s, uri(url, key), tokens, Endpoint.Source.PLATFORM, null, null, GluonifyTls.caFile(environment).orElse(null));
     }
 
     // ------------------------------------------------------------------------------------------------ 3. developer workstation

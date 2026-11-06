@@ -19,7 +19,8 @@ import javax.net.ssl.SSLContext;
  * @param audience audience expected by the service ({@code gluonify-crystallon}), if known; otherwise {@code null}
  * @param zone     zone of the cluster for {@link Source#DEVELOPER}, otherwise {@code null}
  * @param caFile   certificate authority of the zone accepted in addition to the JDK's ({@code caFile} of the zone in
- *                 {@code ~/.gluonify/config.json}: a development cluster signed by a local authority), otherwise {@code null}
+ *                 {@code ~/.gluonify/config.json}: a development cluster signed by a local authority) or the cluster's root on the platform
+ *                 ({@code GLUONIFY_CA_FILE}), otherwise {@code null}
  */
 public record Endpoint(String service, URI url, Supplier<String> tokens, Source source, String audience, String zone, Path caFile) {
 
@@ -60,7 +61,7 @@ public record Endpoint(String service, URI url, Supplier<String> tokens, Source 
      * every certificate.
      *
      * @return The context, or empty without {@code caFile}
-     * @throws GluonifyServicesException If {@code caFile} cannot be read or holds no certificate
+     * @throws GluonifyServicesException If the zone's {@code caFile} cannot be read or holds no certificate (on the platform: logged, empty)
      */
     public Optional<SSLContext> sslContext() {
         if (caFile == null) {
@@ -70,6 +71,10 @@ public record Endpoint(String service, URI url, Supplier<String> tokens, Source 
             return Optional.of(Http.sslContext(caFile));
         }
         catch (final IllegalArgumentException e) {
+            if (source == Source.PLATFORM) {
+                GluonifyTls.warnOnce(caFile, e);
+                return Optional.empty(); // the root of the platform is never fatal: the JDK's authorities apply
+            }
             throw new GluonifyServicesException(e.getMessage() + ": fix caFile of zone " + zone + " in ~/.gluonify/" + DeveloperConfig.FILE, e);
         }
     }
