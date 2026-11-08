@@ -101,7 +101,10 @@ class DomainRulesGapsTest {
         refuses(with("name", "ns1"), "reserved name");
         refuses(with("name", "Bad Name"), "invalid application name");
         refuses(with("name", null), "invalid application name");
-        assertEquals("nsa-long", spec(with("name", "nsa-long")).name(), "only the short ns names are reserved");
+        refuses(with("name", "ns42"), "reserved name");
+        for (String n : List.of("nsa-long", "ns", "nsab", "nsx1", "ns1a", "ns100")) {
+            assertEquals(n, spec(with("name", n)).name(), "only ns followed by one or two digits is reserved here");
+        }
         refuses(with("image", null), "image or artifacts required");
         refuses(with("image", " "), "image or artifacts required");
     }

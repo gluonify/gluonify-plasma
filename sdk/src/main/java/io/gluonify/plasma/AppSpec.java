@@ -237,11 +237,15 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
         if (memoryMb < 16) throw new IllegalArgumentException("minimum memory: 16 MB");
     }
 
+    /**
+     * A DNS label, neither {@code api} nor a short name server label ({@code ns1} to {@code ns99}). Only those are refused here, since every stored specification is
+     * checked again when it is read back; Higgs refuses the longer {@code ns<digits>} names for a new application only.
+     */
     private static void requireName(final String name) {
         if (name == null || !name.matches("[a-z0-9]([-a-z0-9]{0,40}[a-z0-9])?")) {
             throw new IllegalArgumentException("invalid application name (DNS label expected)");
         }
-        if (name.equals("api") || name.startsWith("ns") && name.length() <= 4) {
+        if (name.equals("api") || name.matches("ns\\d{1,2}")) {
             throw new IllegalArgumentException("reserved name");
         }
     }
