@@ -39,7 +39,18 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
                       @Schema(description = "Python application (Bup python framework, gluonify-codex/python.md § 3 bis): targeted python3 minor version, \"3.13\". "
                               + "The scheduler places it only on a node that advertises the same version (Msg.Host.pythonVersion). Written by Bup; absent: not a Python application.", example = "3.13") String pythonVersion,
                       @Schema(description = "true: the application exposes MCP tools on POST /mcp (SDK module gluonify-plasma-mcp or gluonify.fastapi.mcp, gluonify-codex/app-mcp.md): "
-                              + "Prism discovers and relays them to the organization's AI assistants; the public ingress never serves /mcp in PRD. Written by Bup from the SDK marker; absent or false: no MCP tools, Prism relays nothing.", example = "true") Boolean mcp) {
+                              + "Prism discovers and relays them to the organization's AI assistants; the public ingress never serves /mcp in PRD. Written by Bup from the SDK marker; absent or false: no MCP tools, Prism relays nothing.", example = "true") Boolean mcp,
+                      @Schema(description = "true: the application serves HTTPS on its port with a certificate of the cluster's internal authority (gluonify-codex/docs/internal-tls.md, stage 2): "
+                              + "the control-plane issues it, hands it over as GLUONIFY_TLS_CERTIFICATE_PEM / GLUONIFY_TLS_PRIVATE_KEY_PEM, probes and reaches the application over TLS and announces "
+                              + "https:// to its clients. Every platform component sets it; a customer application opts in (Bup sets it from the SDK marker). Absent or false: plain HTTP behind the ingress.", example = "true") Boolean tls) {
+    /**
+     * Compatibility: plain HTTP.
+     */
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas, final Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal, final java.util.List<Integer> ports, final String role, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks, final SleepSpec sleep, final String organization, final String provenance, final String artifactLevel, final String pythonVersion, final Boolean mcp) {
+
+        this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, mcp, null);
+    }
+
     /** Compatibility: no MCP tools. */
     public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas, final Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal, final java.util.List<Integer> ports, final String role, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks, final SleepSpec sleep, final String organization, final String provenance, final String artifactLevel, final String pythonVersion) {
         this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, null);
@@ -122,36 +133,57 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
 
     /** Copy of the specification attached to another organization (null: to none). */
     public AppSpec withOrganization(final String org) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, org, provenance, artifactLevel, pythonVersion, mcp);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, org, provenance, artifactLevel, pythonVersion, mcp, tls);
     }
 
     /** Copy with another quota per distributed file system (MB; null: none). Higgs writes the default quota of the organization's contract into it. */
     public AppSpec withDistributedQuotaMb(final Integer mb) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, mb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, mcp);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, mb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, mcp, tls);
     }
 
     /** Copy with another provenance token (null: none). */
     public AppSpec withProvenance(final String token) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, token, artifactLevel, pythonVersion, mcp);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, token, artifactLevel, pythonVersion, mcp, tls);
     }
 
     /** Copy with another executable level (null: v1). */
     public AppSpec withArtifactLevel(final String level) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, level, pythonVersion, mcp);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, level, pythonVersion, mcp, tls);
     }
 
     /** Copy with another Python version (null: not a Python application). */
     public AppSpec withPythonVersion(final String version) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, version, mcp);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, version, mcp, tls);
     }
 
     /** Copy with the MCP flag set or cleared (false or null: no MCP tools). */
     public AppSpec withMcp(final Boolean value) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, value);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, value, tls);
     }
 
     /** True if the application declares MCP tools ({@code mcp: true}): only then does Prism discover and relay them. */
     public boolean mcpEnabled() { return Boolean.TRUE.equals(mcp); }
+
+    /**
+     * Copy with the TLS flag set or cleared.
+     *
+     * @param value True: the application serves HTTPS with a certificate of the internal authority; false or null: plain HTTP
+     * @return The copy
+     */
+    public AppSpec withTls(final Boolean value) {
+
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, mcp, value);
+    }
+
+    /**
+     * Whether the application serves HTTPS with a certificate of the internal authority ({@code tls: true}).
+     *
+     * @return True when it does
+     */
+    public boolean tlsEnabled() {
+
+        return Boolean.TRUE.equals(tls);
+    }
 
     /** x86-64 level required on a node of architecture {@code arch}: that of {@link #artifactLevel} for amd64, otherwise 1 (no requirement). */
     public int requiredX86Level(final String arch) {
@@ -208,6 +240,7 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
         provenance = normalizedProvenance(provenance);
         artifactLevel = normalizedLevel(artifactLevel);
         pythonVersion = PythonVersions.normalize(pythonVersion);
+        tls = Boolean.TRUE.equals(tls) ? Boolean.TRUE : null; // false and absent are the same, as for mcp
         mcp = Boolean.TRUE.equals(mcp) ? Boolean.TRUE : null; // false and absent are the same: stable equality and JSON of the stored specification
         requireSizes(replicas, port, memoryMb);
     }
