@@ -34,12 +34,13 @@
   <properties>
     <!-- Native toolchain (gluonify-plasma README, "Native toolchain"): the G1 heap policy of the Oracle GraalVM builds on amd64, and the optional parts of the
          native-image option list (each one carries its own leading comma, so the list never has an empty element): -Dgluonify.native.x86-level=v2|v3 fills
-         the first (profile gluonify-native-x86), a build script may set the second (-Dgluonify.native.extra.list=,<comma-separated options>). -->
+         the first (profile gluonify-native-x86), a build script may set the second (-Dgluonify.native.extra.list=,<comma-separated options>). The empty default of
+         the second comes from the profile gluonify-native-extra-default, active only when the property is absent: the build scripts pass it in MAVEN_OPTS, a
+         JVM system property, which a property of the pom would override (Maven resolves pom properties before system properties; PGO trial on atom, 2026-11-08). -->
     <!-- 10 % of the RAM, not GraalVM's 25 % (decision of the user, 2026-11-05: the periodic collection gives the grown heap back to nobody, lab measurement; the cap is the only bound) -->
     <gluonify.native.g1.max-ram-percentage>10</gluonify.native.g1.max-ram-percentage>
     <gluonify.native.g1.periodic-gc-interval>15000</gluonify.native.g1.periodic-gc-interval>
     <gluonify.native.march.list></gluonify.native.march.list>
-    <gluonify.native.extra.list></gluonify.native.extra.list>
     <!-- Default of -DskipTests, read by the coverage check (skipped when the tests are). -->
     <skipTests>false</skipTests>
     <maven.compiler.release>25</maven.compiler.release>
@@ -370,6 +371,18 @@
          component's own quarkus.native.additional-build-args (the last -march wins, like the x86-64 level). Oracle GraalVM 25 uses G1 on Linux x86_64 only,
          with an explicit heap policy; Mandrel 25 has only the serial collector. Without the property nothing is appended: a developer's `mvn -Pnative package`
          (Liberica NIK, GraalVM CE) and the customers' applications built by Bup are unchanged. The conditions of one activation are all required (Maven 3.2.2+). -->
+    <profile>
+      <!-- empty extra native-image options unless a build script passes -Dgluonify.native.extra.list (see the properties above) -->
+      <id>gluonify-native-extra-default</id>
+      <activation>
+        <property>
+          <name>!gluonify.native.extra.list</name>
+        </property>
+      </activation>
+      <properties>
+        <gluonify.native.extra.list></gluonify.native.extra.list>
+      </properties>
+    </profile>
     <profile>
       <!-- Oracle GraalVM on Linux x86_64: the G1 collector and its heap policy (gluonify.native.g1.*) -->
       <id>gluonify-native-oracle</id>
