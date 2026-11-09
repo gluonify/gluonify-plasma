@@ -1,1 +1,2 @@
 io.gluonify.plasma.quarkus.tls.ServerTlsConfigSourceFactory
+io.gluonify.plasma.quarkus.tls.InternalRootConfigSourceFactory
