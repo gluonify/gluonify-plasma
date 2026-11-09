@@ -56,7 +56,7 @@ final class Properties {
             if (d.isNaN() || d.isInfinite()) {
                 throw new IllegalArgumentException(THE_PROPERTY_VALUE + d + " is no finite number");
             }
-            return new BigDecimal(d);
+            return BigDecimal.valueOf(d);
         }
         if (value instanceof Number n) {
             return BigDecimal.valueOf(n.longValue());

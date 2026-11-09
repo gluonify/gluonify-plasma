@@ -38,7 +38,8 @@ class OgmConvertersTest {
         assertNull(integers.toEntityAttribute(null));
         assertThrows(IllegalArgumentException.class, () -> integers.toEntityAttribute(2.5));
         assertThrows(IllegalArgumentException.class, () -> integers.toEntityAttribute("x"));
-        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> integers.toEntityAttribute(List.of(1)));
+        final List<Integer> list = List.of(1);
+        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> integers.toEntityAttribute(list));
         assertTrue(e.getMessage().contains("is no number"), e.getMessage());
     }
 

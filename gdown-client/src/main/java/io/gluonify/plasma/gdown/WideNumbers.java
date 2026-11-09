@@ -67,7 +67,7 @@ public final class WideNumbers {
             return BigInteger.valueOf(l);
         }
         if (o instanceof Double d) {
-            return exactInteger(new BigDecimal(d), value);
+            return exactInteger(BigDecimal.valueOf(d), value);
         }
         if (o instanceof String s) {
             return exactInteger(parse(s, value), value);
@@ -76,7 +76,7 @@ public final class WideNumbers {
     }
 
     /**
-     * The decimal a Bolt value holds: a Bolt integer, a float (exactly, as the binary fraction it is) or the decimal text gDown sends for a wide float.
+     * The decimal a Bolt value holds: a Bolt integer, a float (as its shortest decimal text, {@link BigDecimal#valueOf(double)}) or the decimal text gDown sends for a wide float.
      *
      * @param value The value, {@code null} or a null value for {@code null}
      * @return The decimal
@@ -95,7 +95,7 @@ public final class WideNumbers {
             if (d.isNaN() || d.isInfinite()) {
                 throw new IllegalArgumentException(THE_VALUE + d + " is no finite number: a BigDecimal cannot hold it");
             }
-            return new BigDecimal(d);
+            return BigDecimal.valueOf(d);
         }
         if (o instanceof String s) {
             return parse(s, value);

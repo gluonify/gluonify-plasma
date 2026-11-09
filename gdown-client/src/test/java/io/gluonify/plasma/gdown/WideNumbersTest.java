@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.junit.jupiter.api.Test;
+import org.neo4j.driver.Value;
 import org.neo4j.driver.Values;
 
 /** Wide numbers over Bolt: parameters as text or Bolt numbers, results read from every Bolt form, the CAST expression. */
@@ -41,11 +42,15 @@ class WideNumbersTest {
         assertEquals(WIDE, WideNumbers.integer(Values.value(" " + WIDE + " ")));
         assertEquals(BigInteger.valueOf(3), WideNumbers.integer(Values.value(3.0)), "a float with no fraction");
         assertNull(WideNumbers.integer(Values.NULL));
-        assertNull(WideNumbers.integer((org.neo4j.driver.Value) null));
-        assertThrows(IllegalArgumentException.class, () -> WideNumbers.integer(Values.value(2.5)));
-        assertThrows(IllegalArgumentException.class, () -> WideNumbers.integer(Values.value("1.5")));
-        assertThrows(IllegalArgumentException.class, () -> WideNumbers.integer(Values.value("x")));
-        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> WideNumbers.integer(Values.value(true)));
+        assertNull(WideNumbers.integer((Value) null));
+        final Value fraction = Values.value(2.5);
+        final Value fractionText = Values.value("1.5");
+        final Value word = Values.value("x");
+        final Value bool = Values.value(true);
+        assertThrows(IllegalArgumentException.class, () -> WideNumbers.integer(fraction));
+        assertThrows(IllegalArgumentException.class, () -> WideNumbers.integer(fractionText));
+        assertThrows(IllegalArgumentException.class, () -> WideNumbers.integer(word));
+        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> WideNumbers.integer(bool));
         assertTrue(e.getMessage().contains("BOOLEAN"), e.getMessage());
     }
 
@@ -54,13 +59,18 @@ class WideNumbersTest {
 
         assertEquals(BigDecimal.valueOf(7), WideNumbers.decimal(Values.value(7L)));
         assertEquals(new BigDecimal("0.5"), WideNumbers.decimal(Values.value(0.5)));
+        assertEquals(new BigDecimal("0.1"), WideNumbers.decimal(Values.value(0.1)), "a float as its shortest decimal text");
         assertEquals(new BigDecimal("0.1"), WideNumbers.decimal(Values.value("0.1")), "the text gDown sends for a FLOAT128");
         assertNull(WideNumbers.decimal(Values.NULL));
-        assertNull(WideNumbers.decimal((org.neo4j.driver.Value) null));
-        assertThrows(IllegalArgumentException.class, () -> WideNumbers.decimal(Values.value(Double.NaN)));
-        assertThrows(IllegalArgumentException.class, () -> WideNumbers.decimal(Values.value(Double.POSITIVE_INFINITY)));
-        assertThrows(IllegalArgumentException.class, () -> WideNumbers.decimal(Values.value("NaN")));
-        assertThrows(IllegalArgumentException.class, () -> WideNumbers.decimal(Values.value(java.util.List.of(1))));
+        assertNull(WideNumbers.decimal((Value) null));
+        final Value nan = Values.value(Double.NaN);
+        final Value infinity = Values.value(Double.POSITIVE_INFINITY);
+        final Value nanText = Values.value("NaN");
+        final Value list = Values.value(java.util.List.of(1));
+        assertThrows(IllegalArgumentException.class, () -> WideNumbers.decimal(nan));
+        assertThrows(IllegalArgumentException.class, () -> WideNumbers.decimal(infinity));
+        assertThrows(IllegalArgumentException.class, () -> WideNumbers.decimal(nanText));
+        assertThrows(IllegalArgumentException.class, () -> WideNumbers.decimal(list));
     }
 
     @Test
