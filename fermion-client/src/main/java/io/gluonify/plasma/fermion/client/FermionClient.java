@@ -81,11 +81,6 @@ public class FermionClient {
     }
 
     /**
-     * The fermion URL: {@code gluonify.fermion.client.url} if set, otherwise (if {@code discover}) the resolution by
-     * {@link GluonifyServices#optional(String)}, done once. A resolution failure, or a plaintext URL toward another host than the internal network
-     * ({@link FermionTransport}), is logged and leaves the client inactive.
-     */
-    /**
      * Whether the fermion address is encrypted, so that the connector must trust the platform's internal root: {@code wss://}, or the {@code https://} address the
      * platform names the service by (the connector speaks {@code wss} to it).
      *
@@ -96,6 +91,11 @@ public class FermionClient {
         return url.startsWith("wss://") || url.startsWith("https://");
     }
 
+    /**
+     * The fermion URL: {@code gluonify.fermion.client.url} if set, otherwise (if {@code discover}) the resolution by
+     * {@link GluonifyServices#optional(String)}, done once. A resolution failure, or a plaintext URL toward another host than the internal network
+     * ({@link FermionTransport}), is logged and leaves the client inactive.
+     */
     Optional<String> url() {
         Optional<String> u = resolvedUrl.get();
         if (u == null) {
