@@ -109,6 +109,14 @@ class FermionClientPlainGapsTest {
     }
 
     @Test
+    void theInternalRootIsTrustedForWssAndForTheHttpsAddressOfTheService() {
+        assertTrue(FermionClient.secureUrl("wss://fermion:8601/"));
+        assertTrue(FermionClient.secureUrl("https://127.0.0.1:31004"), "the platform names the service by its https address");
+        assertFalse(FermionClient.secureUrl("ws://localhost:1"));
+        assertFalse(FermionClient.secureUrl("http://10.0.0.5:8601"));
+    }
+
+    @Test
     void helloCarriesTheSelfUrlWithoutTrailingSlashes() {
         final FermionClient c = client(Map.of("url", Optional.of("ws://localhost:1"), "selfUrl", Optional.of("http://orders:8080//")));
         assertEquals("http://orders:8080/q/openapi", c.hello().openApiUrl());

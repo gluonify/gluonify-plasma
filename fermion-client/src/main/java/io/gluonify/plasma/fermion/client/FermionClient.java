@@ -85,6 +85,17 @@ public class FermionClient {
      * {@link GluonifyServices#optional(String)}, done once. A resolution failure, or a plaintext URL toward another host than the internal network
      * ({@link FermionTransport}), is logged and leaves the client inactive.
      */
+    /**
+     * Whether the fermion address is encrypted, so that the connector must trust the platform's internal root: {@code wss://}, or the {@code https://} address the
+     * platform names the service by (the connector speaks {@code wss} to it).
+     *
+     * @param url The fermion address
+     * @return True for wss and https
+     */
+    static boolean secureUrl(final String url) {
+        return url.startsWith("wss://") || url.startsWith("https://");
+    }
+
     Optional<String> url() {
         Optional<String> u = resolvedUrl.get();
         if (u == null) {
@@ -235,7 +246,7 @@ public class FermionClient {
             connectorsCreated.incrementAndGet();
             try {
                 connector.baseUri(url).pathParam("nodeId", identity.id());
-                if (url.startsWith("wss://")) {
+                if (secureUrl(url)) {
                     internalTls.name().ifPresent(connector::tlsConfigurationName);
                 }
                 final WebSocketClientConnection opened = connector.connect().await().atMost(CONNECT_TIMEOUT);
