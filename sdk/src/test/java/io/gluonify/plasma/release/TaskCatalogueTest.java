@@ -62,6 +62,19 @@ class TaskCatalogueTest {
         assertThrows(TaskCatalogue.Invalid.class, () -> TaskCatalogue.validate("install-higgs", h, B));
     }
 
+    @Test void raftTlsIsAnOptionalBoolean() {
+        var h = higgs();
+        h.put("raftTls", "true");
+        assertEquals("true", TaskCatalogue.validate("install-higgs", h, B).get("raftTls"));
+        for (String v : List.of("on", "yes", "TRUE", "true --x", "")) {
+            var bad = higgs();
+            bad.put("raftTls", v);
+            assertThrows(TaskCatalogue.Invalid.class, () -> TaskCatalogue.validate("install-higgs", bad, B), v);
+        }
+        var strange = new HashMap<>(Map.of("version", "1.2.3", "role", "worker", "raftTls", "true"));
+        assertThrows(TaskCatalogue.Invalid.class, () -> TaskCatalogue.validate("install-strange", strange, B)); // only a control-plane takes it
+    }
+
     @Test void maskedSecrets() {
         var m = TaskCatalogue.masked("install-higgs", higgs());
         assertEquals("***", m.get("seedToken"));

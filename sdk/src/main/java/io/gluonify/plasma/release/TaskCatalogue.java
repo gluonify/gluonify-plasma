@@ -73,7 +73,9 @@ public final class TaskCatalogue {
                 opt("address", ADDRESS), opt("wireguard", BOOL)), 900));
         t.put("install-higgs", new Type("install-higgs", boot, List.of(req(KEY_VERSION, VERSION), req("zone", HOST), req("publicIp", IPS), req("httpUrl", URL),
                 req("nodeId", NAME), req("advertise", HOST), req("seed", HOSTPORT), new Param("seedToken", TOKEN, true, true), opt("mode", CP_MODE),
-                opt("dnsMode", DNS_MODE), opt("acmeEmail", EMAIL), opt("wireguard", BOOL)), 900));
+                opt("dnsMode", DNS_MODE), opt("acmeEmail", EMAIL), opt("wireguard", BOOL),
+                // mutual TLS on the control-planes' Raft: the cluster's own setting, added by the control-plane at send time (every member has the same value)
+                opt("raftTls", BOOL)), 900));
         // the new key comes from the version's signed announcement (rollover.json), NEVER from a parameter: only the version to read and "finalize"
         t.put("rotate-release-key", new Type("rotate-release-key", both, List.of(req(KEY_VERSION, VERSION), opt("finalize", BOOL)), 120));
         t.put("update", new Type("update", agent, List.of(req(KEY_COMPONENT, COMPONENT), req(KEY_VERSION, VERSION)), 900));
