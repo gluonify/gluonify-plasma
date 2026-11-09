@@ -1,6 +1,6 @@
 # Gluonify Plasma — parent POM, SDK and clients
 
-Maven parent POM of the Gluonify components (`io.gluonify.plasma:gluonify-plasma`: Quarkus platform, versions) and shared libraries, eleven modules:
+Maven parent POM of the Gluonify components (`io.gluonify.plasma:gluonify-plasma`: Quarkus platform, versions) and shared libraries, twelve modules:
 
 | Module (`io.gluonify.plasma:…`) | Content | Java |
 |---|---|---|
@@ -8,6 +8,7 @@ Maven parent POM of the Gluonify components (`io.gluonify.plasma:gluonify-plasma
 | `gluonify-plasma-fermion-client` (`fermion-client/`) | WebSocket client of gluonify-fermion (Quarkus, CDI); commands run in parallel | 26 |
 | `gluonify-plasma-services` (`services/`) | **zero-configuration resolution** of a service (address and token): override, platform, developer workstation (zone discovery, token from `gluonify login`); no dependencies; [README](services/README.md) | 17 |
 | `gluonify-plasma-crystallon-client` (`crystallon-client/`) | HTTP client of gluonify-crystallon: render a template to PDF by name or identifier, or a template sent with the request (`inline`); `CrystallonClient.create()` without configuration; no CDI, Jackson 2 or 3 detected at run time; [README](crystallon-client/README.md) | 17 |
+| `gluonify-plasma-gdown` (`gdown-client/`) | gDown over Bolt: `GdownDriver.create()` (a Neo4j driver without configuration: the platform's Bolt address, the application's token as a bearer token re-read before it expires, the internal root trusted), `WideNumbers` (integers beyond 64 bits and `FLOAT128`/`FLOAT256` as `BigInteger`/`BigDecimal`, parameters as text with `CAST`), converters for Neo4j-OGM and Spring Data Neo4j; the Neo4j driver, OGM and SDN are never transitive; marker `gdown`; [README](gdown-client/README.md) | 17 |
 | `gluonify-plasma-testing` (`testing/`) | `GluonifyTestServices`: in-memory fake Crystallon for application tests; [README](testing/README.md) | 17 |
 | `gluonify-plasma-quarkus-tls` (`quarkus-tls/`) | `GluonifyInternalTls`: the Quarkus TLS configuration `gluonify-internal` (system roots plus the cluster's root), registered only when `GLUONIFY_CA_FILE` is usable; `name()` gives it to a client. `GluonifyServerTls`: the port over TLS from the platform's pair. `InternalRootConfigSourceFactory`: `gluonify-root` for the OIDC tenants towards Charm. Marker `META-INF/gluonify/tls` | 21 |
 | `gluonify-plasma-quarkus` (`quarkus/`) | `@Reserve` CDI producers (`CrystallonClient`): nothing to write in a Quarkus application; [README](quarkus/README.md) | 21 |
@@ -17,7 +18,7 @@ Maven parent POM of the Gluonify components (`io.gluonify.plasma:gluonify-plasma
 | `gluonify-plasma-build-rules` (`build-rules/`) | the PMD ruleset checked by every Gluonify build (`gluonify/pmd/ruleset.xml`) and `quality_ratchet.py` (coverage and baseline ratchets): see [Quality gates](#quality-gates) | — |
 | `gluonify-plasma-cli` (`cli/`) | the `gluonify` command (executable jar): `login <zone>` in the browser (PKCE), `logout`, `status`, `token <service>`; [README](cli/README.md) | 17 |
 
-`sdk`, `services`, `crystallon-client`, `testing`, `quarkus-tls`, `quarkus`, `mcp` and `cli` are the modules published for customer applications (Maven repository `https://images.gluonify.io/maven`): they compile for Java 17 (`maven.compiler.release` 17; `quarkus-tls`, `quarkus` and `mcp`: 21, the minimum of Quarkus 4), the parent and `fermion-client` for Java 25. The repository's own version is released like gDown's (decision of the user, 2026-10-24): the poms move to a fixed version (`0.1.0`) in a commit tagged `v0.1.0`, the components that inherit this parent move their `<parent>` to it, then the repository goes to the next `-SNAPSHOT`; the version published on sea (it follows the platform version) is still set on a copy by `gluonify-chamber/bin/publish-sdk.sh`. Published versions: **0.7.4** (published on sea on 2026-10-23 at ~20:50 from a3c20e6: parent, build-rules, sdk, crystallon-client, services, quarkus, testing, cli; verified with gluonify-probe from an empty local repository, PMD on and off) is the first parent usable by a customer project; up to 0.7.3 its `dependencyManagement` gave the SDK `${project.version}`, read as the customer's own version, and `gluonify-plasma-build-rules` was not published. The parent manages the plasma artifacts (and `gluonify-plasma-build-rules`, the PMD ruleset of its quality profile, published with it) at the property `gluonify.plasma.version`, kept equal to the POM's version and set with it by `gluonify-chamber/bin/publish-sdk.sh`: never `${project.version}`, which Maven reads in the customer project's context (the parent 0.7.3 managed the sdk at the customer's own version, 2026-10-23).
+`sdk`, `services`, `crystallon-client`, `gdown-client`, `testing`, `quarkus-tls`, `quarkus`, `mcp` and `cli` are the modules published for customer applications (Maven repository `https://images.gluonify.io/maven`): they compile for Java 17 (`maven.compiler.release` 17; `quarkus-tls`, `quarkus` and `mcp`: 21, the minimum of Quarkus 4), the parent and `fermion-client` for Java 25. The repository's own version is released like gDown's (decision of the user, 2026-10-24): the poms move to a fixed version (`0.1.0`) in a commit tagged `v0.1.0`, the components that inherit this parent move their `<parent>` to it, then the repository goes to the next `-SNAPSHOT`; the version published on sea (it follows the platform version) is still set on a copy by `gluonify-chamber/bin/publish-sdk.sh`. Published versions: **0.7.4** (published on sea on 2026-10-23 at ~20:50 from a3c20e6: parent, build-rules, sdk, crystallon-client, services, quarkus, testing, cli; verified with gluonify-probe from an empty local repository, PMD on and off) is the first parent usable by a customer project; up to 0.7.3 its `dependencyManagement` gave the SDK `${project.version}`, read as the customer's own version, and `gluonify-plasma-build-rules` was not published. The parent manages the plasma artifacts (and `gluonify-plasma-build-rules`, the PMD ruleset of its quality profile, published with it) at the property `gluonify.plasma.version`, kept equal to the POM's version and set with it by `gluonify-chamber/bin/publish-sdk.sh`: never `${project.version}`, which Maven reads in the customer project's context (the parent 0.7.3 managed the sdk at the customer's own version, 2026-10-23).
 
 ```
 mvn install      # installs the parent, the SDK and the clients into ~/.m2: prerequisite of gluonify-higgs, -strange, -rup
@@ -86,7 +87,7 @@ An application writes **neither URL nor token** to reach a platform service: `Cr
 
 `io.gluonify.plasma.GdownBolt`: port `7687`, key `gdown:bolt` of the desired-state service table, variables `GLUONIFY_GDOWN_BOLT_URL` and `GLUONIFY_GDOWN_CA_FILE`
 (reserved: `AppSpec` rejects them in `env` and `generated`), public secret `GLUONIFY_INTERNAL_CA_CERT`, file `/run/gluonify-ca/gluonify-internal-ca.pem`. Design:
-`gluonify-gdown/paas.md` §9. The Java SDK injects nothing more: an application reads these variables (Neo4j driver, Neo4j-OGM, Spring Data Neo4j).
+`gluonify-gdown/paas.md` §9. The Java SDK injects nothing: an application reads these variables (Neo4j driver, Neo4j-OGM, Spring Data Neo4j), or takes the optional module `gluonify-plasma-gdown` (2026-11-09), whose `GdownDriver.create()` reads them and the resolution of `gluonify-plasma-services` for the token, and whose `WideNumbers` and converters carry gDown's wide integers and floats as `BigInteger`/`BigDecimal` (over Bolt they are decimal text).
 
 ## Service markers: `uses` inferred at build (since 2026-10-11)
 
@@ -96,6 +97,7 @@ An application no longer writes `uses` by hand for the services it reaches throu
 |---|---|---|
 | `gluonify-plasma-crystallon-client` | `crystallon` | Crystallon HTTP client |
 | `gluonify-plasma-fermion-client` | `fermion` | Fermion WebSocket client |
+| `gluonify-plasma-gdown` | `gdown` | gDown Bolt driver and converters (Bup also infers `gdown` from the Neo4j driver, OGM, SDN and `quarkus-neo4j`) |
 | `gluonify-plasma-quarkus` | none | its producers go through `crystallon-client`, which it brings in: the marker comes from that jar |
 | `gluonify-plasma-console` | none | serves the console's own page, reaches no service |
 | `gluonify-plasma-services` | none | generic resolution, reaches no service by itself |

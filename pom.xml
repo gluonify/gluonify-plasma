@@ -22,6 +22,7 @@
     <module>sdk</module>
     <module>fermion-client</module>
     <module>crystallon-client</module>
+    <module>gdown-client</module>
     <module>testing</module>
     <module>quarkus-tls</module>
     <module>quarkus</module>
@@ -114,6 +115,11 @@
       <dependency>
         <groupId>io.gluonify.plasma</groupId>
         <artifactId>gluonify-plasma-crystallon-client</artifactId>
+        <version>${gluonify.plasma.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.gluonify.plasma</groupId>
+        <artifactId>gluonify-plasma-gdown</artifactId>
         <version>${gluonify.plasma.version}</version>
       </dependency>
       <dependency>

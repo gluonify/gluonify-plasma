@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.gluonify.plasma</groupId>
+    <artifactId>gluonify-plasma</artifactId>
+    <version>0.3.0-SNAPSHOT</version>
+    <relativePath>..</relativePath>
+  </parent>
+  <artifactId>gluonify-plasma-gdown</artifactId>
+  <name>Gluonify Plasma gDown client</name>
+  <description>gDown over Bolt for customer applications: a driver without configuration (address, token and root of the platform), wide integers and floats as BigInteger and BigDecimal, converters for Neo4j-OGM and Spring Data Neo4j.</description>
+
+  <properties>
+    <!-- Quality ratchets (gluonify-plasma README, "Quality gates"): current coverage rounded down, raised with the tests, never lowered. -->
+    <gluonify.coverage.minimum>0.95</gluonify.coverage.minimum>
+    <gluonify.coverage.branch.minimum>0.90</gluonify.coverage.branch.minimum>
+    <!-- Module published for customer applications: plain Java 17 (the parent compiles at 25). -->
+    <maven.compiler.release>17</maven.compiler.release>
+    <!-- Client libraries compiled against, never transitive: the application brings its own (the driver API used is the same in 5.x and 6.x). -->
+    <neo4j-java-driver.version>5.28.15</neo4j-java-driver.version>
+    <neo4j-ogm.version>5.0.11</neo4j-ogm.version>
+    <spring-data-neo4j.version>7.5.13</spring-data-neo4j.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-sdk</artifactId>
+    </dependency>
+    <!-- Resolution without configuration (address, token, root of the platform): dependency-free jar, Java 17. -->
+    <dependency>
+      <groupId>io.gluonify.plasma</groupId>
+      <artifactId>gluonify-plasma-services</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j.driver</groupId>
+      <artifactId>neo4j-java-driver</artifactId>
+      <version>${neo4j-java-driver.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-ogm-core</artifactId>
+      <version>${neo4j-ogm.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.data</groupId>
+      <artifactId>spring-data-neo4j</artifactId>
+      <version>${spring-data-neo4j.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
