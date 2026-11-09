@@ -113,7 +113,7 @@ public final class WideNumbers {
      */
     public static String cast(final String parameter, final String type) {
 
-        if (parameter == null || !parameter.matches("[A-Za-z_][A-Za-z0-9_]*+")) {
+        if (parameter == null || !parameter.matches("[A-Za-z_]\\w*+")) {
             throw new IllegalArgumentException("The parameter name `" + parameter + "` is no identifier");
         }
         final String upper = type == null ? "" : type.toUpperCase(Locale.ROOT);
