@@ -78,7 +78,11 @@ class WideNumbersTest {
 
         assertEquals("CAST($amount AS INT128)", WideNumbers.cast("amount", "int128"));
         assertEquals("CAST($m AS FLOAT256)", WideNumbers.cast("m", "FLOAT256"));
-        assertThrows(IllegalArgumentException.class, () -> WideNumbers.cast("amount", "DECIMAL"));
+        assertEquals("CAST($amount AS DECIMAL)", WideNumbers.cast("amount", "DECIMAL"));
+        assertEquals("CAST($amount AS DECIMAL(10, 2))", WideNumbers.cast("amount", "decimal(10,2)"));
+        assertEquals("CAST($amount AS DECIMAL(10))", WideNumbers.cast("amount", "DEC(10)"));
+        assertThrows(IllegalArgumentException.class, () -> WideNumbers.cast("amount", "DECIMAL(10, 2, 3)"));
+        assertThrows(IllegalArgumentException.class, () -> WideNumbers.cast("amount", "MONEY"));
         assertThrows(IllegalArgumentException.class, () -> WideNumbers.cast("amount", null));
         assertThrows(IllegalArgumentException.class, () -> WideNumbers.cast("1x", "INT128"));
         assertThrows(IllegalArgumentException.class, () -> WideNumbers.cast(null, "INT128"));

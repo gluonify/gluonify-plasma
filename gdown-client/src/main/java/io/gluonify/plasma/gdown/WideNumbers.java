@@ -18,7 +18,10 @@ public final class WideNumbers {
 
     /** The GQL type names a text parameter may be cast to. */
     public static final Set<String> TYPES = Set.of("INT8", "INT16", "INT32", "INT64", "INT128", "INT256", "UINT8", "UINT16", "UINT32", "UINT64", "UINT128", "UINT256", "FLOAT128",
-            "FLOAT256");
+            "FLOAT256", "DECIMAL");
+
+    /** A decimal type with its precision and scale: {@code DECIMAL(p)} or {@code DECIMAL(p, s)} ({@code DEC} as a synonym), checked by gDown (1 to 38 digits). */
+    private static final java.util.regex.Pattern DECIMAL_TYPE = java.util.regex.Pattern.compile("(?:DECIMAL|DEC)(?:\\((\\d{1,2})(?:,\\s*(\\d{1,2}))?\\))?");
 
     private static final String THE_VALUE = "The value ";
 
@@ -104,10 +107,10 @@ public final class WideNumbers {
     }
 
     /**
-     * The Cypher text that casts a text parameter to a wide type: {@code CAST($p AS INT128)}.
+     * The Cypher text that casts a text parameter to a wide type: {@code CAST($p AS INT128)}, {@code CAST($p AS DECIMAL(10, 2))}.
      *
      * @param parameter The parameter name, without {@code $}
-     * @param type      One of {@link #TYPES}, in any case
+     * @param type      One of {@link #TYPES}, in any case; {@code DECIMAL} may carry a precision and a scale ({@code DECIMAL(10, 2)}, {@code DEC(10)})
      * @return The expression
      * @throws IllegalArgumentException For a type that is not one of {@link #TYPES} or a parameter name that is no identifier
      */
@@ -116,11 +119,20 @@ public final class WideNumbers {
         if (parameter == null || !parameter.matches("[A-Za-z_]\\w*+")) {
             throw new IllegalArgumentException("The parameter name `" + parameter + "` is no identifier");
         }
-        final String upper = type == null ? "" : type.toUpperCase(Locale.ROOT);
+        final String upper = type == null ? "" : type.strip().toUpperCase(Locale.ROOT);
+        final java.util.regex.Matcher decimal = DECIMAL_TYPE.matcher(upper);
+        if (decimal.matches()) return "CAST($" + parameter + " AS " + decimalType(decimal) + ")";
         if (!TYPES.contains(upper)) {
             throw new IllegalArgumentException("The type " + type + " is none of " + TYPES);
         }
         return "CAST($" + parameter + " AS " + upper + ")";
+    }
+
+    /** {@code DECIMAL}, {@code DECIMAL(p)} or {@code DECIMAL(p, s)} as gDown writes the type. */
+    private static String decimalType(final java.util.regex.Matcher m) {
+
+        if (m.group(1) == null) return "DECIMAL";
+        return "DECIMAL(" + m.group(1) + (m.group(2) == null ? "" : ", " + m.group(2)) + ")";
     }
 
     private static BigDecimal parse(final String text, final Value value) {
