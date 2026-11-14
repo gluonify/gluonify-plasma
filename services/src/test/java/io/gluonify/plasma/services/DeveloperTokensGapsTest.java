@@ -211,15 +211,6 @@ class DeveloperTokensGapsTest {
         }
     }
 
-    @SuppressWarnings("removal")
-    @Test
-    void theDeprecatedLongFormBuildsTheSameSession() {
-        final Map<String, Object> response = Map.of("access_token", jwt(Map.of("sub", "u")), "refresh_token", "r");
-        final DeveloperTokens.Session viaOrigin = DeveloperTokens.fromTokenResponse(ORIGIN, response, clock, null);
-        final DeveloperTokens.Session viaArguments = DeveloperTokens.fromTokenResponse(ZONE, "c", URI.create("https://a.lan/token"), null, response, clock, null);
-        assertEquals(viaOrigin, viaArguments);
-    }
-
     // --- access token and renewal ---
 
     @Test

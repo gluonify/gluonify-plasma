@@ -25,13 +25,7 @@ public record Organization(String id, String name, String status, String externa
     public static final String DEFAULT = "_default";
     public static final String ACTIVE = "active";
     public static final String STATUS_SUSPENDED = "suspended";
-    /** @deprecated renamed {@link #STATUS_SUSPENDED} (SonarQube S1845); removed in the version after 0.7.2. */
-    @Deprecated(forRemoval = true)
-    public static final String SUSPENDED = STATUS_SUSPENDED;
     public static final String STATUS_ARCHIVED = "archived";
-    /** @deprecated renamed {@link #STATUS_ARCHIVED} (SonarQube S1845); removed in the version after 0.7.2. */
-    @Deprecated(forRemoval = true)
-    public static final String ARCHIVED = STATUS_ARCHIVED;
     public static final Set<String> STATUSES = Set.of(ACTIVE, STATUS_SUSPENDED, STATUS_ARCHIVED);
     public static final int MAX_NAME = 120;
 

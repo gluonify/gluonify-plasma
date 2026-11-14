@@ -49,7 +49,7 @@ class KeyRotationTest {
     }
 
     TrustedKeys.Applied apply(TrustedKeys tk, Transition t, long seen, Instant now) {
-        return tk.applyRollover(t.manifest, t.sig, t.sig2, t.rollover, t.rsig, t.rsig2, seen, now);
+        return tk.applyRollover(new TrustedKeys.Signed(t.manifest, t.sig, t.sig2), new TrustedKeys.Announcement(t.rollover, t.rsig, t.rsig2), seen, now);
     }
 
     @Test void fullRotationWithOverlapAndEnd() throws Exception {
@@ -66,7 +66,7 @@ class KeyRotationTest {
         assertEquals(List.of(key(n)), a.keys().accepted(RETIRE.plusSeconds(1)));
         // a later manifest signed ONLY by the new key is accepted during the overlap, with or without the old one
         byte[] later = bytes(manifest("1.2.0", 6, NOW.plusSeconds(86400L * 200)));
-        var v = a.keys().verify(later, ReleaseSigner.sign(later, n.getPrivate()), null, ReleaseManifest::parse, 5, NOW.plusSeconds(86400));
+        var v = a.keys().verify(new TrustedKeys.Signed(later, ReleaseSigner.sign(later, n.getPrivate()), null), ReleaseManifest::parse, 5, NOW.plusSeconds(86400));
         assertEquals(key(n), v.signer());
         // end of the rotation: the new key is alone; it requires a manifest signed by itself
         var fin = a.keys().finish(later, ReleaseSigner.sign(later, n.getPrivate()), null, 5, NOW.plusSeconds(86400));
@@ -76,7 +76,7 @@ class KeyRotationTest {
         assertEquals(List.of(key(n)), fin.keys().accepted(NOW));
         // the old key no longer signs anything accepted
         byte[] old = bytes(manifest("1.3.0", 9, NOW.plusSeconds(86400L * 200)));
-        assertThrows(ReleaseManifest.Invalid.class, () -> fin.keys().verify(old, ReleaseSigner.sign(old, o.getPrivate()), null, ReleaseManifest::parse, 5, NOW));
+        assertThrows(ReleaseManifest.Invalid.class, () -> fin.keys().verify(new TrustedKeys.Signed(old, ReleaseSigner.sign(old, o.getPrivate()), null), ReleaseManifest::parse, 5, NOW));
         // finishing twice: nothing to do
         assertFalse(fin.keys().finish(later, ReleaseSigner.sign(later, n.getPrivate()), null, 5, NOW).changed());
     }
@@ -95,14 +95,14 @@ class KeyRotationTest {
         byte[] m = bytes(manifest("1.2.0", 6, NOW.plusSeconds(86400L * 300)));
         byte[] sigOld = ReleaseSigner.sign(m, o.getPrivate());
         // before the switch: accepted; after: refused with an explicit message
-        assertNotNull(a.keys().verify(m, sigOld, null, ReleaseManifest::parse, 0, RETIRE.minusSeconds(10)));
-        var e = assertThrows(ReleaseManifest.Invalid.class, () -> a.keys().verify(m, sigOld, null, ReleaseManifest::parse, 0, RETIRE.plusSeconds(10)));
+        assertNotNull(a.keys().verify(new TrustedKeys.Signed(m, sigOld, null), ReleaseManifest::parse, 0, RETIRE.minusSeconds(10)));
+        var e = assertThrows(ReleaseManifest.Invalid.class, () -> a.keys().verify(new TrustedKeys.Signed(m, sigOld, null), ReleaseManifest::parse, 0, RETIRE.plusSeconds(10)));
         assertTrue(e.getMessage().contains("retired"), e.getMessage());
         // even the transition version, replayed after the switch with only its old signature
         Transition t = transition(o, n, 5);
-        assertThrows(ReleaseManifest.Invalid.class, () -> a.keys().verify(t.manifest, t.sig, null, ReleaseManifest::parse, 0, RETIRE.plusSeconds(10)));
+        assertThrows(ReleaseManifest.Invalid.class, () -> a.keys().verify(new TrustedKeys.Signed(t.manifest, t.sig, null), ReleaseManifest::parse, 0, RETIRE.plusSeconds(10)));
         // ... but accepted through its countersignature by the new key
-        assertNotNull(a.keys().verify(t.manifest, t.sig, t.sig2, ReleaseManifest::parse, 0, RETIRE.plusSeconds(10)));
+        assertNotNull(a.keys().verify(new TrustedKeys.Signed(t.manifest, t.sig, t.sig2), ReleaseManifest::parse, 0, RETIRE.plusSeconds(10)));
     }
 
     @Test void attacksAgainstTheAnnouncement() throws Exception {
@@ -115,7 +115,7 @@ class KeyRotationTest {
         Transition badRollSig = new Transition(t.manifest, t.sig, t.sig2, t.rollover, ReleaseSigner.sign(t.rollover, x.getPrivate()), t.rsig2);
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, badRollSig, 0, NOW));
         // no countersignature by the new key / countersignature by another key (typo: lock-out)
-        assertThrows(ReleaseManifest.Invalid.class, () -> tk.applyRollover(t.manifest, t.sig, t.sig2, t.rollover, t.rsig, null, 0, NOW));
+        assertThrows(ReleaseManifest.Invalid.class, () -> tk.applyRollover(new TrustedKeys.Signed(t.manifest, t.sig, t.sig2), new TrustedKeys.Announcement(t.rollover, t.rsig, null), 0, NOW));
         Transition badCross = new Transition(t.manifest, t.sig, t.sig2, t.rollover, t.rsig, ReleaseSigner.sign(t.rollover, x.getPrivate()));
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, badCross, 0, NOW));
         // countersignature of the manifest by another key
@@ -127,7 +127,7 @@ class KeyRotationTest {
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, mixed, 0, NOW));
         // tampered announcement (key replaced): the signature no longer holds
         byte[] swapped = new String(t.rollover, StandardCharsets.UTF_8).replace(key(n).der(), key(x).der()).getBytes(StandardCharsets.UTF_8);
-        assertThrows(ReleaseManifest.Invalid.class, () -> tk.applyRollover(t.manifest, t.sig, t.sig2, swapped, t.rsig, t.rsig2, 0, NOW));
+        assertThrows(ReleaseManifest.Invalid.class, () -> tk.applyRollover(new TrustedKeys.Signed(t.manifest, t.sig, t.sig2), new TrustedKeys.Announcement(swapped, t.rsig, t.rsig2), 0, NOW));
         // expired manifest, sequence behind, sequence already used by a key change
         Transition expired = transition(o, n, 5, NOW, RETIRE, NOW.plusSeconds(10));
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, expired, 0, NOW.plusSeconds(60)));
@@ -138,7 +138,7 @@ class KeyRotationTest {
         Transition late = transition(o, n, 5);
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, late, 0, RETIRE.plusSeconds(1)));
         // announcement without countersignature or signature
-        assertThrows(ReleaseManifest.Invalid.class, () -> tk.applyRollover(t.manifest, t.sig, null, t.rollover, null, null, 0, NOW));
+        assertThrows(ReleaseManifest.Invalid.class, () -> tk.applyRollover(new TrustedKeys.Signed(t.manifest, t.sig, null), new TrustedKeys.Announcement(t.rollover, null, null), 0, NOW));
         // announcement of the key that already signs
         Transition self = transition(o, o, 5);
         assertThrows(ReleaseManifest.Invalid.class, () -> apply(tk, self, 0, NOW));
@@ -202,9 +202,9 @@ class KeyRotationTest {
         final ReleaseVerifier.Policy any = ReleaseVerifier.Policy.of(ReleaseManifest::parse, 0, NOW);
         assertThrows(ReleaseManifest.Invalid.class, () -> ReleaseVerifier.verify(wk, wkSig, original, any));
         // a 0.1.0 node has only one key: the same verification through the new set of original keys gives the same result
-        assertEquals(m, TrustedKeys.single(key(o)).verify(t.manifest, t.sig, null, ReleaseManifest::parse, 0, NOW).manifest());
+        assertEquals(m, TrustedKeys.single(key(o)).verify(new TrustedKeys.Signed(t.manifest, t.sig, null), ReleaseManifest::parse, 0, NOW).manifest());
         // and the new key is worth nothing to it
-        assertThrows(ReleaseManifest.Invalid.class, () -> TrustedKeys.single(key(o)).verify(t.manifest, ReleaseSigner.sign(t.manifest, n.getPrivate()), null, ReleaseManifest::parse, 0, NOW));
+        assertThrows(ReleaseManifest.Invalid.class, () -> TrustedKeys.single(key(o)).verify(new TrustedKeys.Signed(t.manifest, ReleaseSigner.sign(t.manifest, n.getPrivate()), null), ReleaseManifest::parse, 0, NOW));
     }
 
     @Test void catalogueRotateReleaseKey() {

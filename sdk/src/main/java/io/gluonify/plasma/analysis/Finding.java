@@ -32,14 +32,8 @@ import java.util.regex.Pattern;
 public record Finding(Integer v, String id, FindingKind kind, String rule, Severity severity, Boolean blocking, Location location,
                       Map<String, String> args, String ref, FindingStatus status) {
     public static final int CURRENT_VERSION = 1;
-    /** @deprecated renamed {@link #CURRENT_VERSION} (SonarQube S1845); removed in the version after 0.7.2. */
-    @Deprecated(forRemoval = true)
-    public static final int VERSION = CURRENT_VERSION;
     /** Rule code: uppercase letters, digits and hyphens, with an optional {@code repository:} prefix (Sonar rules). */
     public static final Pattern RULE_PATTERN = Pattern.compile("(?:[a-z][a-z0-9-]{0,39}:)?[A-Z][A-Z0-9]*+(?:-[A-Z0-9]++)*+");
-    /** @deprecated renamed {@link #RULE_PATTERN} (SonarQube S1845); removed in the version after 0.7.2. */
-    @Deprecated(forRemoval = true)
-    public static final Pattern RULE = RULE_PATTERN;
     /** Argument name: simple identifier, usable as is in a translated string ({@code {type}}). */
     public static final Pattern ARG_PATTERN = Pattern.compile("[a-zA-Z]\\w{0,63}");
     /** Maximum length of an argument value. */
@@ -79,24 +73,6 @@ public record Finding(Integer v, String id, FindingKind kind, String rule, Sever
     public static Finding open(final Subject subject, final Severity severity, final boolean blocking, final Location location, final Map<String, String> args) {
         return new Finding(CURRENT_VERSION, idOf(subject.kind(), subject.target(), subject.rule(), location), subject.kind(), subject.rule(), severity, blocking, location, args, null,
                 FindingStatus.OPEN);
-    }
-
-    /**
-     * Open finding, identifier computed from the target ({@code target}: build, application, site…; never written in the finding).
-     *
-     * @param kind     kind of finding
-     * @param target   build, application, site...
-     * @param rule     rule code
-     * @param severity severity
-     * @param blocking whether the finding blocks
-     * @param location location, or {@code null}
-     * @param args     arguments of the message, or {@code null}
-     * @return the open finding
-     * @deprecated since 0.7.2, use {@link #open(Subject, Severity, boolean, Location, Map)}; removed in the version after.
-     */
-    @Deprecated(since = "0.7.2", forRemoval = true)
-    public static Finding open(final FindingKind kind, final String target, final String rule, final Severity severity, final boolean blocking, final Location location, final Map<String, String> args) {
-        return open(new Subject(kind, target, rule), severity, blocking, location, args);
     }
 
     public Finding withRef(final String newRef) {

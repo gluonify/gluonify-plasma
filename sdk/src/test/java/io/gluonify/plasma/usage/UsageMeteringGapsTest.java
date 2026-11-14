@@ -141,9 +141,9 @@ class UsageMeteringGapsTest {
 
     @SuppressWarnings({"deprecation", "removal"})
     @Test
-    void theDeprecatedFormsStillMeter() {
+    void theDeprecatedAddStillMeters() {
         final AtomicLong clock = new AtomicLong(T0);
-        final UsageMeter m = new UsageMeter("rup", "r1", "n1", "1.0", "PRD", 10, clock::get, UsageMeter.memorySeq(1));
+        final UsageMeter m = new UsageMeter(new UsageMeter.Identity("rup", "r1", "n1", "1.0", "PRD"), 10, clock::get, UsageMeter.memorySeq(1));
         assertTrue(m.add(T0, SHOP, "rup.vfs.stored_bytes", null, BigDecimal.ONE, true, "o"));
         clock.set(T0 + 60_000);
         final UsageRecord r = m.drain().get(0);

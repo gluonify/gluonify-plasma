@@ -22,7 +22,7 @@ class UsageEmitterTest {
     final ObjectMapper json = new ObjectMapper();
 
     static UsageMeter meter(AtomicLong clock, UsageMeter.SeqSource seqs) {
-        return new UsageMeter("rup", "fs", "n1", "0.7.0", "PRD", 20_000, clock::get, seqs);
+        return new UsageMeter(new UsageMeter.Identity("rup", "fs", "n1", "0.7.0", "PRD"), 20_000, clock::get, seqs);
     }
 
     /** Test transport: returns the requested status and keeps the received bodies. */
@@ -108,7 +108,7 @@ class UsageEmitterTest {
     @Test
     void keysBeyondTheCapAreMergedIntoOverflow() {
         AtomicLong clock = new AtomicLong(T0);
-        UsageMeter m = new UsageMeter("rup", "fs", "n1", null, "PRD", 2, clock::get, UsageMeter.memorySeq(1));
+        UsageMeter m = new UsageMeter(new UsageMeter.Identity("rup", "fs", "n1", null, "PRD"), 2, clock::get, UsageMeter.memorySeq(1));
         for (int i = 0; i < 5; i++) m.add(new UsageRecord.Subject("acme", "app" + i, null, "service"), "rup.vfs.stored_bytes", Map.of("kind", "std"), 1);
         clock.set(T0 + 60_000);
         List<UsageRecord> out = m.drain();

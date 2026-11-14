@@ -21,9 +21,6 @@ public record Plan(String id, Map<String, String> name, Long createdAt, String c
     /** Plan identifier: a-z, 0-9 and hyphen, 1 to 40 characters (the rule of {@link PriceList#ID_PATTERN}). */
     private static final Pattern LANGUAGE = Pattern.compile("[a-z]{2}");
     public static final Pattern ID_PATTERN = PriceList.ID_PATTERN;
-    /** @deprecated renamed {@link #ID_PATTERN} (SonarQube S1845); removed in the version after 0.7.2. */
-    @Deprecated(forRemoval = true)
-    public static final Pattern ID = ID_PATTERN;
 
     public Plan {
         name = name == null ? Map.of() : java.util.Collections.unmodifiableMap(new TreeMap<>(name));

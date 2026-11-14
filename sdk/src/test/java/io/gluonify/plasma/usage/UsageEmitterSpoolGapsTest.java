@@ -276,14 +276,6 @@ class UsageEmitterSpoolGapsTest {
         assertSame(withFile, supplier.get());
     }
 
-    @SuppressWarnings({"deprecation", "removal"})
-    @Test
-    void theDeprecatedFunctionFormOfTheEnvironmentTransportStillWorks() {
-        final Map<String, String> env = Map.of("GLUONIFY_SERVICE_CALORIMETER_URL", "http://127.0.0.1:1");
-        final java.util.function.Function<String, String> function = env::get;
-        assertNotNull(UsageEmitter.fromEnvironment(function, Duration.ofSeconds(1)).get());
-    }
-
     @Test
     void aBodyIsTheJsonArrayOfItsLines() {
         assertEquals("{\"records\":[]}", UsageEmitter.body(List.of()));

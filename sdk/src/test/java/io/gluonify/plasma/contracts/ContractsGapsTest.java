@@ -342,15 +342,6 @@ class ContractsGapsTest {
         assertTrue(Violation.CODES.containsAll(Violation.ORGANIZATION_RULES));
     }
 
-    @SuppressWarnings({"deprecation", "removal"})
-    @Test
-    void theDeprecatedLongFormOfACapStillWorks() {
-        final Violation v = Violation.over(Violation.STORAGE, "storage", 10, null, 20, Violation.SOURCE_ORGANIZATION, "full");
-        assertEquals(Violation.STORAGE, v.code());
-        assertNull(v.used());
-        assertEquals(20L, v.requested());
-    }
-
     @Test
     void decimalsAreStrictAndRoundedPerCurrency() {
         assertTrue(Decimals.valid("0"));

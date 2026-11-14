@@ -228,16 +228,15 @@ class ReleaseTrustGapsTest {
         assertTrue(rotating.verify(second, ReleaseManifest::parse, 0, NOW).viaSig2(), "the countersignature by the new key carries it");
     }
 
-    @SuppressWarnings({"deprecation", "removal"})
     @Test
-    void theDeprecatedLongFormsStillVerifyAndApply() throws Exception {
+    void theGroupedFormsVerifyAndApply() throws Exception {
         final KeyPair o = gen();
         final byte[] m = good().toJson().getBytes(StandardCharsets.UTF_8);
         final TrustedKeys keys = TrustedKeys.single(TrustedKeys.Key.ofDer(der(o)));
-        assertEquals(5, keys.verify(m, ReleaseSigner.sign(m, o.getPrivate()), null, ReleaseManifest::parse, 0, NOW).manifest().sequence());
+        assertEquals(5, keys.verify(new TrustedKeys.Signed(m, ReleaseSigner.sign(m, o.getPrivate()), null), ReleaseManifest::parse, 0, NOW).manifest().sequence());
         assertEquals(5, ReleaseVerifier.verify(m, ReleaseSigner.sign(m, o.getPrivate()), o.getPublic(), ReleaseVerifier.Policy.of(ReleaseManifest::parse, 0, NOW)).sequence());
         assertEquals(5, ReleaseVerifier.verify(m, ReleaseSigner.sign(m, o.getPrivate()), o.getPublic(), new ReleaseVerifier.Policy(ReleaseManifest::parse, 0, NOW, n -> true)).sequence());
-        assertTrue(refusal(() -> keys.applyRollover(m, null, null, null, null, null, 0, NOW)).contains("incomplete key announcement"));
+        assertTrue(refusal(() -> keys.applyRollover(new TrustedKeys.Signed(m, null, null), new TrustedKeys.Announcement(null, null, null), 0, NOW)).contains("incomplete key announcement"));
         assertFalse(keys.finish(m, ReleaseSigner.sign(m, o.getPrivate()), null, 0, NOW).changed(), "no next key: nothing to finish");
     }
 

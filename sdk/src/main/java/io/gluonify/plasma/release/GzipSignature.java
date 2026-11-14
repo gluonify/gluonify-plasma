@@ -266,17 +266,6 @@ public final class GzipSignature {
     }
 
     /**
-     * Signs an UNSIGNED gzip.
-     *
-     * @deprecated since 0.7.2, use {@link #sign(Path, Path, Signing, PrivateKey)}; removed in the version after.
-     */
-    @Deprecated(since = "0.7.2", forRemoval = true)
-    @SuppressWarnings({"java:S107", "gluonify-native:GN13"})
-    public static void sign(final Path unsigned, final Path out, final String name, final String arch, final String version, final long sequence, final Instant expires, final PrivateKey key) throws IOException {
-        sign(unsigned, out, new Signing(name, arch, version, sequence, expires), key);
-    }
-
-    /**
      * Verifies a signed file: signature valid for one of the keys, not expired, digest equal to that of the recomputed unsigned form, and claims matching
      * {@code expected}. Returns the claims; raises {@link ReleaseManifest.Invalid} otherwise (including if the file is not signed).
      */

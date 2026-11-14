@@ -10,7 +10,7 @@ import java.util.List;
  * Full report of an analysis: the content of {@code analysis.json} (build directory at Bup) and the response of
  * {@code GET /v1/builds/{id}/analysis}. Findings are sorted by severity (most serious first), then by track and by rule.
  *
- * @param v        format version ({@value Finding#VERSION})
+ * @param v        format version ({@value Finding#CURRENT_VERSION})
  * @param buildId  analysed build, absent outside Bup
  * @param summary  summary (the same as {@code BuildRecord.analysis})
  * @param findings findings, never {@code null}, unmodifiable

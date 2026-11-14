@@ -19,9 +19,6 @@ import java.util.regex.Pattern;
 public record PriceList(String id, String name, String currency, Long createdAt, String createdBy, List<PriceListVersion> versions) {
     /** List identifier: a-z, 0-9 and hyphen, 1 to 40 characters. */
     public static final Pattern ID_PATTERN = Pattern.compile("[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?");
-    /** @deprecated renamed {@link #ID_PATTERN} (SonarQube S1845); removed in the version after 0.7.2. */
-    @Deprecated(forRemoval = true)
-    public static final Pattern ID = ID_PATTERN;
 
     public PriceList {
         versions = versions == null ? List.of() : List.copyOf(versions);

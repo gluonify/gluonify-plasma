@@ -260,16 +260,6 @@ class GluonifyServicesGapsTest {
         assertThrows(NullPointerException.class, () -> b.httpClient(null));
     }
 
-    @SuppressWarnings({"deprecation", "removal"})
-    @Test
-    void theDeprecatedFunctionFormsOfTheBuilderStillWork() {
-        props.put("GLUONIFY_SERVICE_A_URL", "https://a.example");
-        final java.util.function.Function<String, String> environment = env::get;
-        final java.util.function.Function<String, String> properties = props::get;
-        final GluonifyServices s = GluonifyServices.builder().environment(environment).properties(properties).home(home).build();
-        assertEquals(Endpoint.Source.OVERRIDE, s.resolve("a").source());
-    }
-
     @Test
     void theHomeDefaultsToTheUsersFolderWhenNotGiven() {
         final Map<String, String> userHome = Map.of("user.home", "/home/ada");

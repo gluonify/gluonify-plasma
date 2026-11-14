@@ -31,7 +31,7 @@ class GzipSignatureTest {
 
     Path signed(Path unsigned, KeyPair k) throws Exception {
         Path out = dir.resolve("s-" + System.nanoTime() + ".gz");
-        GzipSignature.sign(unsigned, out, "gluonify-strange", "arm64", "1.2.3", 7, NOW.plusSeconds(86400), k.getPrivate());
+        GzipSignature.sign(unsigned, out, new GzipSignature.Signing("gluonify-strange", "arm64", "1.2.3", 7, NOW.plusSeconds(86400)), k.getPrivate());
         return out;
     }
 
@@ -106,7 +106,7 @@ class GzipSignatureTest {
         Path t = dir.resolve("renamed.gz");
         Files.write(t, b);
         assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.verify(t, List.of(k.getPublic()), NOW, EXPECT));
-        assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.sign(s, dir.resolve("again.gz"), "gluonify-strange", "arm64", "1.2.3", 7, NOW, k.getPrivate()), "already signed");
+        assertThrows(ReleaseManifest.Invalid.class, () -> GzipSignature.sign(s, dir.resolve("again.gz"), new GzipSignature.Signing("gluonify-strange", "arm64", "1.2.3", 7, NOW), k.getPrivate()), "already signed");
     }
 
     @Test void malformedGzipOrWithFhcrcRefused() throws Exception {

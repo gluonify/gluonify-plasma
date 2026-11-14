@@ -89,41 +89,6 @@ public final class ReleaseVerifier {
         }
     }
 
-    /**
-     * Same as {@link #verify(byte[], byte[], PublicKey, Policy)} with default component names.
-     *
-     * @param manifest    manifest bytes
-     * @param signature   detached signature
-     * @param key         public key
-     * @param parser      reads the manifest
-     * @param minSequence highest sequence already seen
-     * @param now         current instant
-     * @return the manifest
-     * @deprecated since 0.7.2, use {@link #verify(byte[], byte[], PublicKey, Policy)}; removed in the version after.
-     */
-    @Deprecated(since = "0.7.2", forRemoval = true)
-    public static ReleaseManifest verify(final byte[] manifest, final byte[] signature, final PublicKey key, final java.util.function.Function<byte[], ReleaseManifest> parser, final long minSequence, final Instant now) {
-        return verify(manifest, signature, key, Policy.of(parser, minSequence, now));
-    }
-
-    /**
-     * Like the six-argument form with the caller's component-name criterion.
-     *
-     * @param manifest    manifest bytes
-     * @param signature   detached signature
-     * @param key         public key
-     * @param parser      reads the manifest
-     * @param minSequence highest sequence already seen
-     * @param now         current instant
-     * @param nameOk      component-name criterion
-     * @return the manifest
-     * @deprecated since 0.7.2, use {@link #verify(byte[], byte[], PublicKey, Policy)}; removed in the version after.
-     */
-    @Deprecated(since = "0.7.2", forRemoval = true)
-    public static ReleaseManifest verify(final byte[] manifest, final byte[] signature, final PublicKey key, final java.util.function.Function<byte[], ReleaseManifest> parser, final long minSequence, final Instant now, final java.util.function.Predicate<String> nameOk) {
-        return verify(manifest, signature, key, new Policy(parser, minSequence, now, nameOk));
-    }
-
     /** Hexadecimal SHA-256 of in-memory bytes. */
     public static String sha256(final byte[] data) {
         try {

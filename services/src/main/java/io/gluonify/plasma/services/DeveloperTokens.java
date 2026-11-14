@@ -164,26 +164,6 @@ public final class DeveloperTokens {
     }
 
     /**
-     * A session built from the response of Charm's token endpoint, with the origin given as separate arguments.
-     *
-     * @param zone               zone of the cluster
-     * @param clientId           public client of Charm
-     * @param tokenEndpoint      Charm's token endpoint
-     * @param revocationEndpoint Charm's revocation endpoint, or {@code null}
-     * @param response           the token response
-     * @param clock              clock of the expiries
-     * @param previous           previous session whose refresh token is kept, or {@code null}
-     * @return the session
-     * @throws GluonifyServicesException if the response has no access token
-     * @deprecated use {@link #fromTokenResponse(Origin, Map, Clock, Session)}
-     */
-    @Deprecated(forRemoval = true)
-    public static Session fromTokenResponse(final String zone, final String clientId, final URI tokenEndpoint, final URI revocationEndpoint,
-                                            final Map<String, Object> response, final Clock clock, final Session previous) {
-        return fromTokenResponse(new Origin(zone, clientId, tokenEndpoint, revocationEndpoint), response, clock, previous);
-    }
-
-    /**
      * A session built from the response of Charm's token endpoint ({@code access_token}, {@code expires_in}, {@code refresh_token},
      * {@code refresh_expires_in}). Without a new refresh token, the one from {@code previous} is kept.
      *

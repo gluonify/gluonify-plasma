@@ -25,14 +25,6 @@ class DeveloperConfigGapsTest {
         assertEquals(Path.of("/srv/gluonify"), DeveloperConfig.home(env::get, props::get));
     }
 
-    @SuppressWarnings({"deprecation", "removal"})
-    @Test
-    void theDeprecatedFunctionFormStillWorks() {
-        final java.util.function.Function<String, String> env = k -> null;
-        final java.util.function.Function<String, String> props = k -> "/home/bob";
-        assertEquals(Path.of("/home/bob/.gluonify"), DeveloperConfig.home(env, props));
-    }
-
     @Test
     void zoneNamesAreHostNamesWithoutSchemePortOrPath() {
         assertTrue(DeveloperConfig.validZone("gluonify.lan"));

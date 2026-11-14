@@ -100,17 +100,6 @@ public final class UsageMeter {
         this.seqs = seqs;
     }
 
-    /**
-     * Creates a meter.
-     *
-     * @deprecated since 0.7.2, use {@link #UsageMeter(Identity, int, LongSupplier, SeqSource)}; removed in the version after.
-     */
-    @Deprecated(since = "0.7.2", forRemoval = true)
-    @SuppressWarnings({"java:S107", "gluonify-native:GN13"})
-    public UsageMeter(final String service, final String replica, final String node, final String version, final String env, final int maxKeysPerWindow, final LongSupplier clock, final SeqSource seqs) {
-        this(new Identity(service, replica, node, version, env), maxKeysPerWindow, clock, seqs);
-    }
-
     public String service() { return service; }
 
     private static final BigDecimal GB_HOUR_BYTE_SECONDS = BigDecimal.valueOf(1L << 30).multiply(BigDecimal.valueOf(3600));

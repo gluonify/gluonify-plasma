@@ -192,17 +192,6 @@ public final class UsageEmitter {
         };
     }
 
-    /**
-     * Transport taken from the platform environment.
-     *
-     * @deprecated since 0.7.2, use {@link #fromEnvironment(java.util.function.UnaryOperator, Duration)}; removed in the version after.
-     */
-    @Deprecated(since = "0.7.2", forRemoval = true)
-    @SuppressWarnings("java:S4276")
-    public static Supplier<Transport> fromEnvironment(final java.util.function.Function<String, String> env, final Duration timeout) {
-        return fromEnvironment((java.util.function.UnaryOperator<String>) env::apply, timeout);
-    }
-
     /** For tests: the body of a batch. */
     static List<String> lines(final List<UsageRecord> records) {
         List<String> out = new ArrayList<>();

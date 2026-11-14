@@ -17,7 +17,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
@@ -424,32 +423,6 @@ public final class GluonifyServices {
         public Builder properties(final UnaryOperator<String> props) {
             this.properties = Objects.requireNonNull(props, "props");
             return this;
-        }
-
-        /**
-         * The environment variables.
-         *
-         * @param env the environment variables
-         * @return this builder
-         * @deprecated since 0.7.2, use {@link #environment(UnaryOperator)}; removed in the version after.
-         */
-        @Deprecated(since = "0.7.2", forRemoval = true)
-        @SuppressWarnings("java:S4276")
-        public Builder environment(final Function<String, String> env) {
-            return environment((UnaryOperator<String>) env::apply);
-        }
-
-        /**
-         * The system properties.
-         *
-         * @param props the system properties
-         * @return this builder
-         * @deprecated since 0.7.2, use {@link #properties(UnaryOperator)}; removed in the version after.
-         */
-        @Deprecated(since = "0.7.2", forRemoval = true)
-        @SuppressWarnings("java:S4276")
-        public Builder properties(final Function<String, String> props) {
-            return properties((UnaryOperator<String>) props::apply);
         }
 
         /** @param dir the Gluonify folder (default: {@code GLUONIFY_HOME}, otherwise {@code ~/.gluonify}) */

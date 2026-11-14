@@ -184,15 +184,6 @@ class GzipSignatureGapsTest {
         assertTrue(refusal(() -> GzipSignature.sign(bigExtra, dir.resolve("big-out.gz"), new GzipSignature.Signing("gluonify-strange", "arm64", "1.2.3", 1, NOW), k.getPrivate())).contains("FEXTRA too long"));
     }
 
-    @SuppressWarnings({"deprecation", "removal"})
-    @Test
-    void theDeprecatedSigningFormStillSigns() throws Exception {
-        final KeyPair k = key();
-        final Path out = dir.resolve("old-form.gz");
-        GzipSignature.sign(plain(), out, "gluonify-strange", "arm64", "1.2.3", 7, NOW.plusSeconds(60), k.getPrivate());
-        assertEquals(7, GzipSignature.verify(out, List.of(k.getPublic()), NOW, null).sequence());
-    }
-
     // --- verification ---
 
     @Test

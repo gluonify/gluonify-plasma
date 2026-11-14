@@ -174,17 +174,6 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
         }
     }
 
-    /**
-     * Verifies the manifest with the keys accepted at {@code now}.
-     *
-     * @deprecated since 0.7.2, use {@link #verify(Signed, java.util.function.Function, long, Instant)}; removed in the version after.
-     */
-    @Deprecated(since = "0.7.2", forRemoval = true)
-    @SuppressWarnings({"java:S107", "gluonify-native:GN13"})
-    public Verified verify(final byte[] manifest, final byte[] sig, final byte[] sig2, final java.util.function.Function<byte[], ReleaseManifest> parser, final long minSequence, final Instant now) {
-        return verify(new Signed(manifest, sig, sig2), parser, minSequence, now);
-    }
-
     /** The accepted key whose signature {@code s} of the manifest is valid, null when none. */
     private Key signer(final byte[] manifest, final byte[] s, final List<Key> ok) {
         for (Key k : ok) {
@@ -265,17 +254,6 @@ public record TrustedKeys(Key current, Key next, Instant retireCurrentAfter, lon
         public String toString() {
             return "Announcement[rollover=" + java.util.Arrays.toString(rollover) + ", sig=" + java.util.Arrays.toString(sig) + ", sig2=" + java.util.Arrays.toString(sig2) + "]";
         }
-    }
-
-    /**
-     * Rules for accepting a key change.
-     *
-     * @deprecated since 0.7.2, use {@link #applyRollover(Signed, Announcement, long, Instant)}; removed in the version after.
-     */
-    @Deprecated(since = "0.7.2", forRemoval = true)
-    @SuppressWarnings({"java:S107", "gluonify-native:GN13"})
-    public Applied applyRollover(final byte[] manifest, final byte[] sig, final byte[] sig2, final byte[] rollover, final byte[] rolloverSig, final byte[] rolloverSig2, final long highestSeen, final Instant now) {
-        return applyRollover(new Signed(manifest, sig, sig2), new Announcement(rollover, rolloverSig, rolloverSig2), highestSeen, now);
     }
 
     private static void checkBinding(final KeyRollover r, final Verified v, final byte[] manifest) {
