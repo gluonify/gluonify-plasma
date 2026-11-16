@@ -11,6 +11,8 @@ import java.util.Set;
 /**
  * Closed catalog of usage units ({@code metering.md} § 3.1 and {@code analysis.md} § 10), shipped by the SDK so that Higgs validates price grids without
  * calling the calorimeter ({@code contracts.md} § 2.4). A name outside this catalog can be neither recorded nor priced.
+ *
+ * @author David CABILLIC
  */
 public final class UsageCatalog {
     private static final String SERVICE_GDOWN = "gdown";
@@ -67,7 +69,11 @@ public final class UsageCatalog {
         unit("gdown.db.query_seconds", Quantity.SECONDS);
         unit("gdown.db.rows", Quantity.COUNT);
         unit("gdown.db.stored_bytes", Quantity.GB_HOURS);
-        unit("gdown.db.memory_reserved", Quantity.MB_SECONDS, false, false, Map.of());
+        // billable since gDown reports the engine's memory per database (user, 2026-11-13, Q2.2); a member that still estimates it sends `indicative`
+        unit("gdown.db.memory_reserved", Quantity.MB_SECONDS);
+        // CPU seconds per database (metering.md § 3.3), reconciled by the calorimeter with each member's total below
+        unit("gdown.db.cpu", Quantity.SECONDS);
+        unit("gdown.process.cpu", Quantity.SECONDS, false, true, Map.of());
         unit("charm.tokens.issued", Quantity.COUNT, KIND, List.of("service", "node", "user"));
         unit("charm.logins", Quantity.COUNT);
         unit("top.env.reads", Quantity.COUNT);
@@ -117,12 +123,25 @@ public final class UsageCatalog {
 
     private static final Map<String, UsageUnit> VIEW = Collections.unmodifiableMap(UNITS);
 
-    /** The unit with this name, or null if not in the catalog. */
+    /**
+     * The unit with this name.
+     *
+     * @param name the unit's name, {@code <service>.<unit>}
+     * @return the unit, or null if not in the catalog (or the name is null)
+     */
     public static UsageUnit get(final String name) { return name == null ? null : VIEW.get(name); }
 
-    /** All the units, in catalog order. */
+    /**
+     * All the units.
+     *
+     * @return the units, in catalog order (read-only)
+     */
     public static Collection<UsageUnit> all() { return VIEW.values(); }
 
-    /** The names, in catalog order. */
+    /**
+     * The names of the units.
+     *
+     * @return the names, in catalog order
+     */
     public static List<String> names() { return List.copyOf(VIEW.keySet()); }
 }
