@@ -58,8 +58,61 @@ import java.util.Map;
 })
 public sealed interface Msg {
     // ---- node -> control-plane
-    /** First message from an already enrolled node. */
-    record Hello(String node, String secret) implements Msg {}
+    /**
+     * Optional function of the agent, announced in {@link Hello#features()}: the agent writes gDown's Bolt certificate pair as files of the instance and renews them
+     * in place, without a restart, when the deployment carries {@code GLUONIFY_GDOWN_BOLT_TLS_DELIVERY=files} (GLU-119). A control-plane may then skip the redeploy
+     * of a gDown member whose only change is a renewed Bolt pair, on a node that announces it.
+     */
+    String AGENT_FEATURE_BOLT_PAIR_FILES = "bolt-pair-files";
+
+    /**
+     * First message from an already enrolled node.
+     *
+     * <p>{@code features}: optional functions the agent supports (see {@link #AGENT_FEATURE_BOLT_PAIR_FILES}); empty for an older agent, which does not send the field.
+     * An older control-plane ignores the field (unknown properties are not refused on this channel). A node that has just enrolled has announced nothing until its next
+     * {@code Hello}: the control-plane treats it as an agent without features.
+     *
+     * @param node identifier of the node
+     * @param secret the node's secret, received in {@link Enrolled}
+     * @param features optional functions of the agent; {@code null} reads as empty
+     * @author David CABILLIC
+     */
+    record Hello(String node, String secret, List<String> features) implements Msg {
+
+        /**
+         * A hello whose feature list is never null and cannot be changed.
+         *
+         * @param node identifier of the node
+         * @param secret the node's secret
+         * @param features optional functions of the agent; {@code null} reads as empty
+         */
+        public Hello {
+
+            features = features == null ? List.of() : List.copyOf(features);
+        }
+
+        /**
+         * Compatibility: a hello without features (an agent that announces none).
+         *
+         * @param node identifier of the node
+         * @param secret the node's secret
+         */
+        public Hello(final String node, final String secret) {
+
+            this(node, secret, null);
+        }
+
+        /**
+         * Whether the agent announced a function.
+         *
+         * @param feature name of the function, for example {@link #AGENT_FEATURE_BOLT_PAIR_FILES}
+         * @return true when {@code features} lists it
+         */
+        public boolean supports(final String feature) {
+
+            return features.contains(feature);
+        }
+    }
 
     /** First message from a new node: consumes a single-use token; empty address = source address of the connection. */
     record Enroll(String token, String address, int memoryMb, String arch, String role) implements Msg {
