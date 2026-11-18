@@ -1,5 +1,6 @@
 package io.gluonify.plasma;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 /** A replica placed on a node. hostPort is assigned by the control-plane. */
@@ -17,7 +18,43 @@ public record Instance(@Schema(description = "Application name", example = "shop
                        @Schema(description = "Quota per distributed file system (MB); absent: default caps", example = "2048") Integer distributedQuotaMb,
                        @Schema(description = "Cross-node file locks (gluonify-bottom daemon in front of the mount)", example = "true") Boolean distributedLocks,
                        @Schema(description = "Organization owning the application (usage attribution by the agent; absent: _unassigned)", example = "acme") String organization,
-                       @Schema(description = "UUID of the application (usage attribution)", example = "0b6f7c1e-0000-4000-8000-000000000001") String uuid) {
+                       @Schema(description = "UUID of the application (usage attribution)", example = "0b6f7c1e-0000-4000-8000-000000000001") String uuid,
+                       @Schema(description = "The replica keeps its state on its node (gdown, an application declaring stateful): the agent refuses to start it on a missing state directory unless initialize is set; sent only to an agent that announces stateful-instances", example = "true")
+                       @JsonInclude(JsonInclude.Include.NON_NULL) Boolean stateful,
+                       @Schema(description = "First start of a stateful replica on its node: the agent may create its state directory; set by the control-plane only on the replica's first placement", example = "true")
+                       @JsonInclude(JsonInclude.Include.NON_NULL) Boolean initialize) {
+    /**
+     * Compatibility: a replica without stateful marking (an older control-plane, or one that sends it to an agent which does not announce
+     * {@link io.gluonify.plasma.ws.Msg#AGENT_FEATURE_STATEFUL_INSTANCES}).
+     *
+     * @param app application name
+     * @param index replica index
+     * @param image OCI image
+     * @param port container port
+     * @param hostPort port on the host
+     * @param memoryMb memory (MB)
+     * @param topNamespace top namespace, or null
+     * @param generation restart generation
+     * @param scratchMb temporary workspace (MB)
+     * @param nas NAS mounted
+     * @param env non-secret variables
+     * @param generated startup secret names
+     * @param uses services used
+     * @param ports additional ports
+     * @param distributed distributed file systems
+     * @param pullSecret download secret name, or null
+     * @param distributedQuotaMb quota per distributed file system, or null
+     * @param distributedLocks cross-node file locks, or null
+     * @param organization owning organization, or null
+     * @param uuid application UUID, or null
+     */
+    public Instance(final String app, final int index, final String image, final int port, final int hostPort, final int memoryMb, final String topNamespace, final long generation, final int scratchMb, final boolean nas,
+                    final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final java.util.List<Integer> ports, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks,
+                    final String organization, final String uuid) {
+
+        this(app, index, image, port, hostPort, memoryMb, topNamespace, generation, scratchMb, nas, env, generated, uses, ports, distributed, pullSecret, distributedQuotaMb, distributedLocks, organization, uuid, null, null);
+    }
+
     /** Compatibility: no organization or UUID. */
     public Instance(final String app, final int index, final String image, final int port, final int hostPort, final int memoryMb, final String topNamespace, final long generation, final int scratchMb, final boolean nas,
                     final java.util.Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final java.util.List<Integer> ports, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks) {
@@ -54,6 +91,31 @@ public record Instance(@Schema(description = "Application name", example = "shop
         env = env == null ? java.util.Map.of() : java.util.Map.copyOf(new java.util.TreeMap<>(env));
         generated = generated == null ? java.util.List.of() : java.util.List.copyOf(generated);
         uses = uses == null ? java.util.List.of() : java.util.List.copyOf(uses);
+        stateful = Boolean.TRUE.equals(stateful) ? Boolean.TRUE : null; // false and absent are the same: stable equality and JSON
+        initialize = Boolean.TRUE.equals(initialize) ? Boolean.TRUE : null;
+    }
+
+    /**
+     * The same replica marked for the agent: stateful or not, and whether its state may be created now.
+     *
+     * @param keepsState true when the replica keeps its state on its node
+     * @param mayInitialize true when this is its first start on the node (its state directory may be created)
+     * @return the copy
+     */
+    public Instance withState(final boolean keepsState, final boolean mayInitialize) {
+
+        return new Instance(app, index, image, port, hostPort, memoryMb, topNamespace, generation, scratchMb, nas, env, generated, uses, ports, distributed, pullSecret, distributedQuotaMb,
+                distributedLocks, organization, uuid, keepsState, keepsState && mayInitialize);
+    }
+
+    /**
+     * Whether the agent must find the replica's state already on the node: stateful and not on its first start.
+     *
+     * @return true when a missing state directory must stop the start
+     */
+    public boolean requiresExistingState() {
+
+        return Boolean.TRUE.equals(stateful) && !Boolean.TRUE.equals(initialize);
     }
 
     /** Compatibility: instance without generation (0). */

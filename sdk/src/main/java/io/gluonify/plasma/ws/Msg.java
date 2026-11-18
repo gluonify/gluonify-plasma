@@ -66,6 +66,13 @@ public sealed interface Msg {
     String AGENT_FEATURE_BOLT_PAIR_FILES = "bolt-pair-files";
 
     /**
+     * Optional function of the agent, announced in {@link Hello#features()}: it reads {@link io.gluonify.plasma.Instance#stateful()} and
+     * {@link io.gluonify.plasma.Instance#initialize()} and refuses to start a stateful replica whose state directory is missing on the node, unless the replica
+     * carries {@code initialize} (its first placement). A control-plane sends both fields only to an agent that announces it.
+     */
+    String AGENT_FEATURE_STATEFUL_INSTANCES = "stateful-instances";
+
+    /**
      * First message from an already enrolled node.
      *
      * <p>{@code features}: optional functions the agent supports (see {@link #AGENT_FEATURE_BOLT_PAIR_FILES}); empty for an older agent, which does not send the field.

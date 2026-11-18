@@ -42,7 +42,47 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
                               + "Prism discovers and relays them to the organization's AI assistants; the public ingress never serves /mcp in PRD. Written by Bup from the SDK marker; absent or false: no MCP tools, Prism relays nothing.", example = "true") Boolean mcp,
                       @Schema(description = "true: the application serves HTTPS on its port with a certificate of the cluster's internal authority (gluonify-codex/docs/internal-tls.md, stage 2): "
                               + "the control-plane issues it, hands it over as GLUONIFY_TLS_CERTIFICATE_PEM / GLUONIFY_TLS_PRIVATE_KEY_PEM, probes and reaches the application over TLS and announces "
-                              + "https:// to its clients. Every platform component sets it; a customer application opts in (Bup sets it from the SDK marker). Absent or false: plain HTTP behind the ingress.", example = "true") Boolean tls) {
+                              + "https:// to its clients. Every platform component sets it; a customer application opts in (Bup sets it from the SDK marker). Absent or false: plain HTTP behind the ingress.", example = "true") Boolean tls,
+                      @Schema(description = "true: each replica keeps its state on its node (a state directory the application writes, scratchMb aside): a replica whose node goes silent is never placed "
+                              + "on another node (it waits for its node), a missing replica only returns to the node recorded for its index, and the agent refuses to start it on a missing state directory "
+                              + "except at its first placement. Absent or false: stateless, a replica of a silent node restarts elsewhere on an empty directory (gluonify-codex/docs/OPERATIONS.md).", example = "true") Boolean stateful) {
+    /**
+     * Compatibility: stateless (no {@code stateful}).
+     *
+     * @param name application name
+     * @param image OCI image
+     * @param replicas replicas
+     * @param port container port
+     * @param memoryMb memory per replica (MB)
+     * @param topNamespace top namespace
+     * @param artifacts executables per architecture
+     * @param uuid stable identifier
+     * @param scratchMb temporary workspace (MB)
+     * @param nas NAS mounted
+     * @param env non-secret variables
+     * @param generated startup secrets
+     * @param uses applications used
+     * @param pin node identifier
+     * @param internal no public route
+     * @param ports additional ports
+     * @param role required node role
+     * @param distributed distributed file systems
+     * @param pullSecret download secret name
+     * @param distributedQuotaMb quota per distributed file system
+     * @param distributedLocks cross-node file locks
+     * @param sleep sleep mode
+     * @param organization owning organization
+     * @param provenance provenance token
+     * @param artifactLevel instruction-set level
+     * @param pythonVersion Python version
+     * @param mcp MCP tools
+     * @param tls internal TLS
+     */
+    public AppSpec(final String name, final String image, final Integer replicas, final Integer port, final Integer memoryMb, final String topNamespace, final Map<String, String> artifacts, final String uuid, final Integer scratchMb, final Boolean nas, final Map<String, String> env, final java.util.List<String> generated, final java.util.List<String> uses, final String pin, final Boolean internal, final java.util.List<Integer> ports, final String role, final java.util.List<String> distributed, final String pullSecret, final Integer distributedQuotaMb, final Boolean distributedLocks, final SleepSpec sleep, final String organization, final String provenance, final String artifactLevel, final String pythonVersion, final Boolean mcp, final Boolean tls) {
+
+        this(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, mcp, tls, null);
+    }
+
     /**
      * Compatibility: plain HTTP.
      */
@@ -133,32 +173,32 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
 
     /** Copy of the specification attached to another organization (null: to none). */
     public AppSpec withOrganization(final String org) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, org, provenance, artifactLevel, pythonVersion, mcp, tls);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, org, provenance, artifactLevel, pythonVersion, mcp, tls, stateful);
     }
 
     /** Copy with another quota per distributed file system (MB; null: none). Higgs writes the default quota of the organization's contract into it. */
     public AppSpec withDistributedQuotaMb(final Integer mb) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, mb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, mcp, tls);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, mb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, mcp, tls, stateful);
     }
 
     /** Copy with another provenance token (null: none). */
     public AppSpec withProvenance(final String token) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, token, artifactLevel, pythonVersion, mcp, tls);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, token, artifactLevel, pythonVersion, mcp, tls, stateful);
     }
 
     /** Copy with another executable level (null: v1). */
     public AppSpec withArtifactLevel(final String level) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, level, pythonVersion, mcp, tls);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, level, pythonVersion, mcp, tls, stateful);
     }
 
     /** Copy with another Python version (null: not a Python application). */
     public AppSpec withPythonVersion(final String version) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, version, mcp, tls);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, version, mcp, tls, stateful);
     }
 
     /** Copy with the MCP flag set or cleared (false or null: no MCP tools). */
     public AppSpec withMcp(final Boolean value) {
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, value, tls);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, value, tls, stateful);
     }
 
     /** True if the application declares MCP tools ({@code mcp: true}): only then does Prism discover and relay them. */
@@ -172,7 +212,28 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
      */
     public AppSpec withTls(final Boolean value) {
 
-        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, mcp, value);
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, mcp, value, stateful);
+    }
+
+    /**
+     * Copy with the stateful flag set or cleared.
+     *
+     * @param value True: each replica keeps its state on its node; false or null: stateless
+     * @return The copy
+     */
+    public AppSpec withStateful(final Boolean value) {
+
+        return new AppSpec(name, image, replicas, port, memoryMb, topNamespace, artifacts, uuid, scratchMb, nas, env, generated, uses, pin, internal, ports, role, distributed, pullSecret, distributedQuotaMb, distributedLocks, sleep, organization, provenance, artifactLevel, pythonVersion, mcp, tls, value);
+    }
+
+    /**
+     * Whether each replica keeps its state on its node ({@code stateful: true}): never re-placed automatically on another node.
+     *
+     * @return True when it does
+     */
+    public boolean statefulEnabled() {
+
+        return Boolean.TRUE.equals(stateful);
     }
 
     /**
@@ -220,9 +281,11 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
         port = Objects.requireNonNullElse(port, 8080);
         memoryMb = Objects.requireNonNullElse(memoryMb, 64);
         requireNamespaceAndUuid(topNamespace, uuid);
-        scratchMb = Objects.requireNonNullElse(scratchMb, DEFAULT_SCRATCH_MB);
+        stateful = Boolean.TRUE.equals(stateful) ? Boolean.TRUE : null; // false and absent are the same, as for tls
+        scratchMb = Objects.requireNonNullElse(scratchMb, stateful == null ? DEFAULT_SCRATCH_MB : 0); // a stateful replica keeps its state folder on disk
         nas = Boolean.TRUE.equals(nas);
         requireScratch(scratchMb);
+        requireStatefulOnDisk(stateful, scratchMb);
         env = sorted(env);
         generated = copyOrEmpty(generated);
         uses = copyOrEmpty(uses);
@@ -251,6 +314,11 @@ public record AppSpec(@Schema(description = "DNS label (a-z, 0-9, -); used as th
 
     private static Map<String, String> sorted(final Map<String, String> env) {
         return env == null ? Map.of() : Collections.unmodifiableMap(new TreeMap<>(env));
+    }
+
+    /** A stateful application keeps its state in the replica's folder on the node's disk: never in the in-memory work space ({@code scratchMb} above 0). */
+    private static void requireStatefulOnDisk(final Boolean stateful, final int scratchMb) {
+        if (stateful != null && scratchMb > 0) throw new IllegalArgumentException("stateful: the state folder is on the node's disk, scratchMb must be 0 (or absent)");
     }
 
     private static void requireScratch(final int scratchMb) {
