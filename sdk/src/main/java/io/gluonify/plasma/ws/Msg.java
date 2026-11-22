@@ -73,6 +73,15 @@ public sealed interface Msg {
     String AGENT_FEATURE_STATEFUL_INSTANCES = "stateful-instances";
 
     /**
+     * Optional function of the agent, announced in {@link Hello#features()}: it reads {@link io.gluonify.plasma.Instance#freshState()} and, for a replica that is
+     * stateful, carries {@code initialize} and a {@code freshState} identity, renames an existing state directory to {@code <directory>.set-aside-<stamp>} (never
+     * deleted) before starting it with an empty one, once per identity (a later restart under the same identity keeps the new directory). A control-plane sends
+     * the field only to an agent that announces it, and may then place such a replica on a node that still holds an old state directory of the same name (a gDown
+     * member under a new identity).
+     */
+    String AGENT_FEATURE_FRESH_STATE = "fresh-state-folders";
+
+    /**
      * First message from an already enrolled node.
      *
      * <p>{@code features}: optional functions the agent supports (see {@link #AGENT_FEATURE_BOLT_PAIR_FILES}); empty for an older agent, which does not send the field.
