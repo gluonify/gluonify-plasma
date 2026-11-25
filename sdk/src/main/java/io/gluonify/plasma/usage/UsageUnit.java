@@ -16,10 +16,15 @@ import java.util.regex.Pattern;
  * @param dims      enumerated dimensions and their allowed values (stable order)
  * @param free      dimensions whose values are not enumerated: any {@link #FREE_VALUE} (an agent id, a ticket key)
  * @param highCardinality the free dimensions whose values are unbounded (a ticket): the calorimeter keeps them at the detailed level for a limited time, then rolls them up without them
+ *
+ * @author David CABILLIC
  */
 public record UsageUnit(String name, String service, Quantity quantity, boolean billable, boolean internal, Map<String, List<String>> dims, Set<String> free, Set<String> highCardinality) {
-    /** Most dimensions on one record. */
-    public static final int MAX_DIMS = 6;
+    /**
+     * Most dimensions on one record: 7 since a {@code superposition.runs} record carries {@code role}, {@code tier}, {@code engine}, {@code model},
+     * {@code outcome}, {@code agent} and {@code ticket} (6 before, with {@code level} in place of {@code role} and {@code tier}).
+     */
+    public static final int MAX_DIMS = 7;
 
     /** What a free dimension may hold: a short token (no space, no separator of the key format). */
     public static final Pattern FREE_VALUE = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._:/#-]{0,63}");
@@ -31,15 +36,34 @@ public record UsageUnit(String name, String service, Quantity quantity, boolean 
         if (!free.containsAll(highCardinality)) throw new IllegalArgumentException(name + ": a highCardinality dimension is a free one");
     }
 
-    /** A unit whose dimensions are all enumerated. */
+    /**
+     * A unit whose dimensions are all enumerated.
+     *
+     * @param name     {@code <service>.<unit>}
+     * @param service  emitting service
+     * @param quantity quantity kind of the records
+     * @param billable true: {@code billable}; false: {@code indicative}
+     * @param internal platform cost never billed to the customer
+     * @param dims     enumerated dimensions and their allowed values
+     */
     public UsageUnit(final String name, final String service, final Quantity quantity, final boolean billable, final boolean internal, final Map<String, List<String>> dims) {
         this(name, service, quantity, billable, internal, dims, Set.of(), Set.of());
     }
 
-    /** Priceable: billable and not internal. */
+    /**
+     * Priceable: billable and not internal.
+     *
+     * @return true when a price grid may name the unit
+     */
     public boolean priceable() { return billable && !internal; }
 
-    /** True when the dimensions of a record are allowed: not too many, each enumerated with an allowed value or free with a well-formed one. */
+    /**
+     * Whether the dimensions of a record are allowed: not too many, each enumerated with an allowed value or free with a well-formed one. A record
+     * may leave out any dimension, so an emitter that predates a dimension stays accepted.
+     *
+     * @param given the record's dimensions, or null
+     * @return true when the record may be kept
+     */
     public boolean acceptsDims(final Map<String, String> given) {
         if (given == null || given.isEmpty()) return true;
         if (given.size() > MAX_DIMS) return false;
@@ -51,7 +75,11 @@ public record UsageUnit(String name, String service, Quantity quantity, boolean 
         return true;
     }
 
-    /** Every dimension a client may send: the enumerated ones and the free ones. */
+    /**
+     * Every dimension a client may send: the enumerated ones and the free ones.
+     *
+     * @return the names, sorted
+     */
     public Set<String> allDims() {
         final Set<String> all = new java.util.TreeSet<>(dims.keySet());
         all.addAll(free);

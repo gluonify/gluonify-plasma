@@ -38,12 +38,13 @@ class UsageUnitTest {
     }
 
     @Test
-    void moreThanSixDimensionsAreRefused() {
+    void moreThanSevenDimensionsAreRefused() {
 
-        final var many = new UsageUnit("x.many", "x", Quantity.COUNT, false, false, Map.of(), Set.of("a", "b", "c", "d", "e", "f", "g"), Set.of());
+        final var many = new UsageUnit("x.many", "x", Quantity.COUNT, false, false, Map.of(), Set.of("a", "b", "c", "d", "e", "f", "g", "h"), Set.of());
 
-        assertTrue(many.acceptsDims(Map.of("a", "1", "b", "1", "c", "1", "d", "1", "e", "1", "f", "1")));
-        assertFalse(many.acceptsDims(Map.of("a", "1", "b", "1", "c", "1", "d", "1", "e", "1", "f", "1", "g", "1")));
+        assertEquals(7, UsageUnit.MAX_DIMS);
+        assertTrue(many.acceptsDims(Map.of("a", "1", "b", "1", "c", "1", "d", "1", "e", "1", "f", "1", "g", "1")));
+        assertFalse(many.acceptsDims(Map.of("a", "1", "b", "1", "c", "1", "d", "1", "e", "1", "f", "1", "g", "1", "h", "1")));
     }
 
     @Test

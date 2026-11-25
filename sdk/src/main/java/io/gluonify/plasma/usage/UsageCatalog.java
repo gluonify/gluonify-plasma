@@ -31,6 +31,16 @@ public final class UsageCatalog {
     /** Engines of gluonify-superposition (dimension {@code engine} of its units). */
     private static final List<String> SUPERPOSITION_ENGINES = List.of("edge", "claude");
 
+    /**
+     * Roles of gluonify-superposition's runs (dimension {@code role} of {@code superposition.runs}, its {@code docs/roles.md} § 3), plus {@code prompt},
+     * the role its {@code Metering} writes for a run that has none (a prompt run written before the roles, a prompt draft, an epic split).
+     */
+    private static final List<String> SUPERPOSITION_ROLES = List.of("planning", "architecture", "security-review", "security-testing", "code-analysis",
+            "code-writing", "test-writing", "code-review", "documentation", "translation", "prompt");
+
+    /** Tiers of gluonify-superposition's runs, in escalation order (dimension {@code tier} of {@code superposition.runs}, {@code docs/roles.md} § 2). */
+    private static final List<String> SUPERPOSITION_TIERS = List.of("local", "standard", "strong", "top");
+
     private static final Map<String, UsageUnit> UNITS = new LinkedHashMap<>();
 
     private static void unit(final String name, final Quantity q, final boolean billable, final boolean internal, final Map<String, List<String>> dims) {
@@ -105,8 +115,10 @@ public final class UsageCatalog {
         // free: the agent id and the tracker key of the ticket (unbounded: highCardinality, rolled up after usage.high-cardinality-retention)
         unit("superposition.tokens", Quantity.COUNT, Map.of(MODEL, SUPERPOSITION_MODELS, KIND, List.of("input", "output", "cache_read", "cache_write"), ENGINE, SUPERPOSITION_ENGINES),
                 Set.of(AGENT, TICKET), Set.of(TICKET));
-        unit("superposition.runs", Quantity.COUNT, Map.of("level", List.of("L0", "L1", "L2", "L3"), ENGINE, SUPERPOSITION_ENGINES, MODEL, SUPERPOSITION_MODELS,
-                "outcome", List.of("success", "failure", "interrupted", "timeout")), Set.of(AGENT, TICKET), Set.of(TICKET));
+        // role and tier (docs/roles.md § 6) replace level; level stays for the emitters and the records written before them
+        unit("superposition.runs", Quantity.COUNT, Map.of("level", List.of("L0", "L1", "L2", "L3"), "role", SUPERPOSITION_ROLES, "tier", SUPERPOSITION_TIERS,
+                ENGINE, SUPERPOSITION_ENGINES, MODEL, SUPERPOSITION_MODELS, "outcome", List.of("success", "failure", "interrupted", "timeout")),
+                Set.of(AGENT, TICKET), Set.of(TICKET));
         unit("superposition.cost.usd", Quantity.COUNT, Map.of(MODEL, SUPERPOSITION_MODELS, ENGINE, SUPERPOSITION_ENGINES), Set.of(AGENT, TICKET), Set.of(TICKET));
         // analyses (analysis.md § 10)
         unit(AnalysisUnits.BUP_ANALYSIS_RUNS, Quantity.COUNT, AnalysisUnits.DIM_KIND, AnalysisUnits.ANALYSIS_KINDS);
