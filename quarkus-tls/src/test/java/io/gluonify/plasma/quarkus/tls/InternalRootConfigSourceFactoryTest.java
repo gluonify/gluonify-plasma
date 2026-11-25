@@ -106,6 +106,22 @@ class InternalRootConfigSourceFactoryTest {
     }
 
     @Test
+    void theDefaultTenantOfAnApplicationWithItsRealmExpressionTrustsTheRoot() throws IOException {
+
+        // The exact shape of gluonify-source's application.properties (round 28): Charm's variable with a local default, then a realm chosen by nested expressions.
+        final String file = root().toString();
+        final SmallRyeConfig config = new SmallRyeConfigBuilder().addDefaultInterceptors()
+                .withSources(new PropertiesConfigSource(Map.of("GLUONIFY_CA_FILE", file, InternalRootConfigSourceFactory.CHARM_URL, CHARM, "GLUONIFY_OIDC_REALM", "org-acme"),
+                        "environment", 300))
+                .withSources(new PropertiesConfigSource(Map.of("quarkus.oidc.application-type", "service", "quarkus.oidc.auth-server-url",
+                        "${GLUONIFY_SERVICE_CHARM_URL:http://localhost:8180}/realms/${GLUONIFY_SOURCE_OIDC_REALM:${GLUONIFY_OIDC_REALM:gluonify}}"), "application.properties", 250))
+                .withSources(new InternalRootConfigSourceFactory()).build();
+        assertEquals(CHARM + "/realms/org-acme", config.getConfigValue("quarkus.oidc.auth-server-url").getValue());
+        assertEquals(file, config.getConfigValue(InternalRootConfigSourceFactory.TRUST_PROPERTY).getValue());
+        assertEquals(InternalRootConfigSourceFactory.CONFIGURATION, config.getConfigValue(DEFAULT_TENANT).getValue());
+    }
+
+    @Test
     void theFactoryAddsNoSourceWithoutARoot() {
 
         final SmallRyeConfig config = new SmallRyeConfigBuilder().addDefaultInterceptors().withSources(new InternalRootConfigSourceFactory()).build();
