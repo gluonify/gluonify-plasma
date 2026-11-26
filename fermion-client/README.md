@@ -25,6 +25,7 @@ WebSocket client for **gluonify-fermion** (BPMN workflow and DMN rule engine) fo
 | `gluonify.fermion.client.capacity.slots.<name>` | none | concurrent tasks per resource name (`heavy=1`, `claude=3`), announced in `Hello`; a skill holds them through `SkillHandler#requires()` |
 | `gluonify.fermion.client.capacity.closed` | none | comma-separated windows without new tasks, `[DAYS ]HH:mm-HH:mm` (`23:30-07:00`, `MON 00:00-06:00`) |
 | `gluonify.fermion.client.capacity.zone` | `Europe/Paris` | time zone of the windows |
+| `gluonify.fermion.client.matrix` | `${gluonify.matrix.version:}` | gluonify-matrix bundle version announced in `Hello.matrix` (the component filters `gluonify.matrix.version=@gluonify.matrix.version@` into its `application.properties`); only a release version `x.y.z` (one to four digits each) is announced, in its canonical form (`01.2.3` as `1.2.3`); blank: nothing; an unfiltered placeholder (quarkus:dev, an IDE): nothing, one INFO line at start-up; any other value (`1.2`, `1.2.3-rc1`, a range): nothing, one WARN line; never a failed start (`MatrixVersion`) |
 
 Add to the application (large messages are fragmented):
 

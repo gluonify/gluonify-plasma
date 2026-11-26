@@ -43,9 +43,11 @@ public interface FermionClientConfig {
     /**
      * Version of the gluonify-matrix bundle (default BPMN2/DMN models) this component was built against, announced in {@code Hello}: fermion
      * then loads that verified bundle when it is above its own. Defaults to {@code gluonify.matrix.version}, the gluonify-plasma parent property
-     * a component filters into its {@code application.properties}; empty: no announcement.
+     * a component filters into its {@code application.properties}; empty: no announcement. Only a release version ({@code x.y.z}, one to four
+     * digits each) is announced, in its canonical form; an unfiltered placeholder or another value is announced as nothing, with one start-up
+     * line that says why ({@code MatrixVersion}).
      *
-     * @return the version, empty when none is announced
+     * @return the configured version, empty when none is configured
      */
     @WithDefault("${gluonify.matrix.version:}")
     Optional<String> matrix();

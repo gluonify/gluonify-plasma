@@ -5,6 +5,7 @@ import static io.gluonify.plasma.fermion.client.PlainFermionFixtures.instance;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.gluonify.plasma.fermion.FermionMsg;
+import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -128,6 +129,34 @@ class FermionClientPlainGapsTest {
     void theHelloAnnouncesTheMatrixVersionWhenConfigured() {
         assertEquals("0.9.5", client(Map.of("matrix", Optional.of("0.9.5"))).hello().matrix());
         assertNull(client(Map.of()).hello().matrix(), "no version: the former hello");
+        assertEquals("1.2.3", client(Map.of("matrix", Optional.of(" 01.2.3 "))).hello().matrix(), "the canonical form fermion records");
+    }
+
+    @Test
+    void anUnfilteredPlaceholderOrAMalformedMatrixVersionIsNotAnnounced() {
+        for (final String configured : List.of("@gluonify.matrix.version@", "${gluonify.matrix.version}", "1.2", "1.2.3-rc1", "[1.0.0,2.0.0)", "  ")) {
+            assertNull(client(Map.of("matrix", Optional.of(configured))).hello().matrix(), configured);
+        }
+    }
+
+    @Test
+    void theMatrixVersionIsReadOnceAtStartUp() {
+        final int[] reads = {0};
+        final FermionClient c = client(Map.of("url", Optional.of("ws://localhost:1")));
+        final FermionClientConfig counted = c.config;
+        c.config = (FermionClientConfig) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{FermionClientConfig.class}, (p, m, a) -> {
+            if (m.getName().equals("matrix")) {
+                reads[0]++;
+                return Optional.of("0.9.5");
+            }
+            return m.invoke(counted, a);
+        });
+        next[0] = null;
+        c.onStart(null);
+        assertEquals(1, reads[0], "read at start-up, even when the first connection fails");
+        assertEquals("0.9.5", c.hello().matrix());
+        assertEquals("0.9.5", c.hello().matrix());
+        assertEquals(1, reads[0], "then remembered: one start-up line, whatever the reconnections");
     }
 
     @Test

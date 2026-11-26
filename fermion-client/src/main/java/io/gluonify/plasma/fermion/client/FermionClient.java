@@ -74,6 +74,10 @@ public class FermionClient {
     private final AtomicReference<BiConsumer<String, Map<String, Object>>> doneSink = new AtomicReference<>();
     private final AtomicInteger connectorsCreated = new AtomicInteger();
     private final AtomicReference<Optional<String>> resolvedUrl = new AtomicReference<>();
+    private final Object matrixLock = new Object();
+    /** The version {@link #matrix()} settled on, {@code null} for none; meaningful once {@code matrixRead}. Guarded by {@code matrixLock}. */
+    private String matrixVersion;
+    private boolean matrixRead;
 
     /** Active client: enabled and fermion URL known (configured, or resolved by {@code GluonifyServices}). */
     public boolean isActive() {
@@ -187,7 +191,27 @@ public class FermionClient {
             Log.info("fermion-client=disabled (no URL or enabled=false)");
             return;
         }
+        matrix();
         connect();
+    }
+
+    /**
+     * The gluonify-matrix version announced in {@code Hello}: {@code gluonify.fermion.client.matrix} when it is a release version, in its
+     * canonical form, otherwise none ({@code MatrixVersion}). Read once; the first read (at start-up) writes the line that says why.
+     *
+     * @return the version announced, empty when none
+     */
+    Optional<String> matrix() {
+
+        synchronized (matrixLock) {
+            if (!matrixRead) {
+                final String configured = config.matrix().orElse(null);
+                matrixVersion = MatrixVersion.canonical(configured).orElse(null);
+                MatrixVersion.of(configured).log(configured);
+                matrixRead = true;
+            }
+            return Optional.ofNullable(matrixVersion);
+        }
     }
 
     @Scheduled(every = "${gluonify.fermion.client.reconnect-interval:10s}", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
@@ -348,7 +372,7 @@ public class FermionClient {
             used.addAll(usage.getUsedWorkflows());
         }
         final String self = config.selfUrl().filter(s -> !s.isBlank()).map(s -> stripTrailingSlashes(s) + "/q/openapi").orElse(null);
-        return new FermionMsg.Hello(identity.appId(), identity.nodeId(), registry.skills(), used, self, capacity(), config.matrix().orElse(null));
+        return new FermionMsg.Hello(identity.appId(), identity.nodeId(), registry.skills(), used, self, capacity(), matrix().orElse(null));
     }
 
     /** The capacity of {@code gluonify.fermion.client.capacity.*}; an invalid window or slot fails the connection with a clear message. */
