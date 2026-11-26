@@ -94,7 +94,7 @@ class FermionContractTest {
     }
 
     @Test
-    void helloCarriesTheMatrixVersionOnlyWhenAnnounced() throws IOException {
+    void helloCarriesTheMatrixVersionOnlyWhenAnnounced() {
 
         final FermionMsg.Hello announced = new FermionMsg.Hello("tracker", "0", null, null, null, null, " 0.9.5 ");
         assertEquals("0.9.5", announced.matrix());
@@ -117,7 +117,7 @@ class FermionContractTest {
     }
 
     @Test
-    void anEarlierFermionIgnoresTheMatrixVersion() throws IOException {
+    void anEarlierFermionIgnoresTheMatrixVersion() {
 
         final String text = json.writeValueAsString(new FermionMsg.Hello("tracker", "0", null, null, null, null, "0.9.5"));
         assertEquals("tracker", assertInstanceOf(EarlierMsg.Hello.class, json.readValue(text, EarlierMsg.class)).appId());
