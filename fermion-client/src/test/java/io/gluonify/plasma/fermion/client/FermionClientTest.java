@@ -92,6 +92,7 @@ class FermionClientTest {
         assertEquals(Map.of("claude", 3, "heavy", 1), hello.capacity().slots());
         assertEquals(List.of("23:30-07:00", "SAT 00:00-00:00"), hello.capacity().closed().stream().map(Object::toString).toList());
         assertEquals("Europe/Paris", hello.capacity().closed().get(0).zone());
+        assertEquals("0.9.4", hello.matrix(), "gluonify.matrix.version, the parent property filtered into application.properties");
     }
 
     @Test

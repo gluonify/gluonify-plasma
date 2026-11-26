@@ -125,6 +125,12 @@ class FermionClientPlainGapsTest {
     }
 
     @Test
+    void theHelloAnnouncesTheMatrixVersionWhenConfigured() {
+        assertEquals("0.9.5", client(Map.of("matrix", Optional.of("0.9.5"))).hello().matrix());
+        assertNull(client(Map.of()).hello().matrix(), "no version: the former hello");
+    }
+
+    @Test
     void withoutATokenProviderOrTokenNothingIsAttempted() {
         final FermionClient none = active();
         none.tokens = instance(List.of());

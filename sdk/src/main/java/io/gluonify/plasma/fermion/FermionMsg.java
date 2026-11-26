@@ -19,7 +19,7 @@ import java.util.Map;
  * {@code globalTransactionId} anchors an entire business transaction across a fan-out (a submission that becomes N documents, each with its own
  * {@code correlationId}): set at {@link Start} (by default the first {@code correlationId}) and inherited as is by all the branches.
  * <p>
- * {@link Done}, {@link Cancel}, {@link Progress#data()}, {@link Hello#capacity()} and {@link SkillDescriptor#requires()} were added without
+ * {@link Done}, {@link Cancel}, {@link Progress#data()}, {@link Hello#capacity()}, {@link Hello#matrix()} and {@link SkillDescriptor#requires()} were added without
  * changing {@link #PROTOCOL}: every record ignores unknown fields, and a node that does not know a frame type logs a read error and goes on.
  *
  * @author David CABILLIC
@@ -51,7 +51,9 @@ public sealed interface FermionMsg {
 
     /**
      * Announcement from the node, on connection then on every change: skills, workflows used, address of its OpenAPI and, optionally, its
-     * {@link NodeCapacity} (slots and closed windows, extension E4; {@code null} or empty: placement by capability and round robin only).
+     * {@link NodeCapacity} (slots and closed windows, extension E4; {@code null} or empty: placement by capability and round robin only) and the
+     * gluonify-matrix bundle version it was built against ({@code matrix}: fermion loads that verified bundle when it is above its own,
+     * {@code null}: no announcement).
      *
      * @param appId         application of the node
      * @param nodeId        node within the application
@@ -59,15 +61,35 @@ public sealed interface FermionMsg {
      * @param usedWorkflows workflows the node submits
      * @param openApiUrl    address of the node's OpenAPI, or {@code null}
      * @param capacity      slots and closed windows, or {@code null}
+     * @param matrix        version of the gluonify-matrix bundle (default BPMN2/DMN models) the node was built against, or {@code null}
      * @author David CABILLIC
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Hello(String appId, String nodeId, List<SkillDescriptor> skills, List<WorkflowDescriptor> usedWorkflows, String openApiUrl,
-                 NodeCapacity capacity) implements FermionMsg {
+                 NodeCapacity capacity, String matrix) implements FermionMsg {
 
         /**
-         * Normalises the lists ({@code null} becomes empty) and an empty capacity to {@code null}.
+         * Normalises the lists ({@code null} becomes empty), an empty capacity and a blank matrix version to {@code null}.
+         *
+         * @param appId         application of the node
+         * @param nodeId        node within the application
+         * @param skills        skills the node runs
+         * @param usedWorkflows workflows the node submits
+         * @param openApiUrl    address of the node's OpenAPI, or {@code null}
+         * @param capacity      slots and closed windows, or {@code null}
+         * @param matrix        version of the gluonify-matrix bundle the node was built against, or {@code null}
+         */
+        public Hello {
+
+            skills = skills == null ? List.of() : skills;
+            usedWorkflows = usedWorkflows == null ? List.of() : usedWorkflows;
+            capacity = capacity == null || capacity.isEmpty() ? null : capacity;
+            matrix = matrix == null || matrix.isBlank() ? null : matrix.strip();
+        }
+
+        /**
+         * Announcement without a matrix version (the form of the nodes before the automatic schema updates).
          *
          * @param appId         application of the node
          * @param nodeId        node within the application
@@ -76,11 +98,10 @@ public sealed interface FermionMsg {
          * @param openApiUrl    address of the node's OpenAPI, or {@code null}
          * @param capacity      slots and closed windows, or {@code null}
          */
-        public Hello {
+        public Hello(final String appId, final String nodeId, final List<SkillDescriptor> skills, final List<WorkflowDescriptor> usedWorkflows,
+                     final String openApiUrl, final NodeCapacity capacity) {
 
-            skills = skills == null ? List.of() : skills;
-            usedWorkflows = usedWorkflows == null ? List.of() : usedWorkflows;
-            capacity = capacity == null || capacity.isEmpty() ? null : capacity;
+            this(appId, nodeId, skills, usedWorkflows, openApiUrl, capacity, null);
         }
 
         /**
@@ -94,7 +115,8 @@ public sealed interface FermionMsg {
          */
         public Hello(final String appId, final String nodeId, final List<SkillDescriptor> skills, final List<WorkflowDescriptor> usedWorkflows,
                      final String openApiUrl) {
-            this(appId, nodeId, skills, usedWorkflows, openApiUrl, null);
+
+            this(appId, nodeId, skills, usedWorkflows, openApiUrl, null, null);
         }
     }
 

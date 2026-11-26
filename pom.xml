@@ -56,6 +56,10 @@
          A literal and not ${project.version}: Maven interpolates an inherited dependencyManagement in the CHILD's context, so a customer
          project with the parent 0.7.3 asked for gluonify-plasma-sdk at its own version (gluonify-probe, quark, 2026-10-23). -->
     <gluonify.plasma.version>0.3.0-SNAPSHOT</gluonify.plasma.version>
+    <!-- Version of the gluonify-matrix bundle (Fermion's default BPMN2/DMN models) the components are built against, overridable per component.
+         A component filters it into its application.properties (gluonify.matrix.version=${gluonify.matrix.version}); fermion-client announces it
+         in its HELLO and Fermion loads that verified bundle when it is above its own (gluonify-fermion README, "Automatic schema updates"). -->
+    <gluonify.matrix.version>0.9.4</gluonify.matrix.version>
     <!-- Version of gluonify-plasma-build-rules (the PMD ruleset). -->
     <gluonify.build-rules.version>${gluonify.plasma.version}</gluonify.build-rules.version>
     <!-- Coverage ratchet (JaCoCo, whole module): each repository sets its current level rounded down, raises it with its tests, never lowers it. -->

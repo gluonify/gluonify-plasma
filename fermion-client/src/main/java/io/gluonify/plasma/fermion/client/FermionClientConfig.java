@@ -40,6 +40,16 @@ public interface FermionClientConfig {
     @WithDefault("${GLUONIFY_SELF_URL:}")
     Optional<String> selfUrl();
 
+    /**
+     * Version of the gluonify-matrix bundle (default BPMN2/DMN models) this component was built against, announced in {@code Hello}: fermion
+     * then loads that verified bundle when it is above its own. Defaults to {@code gluonify.matrix.version}, the gluonify-plasma parent property
+     * a component filters into its {@code application.properties}; empty: no announcement.
+     *
+     * @return the version, empty when none is announced
+     */
+    @WithDefault("${gluonify.matrix.version:}")
+    Optional<String> matrix();
+
     /** Maximum number of {@code Start} messages kept during a disconnection. */
     @WithDefault("100")
     int queueSize();

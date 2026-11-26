@@ -348,7 +348,7 @@ public class FermionClient {
             used.addAll(usage.getUsedWorkflows());
         }
         final String self = config.selfUrl().filter(s -> !s.isBlank()).map(s -> stripTrailingSlashes(s) + "/q/openapi").orElse(null);
-        return new FermionMsg.Hello(identity.appId(), identity.nodeId(), registry.skills(), used, self, capacity());
+        return new FermionMsg.Hello(identity.appId(), identity.nodeId(), registry.skills(), used, self, capacity(), config.matrix().orElse(null));
     }
 
     /** The capacity of {@code gluonify.fermion.client.capacity.*}; an invalid window or slot fails the connection with a clear message. */

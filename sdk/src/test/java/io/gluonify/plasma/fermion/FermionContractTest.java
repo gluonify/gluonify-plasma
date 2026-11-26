@@ -94,6 +94,36 @@ class FermionContractTest {
     }
 
     @Test
+    void helloCarriesTheMatrixVersionOnlyWhenAnnounced() throws IOException {
+
+        final FermionMsg.Hello announced = new FermionMsg.Hello("tracker", "0", null, null, null, null, " 0.9.5 ");
+        assertEquals("0.9.5", announced.matrix());
+        final String text = json.writeValueAsString(announced);
+        assertEquals("{\"t\":\"hello\",\"appId\":\"tracker\",\"nodeId\":\"0\",\"skills\":[],\"usedWorkflows\":[],\"matrix\":\"0.9.5\"}", text);
+        assertEquals(announced, json.readValue(text, FermionMsg.class), "round trip");
+        assertNull(new FermionMsg.Hello("a", "n", null, null, null, null, "  ").matrix(), "a blank version is no announcement");
+        assertNull(new FermionMsg.Hello("a", "n", null, null, null, null).matrix(), "the former constructor announces nothing");
+        assertFalse(json.writeValueAsString(new FermionMsg.Hello("a", "n", null, null, null)).contains("matrix"), "the former JSON");
+    }
+
+    @Test
+    void anOlderNodeHelloWithoutMatrixIsReadAndALaterFieldIsIgnored() throws IOException {
+
+        final FermionMsg.Hello old = assertInstanceOf(FermionMsg.Hello.class, json.readValue(fixture("hello-plain"), FermionMsg.class));
+        assertNull(old.matrix(), "a node built before the field announces nothing");
+        final FermionMsg.Hello later = assertInstanceOf(FermionMsg.Hello.class,
+                json.readValue("{\"t\":\"hello\",\"appId\":\"a\",\"nodeId\":\"n\",\"matrix\":\"1.0.0\",\"later\":{\"x\":1}}", FermionMsg.class));
+        assertEquals("1.0.0", later.matrix());
+    }
+
+    @Test
+    void anEarlierFermionIgnoresTheMatrixVersion() throws IOException {
+
+        final String text = json.writeValueAsString(new FermionMsg.Hello("tracker", "0", null, null, null, null, "0.9.5"));
+        assertEquals("tracker", assertInstanceOf(EarlierMsg.Hello.class, json.readValue(text, EarlierMsg.class)).appId());
+    }
+
+    @Test
     void skillRequirementsAreSortedAndOptional() {
 
         final SkillDescriptor skill = new SkillDescriptor(RUN, List.of(), List.of(), List.of(), "PT12H", Map.of("model", 1, "heavy", 1));

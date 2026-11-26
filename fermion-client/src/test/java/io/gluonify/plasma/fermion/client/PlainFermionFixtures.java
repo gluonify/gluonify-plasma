@@ -41,6 +41,7 @@ final class PlainFermionFixtures {
                 case "reconnectInterval" -> "10s";
                 case "heartbeatInterval" -> Duration.ZERO;
                 case "capacity" -> capacity;
+                case "matrix" -> Optional.<String>empty();
                 default -> throw new UnsupportedOperationException(m.getName());
             };
         });
