@@ -356,6 +356,17 @@ class CliGapsTest {
     }
 
     @Test
+    void anAuthorizationEndpointWithAQueryKeepsItAndAppendsTheRequest() {
+        cluster.openidTweak = m -> {
+            m.put("authorization_endpoint", cluster.issuer() + "/authorize?kc_idp_hint=corporate");
+            return m;
+        };
+        assertEquals(0, login(), err());
+        assertEquals("corporate", cluster.lastAuthorize.get("kc_idp_hint"), "the endpoint's own parameter is kept");
+        assertEquals(FakeCluster.CLIENT_ID, cluster.lastAuthorize.get("client_id"), "the request is appended after '&'");
+    }
+
+    @Test
     void aServicesLineWithoutEnvironmentOmitsTheParentheses() {
         cluster.discoveryTweak = m -> {
             m.remove("environment");
