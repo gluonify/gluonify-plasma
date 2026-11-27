@@ -93,8 +93,8 @@ public sealed interface Msg {
      * First message from an already enrolled node.
      *
      * <p>{@code features}: optional functions the agent supports (see {@link #AGENT_FEATURE_BOLT_PAIR_FILES}); empty for an older agent, which does not send the field.
-     * An older control-plane ignores the field (unknown properties are not refused on this channel). A node that has just enrolled has announced nothing until its next
-     * {@code Hello}: the control-plane treats it as an agent without features.
+     * An older control-plane ignores the field (unknown properties are not refused on this channel). Since {@link Enroll#features()}, an agent announces its functions at enrolment to a
+     * control-plane that announces {@link #FEATURE_ENROLL_FEATURES}; an older control-plane learns them at the next {@code Hello}.
      *
      * @param node identifier of the node
      * @param secret the node's secret, received in {@link Enrolled}
