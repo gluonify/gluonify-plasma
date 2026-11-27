@@ -66,6 +66,14 @@ public sealed interface Msg {
     String AGENT_FEATURE_BOLT_PAIR_FILES = "bolt-pair-files";
 
     /**
+     * Optional function of the agent, announced in {@link Hello#features()} (and {@link Enroll#features()}): the agent writes gDown's Raft certificate pair and its
+     * authority as files of the instance ({@code raft.crt}, {@code raft.key}, {@code raft-ca.crt}) and renews them in place, without a restart, when the deployment
+     * carries {@code GLUONIFY_GDOWN_CLUSTER_TLS_DELIVERY=files} (GLU-119). A control-plane may then skip the redeploy of a gDown member whose only change is a renewed
+     * Raft pair, on a node that announces it.
+     */
+    String AGENT_FEATURE_RAFT_PAIR_FILES = "raft-pair-files";
+
+    /**
      * Optional function of the agent, announced in {@link Hello#features()}: it reads {@link io.gluonify.plasma.Instance#stateful()} and
      * {@link io.gluonify.plasma.Instance#initialize()} and refuses to start a stateful replica whose state directory is missing on the node, unless the replica
      * carries {@code initialize} (its first placement). A control-plane sends both fields only to an agent that announces it.
@@ -130,10 +138,75 @@ public sealed interface Msg {
         }
     }
 
-    /** First message from a new node: consumes a single-use token; empty address = source address of the connection. */
-    record Enroll(String token, String address, int memoryMb, String arch, String role) implements Msg {
+    /**
+     * First message from a new node: consumes a single-use token; empty address = source address of the connection.
+     *
+     * <p>{@code features}: optional functions the agent supports, the same names as {@link Hello#features()}, so that a control-plane knows them from the enrolment on
+     * instead of at the agent's next {@code Hello}. Empty for an older agent, which does not send the field. An older control-plane ignores the field (unknown
+     * properties are not refused on this channel) and treats the node as an agent without features until its next {@code Hello}; an agent therefore keeps saying
+     * {@code Hello} right after its enrolment unless the {@link Enrolled} reply announces {@link #FEATURE_ENROLL_FEATURES}.
+     *
+     * @param token the single-use enrolment token
+     * @param address the node's address; empty = source address of the connection
+     * @param memoryMb memory of the node, in MiB
+     * @param arch architecture of the node
+     * @param role role of the node; {@code null} for none
+     * @param features optional functions of the agent; {@code null} reads as empty
+     * @author David CABILLIC
+     */
+    record Enroll(String token, String address, int memoryMb, String arch, String role, List<String> features) implements Msg {
+
+        /**
+         * An enrolment whose feature list is never null and cannot be changed.
+         *
+         * @param token the single-use enrolment token
+         * @param address the node's address; empty = source address of the connection
+         * @param memoryMb memory of the node, in MiB
+         * @param arch architecture of the node
+         * @param role role of the node; {@code null} for none
+         * @param features optional functions of the agent; {@code null} reads as empty
+         */
+        public Enroll {
+
+            features = features == null ? List.of() : List.copyOf(features);
+        }
+
+        /**
+         * Compatibility: an enrolment without features (an agent that announces none at enrolment).
+         *
+         * @param token the single-use enrolment token
+         * @param address the node's address; empty = source address of the connection
+         * @param memoryMb memory of the node, in MiB
+         * @param arch architecture of the node
+         * @param role role of the node; {@code null} for none
+         */
+        public Enroll(final String token, final String address, final int memoryMb, final String arch, final String role) {
+
+            this(token, address, memoryMb, arch, role, null);
+        }
+
+        /**
+         * Compatibility: an enrolment without role nor features.
+         *
+         * @param token the single-use enrolment token
+         * @param address the node's address; empty = source address of the connection
+         * @param memoryMb memory of the node, in MiB
+         * @param arch architecture of the node
+         */
         public Enroll(final String token, final String address, final int memoryMb, final String arch) {
-            this(token, address, memoryMb, arch, null);
+
+            this(token, address, memoryMb, arch, null, null);
+        }
+
+        /**
+         * Whether the agent announced a function at its enrolment.
+         *
+         * @param feature name of the function, for example {@link #AGENT_FEATURE_BOLT_PAIR_FILES}
+         * @return true when {@code features} lists it
+         */
+        public boolean supports(final String feature) {
+
+            return features.contains(feature);
         }
     }
 
@@ -361,6 +434,13 @@ public sealed interface Msg {
      * to a control-plane that announces it (an old control-plane refuses an unknown message and closes the connection).
      */
     String FEATURE_USAGE = "usage";
+
+    /**
+     * Optional feature of the control-plane, announced in {@link Enrolled} (and {@link Welcome}): it reads {@link Enroll#features()}, so an agent that has just
+     * enrolled need not say {@code Hello} again to announce its functions. An agent facing a control-plane that does not announce it says {@code Hello} right after
+     * its enrolment, as before.
+     */
+    String FEATURE_ENROLL_FEATURES = "enroll-features";
 
     /** {@code features}: see {@link #FEATURE_USAGE}; empty for an old control-plane. */
     record Welcome(String node, List<String> features) implements Msg {
